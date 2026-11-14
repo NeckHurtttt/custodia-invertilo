@@ -126,8 +126,8 @@ test('guardar y cargar conserva la partida', () => {
   G.update(t, 0.5);
 });
 
-test('10 días sin escapar = derrota', () => {
-  const s = fresh(); s.drones = []; s.day = 10; s.min = 1430; G.update(s, 5); assert.equal(s.over?.won, false);
+test('10 días manteniendo la base = llega el rescate (victoria); escapar es una ruta extra', () => {
+  const s = fresh(); s.drones = []; s.day = 10; s.min = 1430; G.update(s, 5); assert.equal(s.over?.won, true); assert.equal(s.over.route, 'rescate');
 });
 
 test('soltar y recoger cosas; los drones confiscan herramientas tiradas', () => {

@@ -133,7 +133,7 @@ export function newGame(loc = 'estacion', seed = Date.now() & 0x7fffffff, difKey
   S.init(s, opts);
   refill(s); if (s.mode !== 'noche') planEvents(s); newWants(s); V.startDay(s);
   if (s.mode === 'noche') say(s, `UNA NOCHE en ${L.name}. Ya tienes parte del plan. Escapa antes de las 06:00 o ${L.ai} te descubre.`, 'ia');
-  else say(s, `Día 1 en ${L.name}. ${L.ai} tomó el control. Tienes ${DAYS} días para volver a casa.`, 'ia');
+  else say(s, `Día 1 en ${L.name}. ${L.ai} está fallando. La nave de rescate llega en ${DAYS} días: mantén viva la base hasta entonces.`, 'ia');
   return s;
 }
 /** Modo UNA NOCHE: empiezas a las 21:00 con medio plan hecho; escapa antes de que amanezca. */
@@ -295,7 +295,7 @@ export function moveBody(s, b, mx, my, r, who) {
 
 function newDay(s) {
   s.min -= 1440; s.day++;
-  if (s.day > DAYS) { end(s, false, `${s.L.ai} ganó`, `Pasaron los ${DAYS} días. ${s.L.ai} tomó el control total y nadie volvió a casa.`); return; }
+  if (s.day > DAYS) { rescue(s); return; }
   if ((s.day === 4 || s.day === 7) && s.drones.length < 5) { addDrone(s, s.drones.length); say(s, `${s.L.ai} activó un tercer ${s.L.watcher} de vigilancia.`, 'ia'); }
   refill(s); planEvents(s); newWants(s); S.newDay(s);
   say(s, `— Día ${s.day} de ${DAYS} —`, 'day'); V.startDay(s);
@@ -872,5 +872,23 @@ function win(s) {
   const trueEnd = notesKnown(s) >= (NOTES[s.loc]?.length ?? 99);
   end(s, true, trueEnd ? 'Final verdadero' : ['Base recuperada', 'Regreso silencioso', 'Por los pelos'][k], `${ROUTE[s.route] ?? ''}${s.L.win[k]}${crewEnd} ${s.mode === 'noche' ? 'Hora' : 'Día ' + s.day + ','} ${clock(s.min)}.${trueEnd ? ' ' + TRUE_END[s.loc] : ''}`, stars);
   s.over.route = s.route; s.over.trueEnd = trueEnd;
+}
+/**
+ * Llegó la nave de rescate (al terminar el día 10): la misión se cumple si la tripulación sigue viva y la base en pie
+ * (si no, la partida ya terminó antes). Estrellas: 1 por llegar; +1 si los 4 sistemas quedaron cuidados (promedio ≥ 70 %);
+ * +1 si la radiación quedó baja (< 50 % del límite) y la base sana (integridad ≥ 50).
+ */
+export const RESCUE_TITLE = 'Rescate: misión cumplida';
+export function rescueStars(s) {
+  const lvl = s.sys ? Object.values(s.sys.lvl) : [];
+  const avg = lvl.length ? lvl.reduce((a, b) => a + b, 0) / lvl.length : 100;
+  const dose = s.sys ? S.dosePct(s) : 0;
+  return { avg, dose, cuidada: avg >= 70, segura: dose < 50 && (s.integ ?? 0) >= 50 };
+}
+export function rescue(s) {
+  const r = rescueStars(s);
+  const stars = 1 + (r.cuidada ? 1 : 0) + (r.segura ? 1 : 0);
+  end(s, true, RESCUE_TITLE, `Llegó la nave de rescate y encontró la base en pie: sistemas al ${Math.round(r.avg)} % y radiación al ${Math.round(r.dose)} % del límite. ${s.L.ai} quedó desconectada para revisarla en la Tierra.`, stars);
+  s.over.route = 'rescate';
 }
 export function end(s, won, title, text, stars = 0) { if (!s.over) s.over = { won, title, text, stars }; }

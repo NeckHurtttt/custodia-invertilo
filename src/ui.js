@@ -2,6 +2,7 @@
 // Aquí viven: el estado de color de cada barra (bien / bajo / crítico), la marca de texto que acompaña al color,
 // el seguimiento de «¿me bajó de golpe?» para el aviso de daño, el pulso lento de los carteles y el resumen causal del final.
 // main.js solo pinta lo que estas funciones deciden. Pruebas: tests/ui.test.js.
+import { rescueStars } from './core.js';
 
 /** Nombres de los íconos vectoriales (<symbol id="i-NOMBRE"> en index.html). Una prueba comprueba que existan todos. */
 export const ICONOS = ['salud', 'energia', 'comida', 'vida', 'rad', 'alerta', 'integ', 'reloj', 'dia', 'mochila', 'fuerza', 'saber',
@@ -97,7 +98,14 @@ export function resumenFin(s) {
   if (!aprende && REFLEJOS.includes(o.title)) aprende = 'Con REFLEJOS activado, cuando suena la emergencia hay que correr al punto rojo y pulsar E antes de que acabe la cuenta. Si prefieres más calma, apaga REFLEJOS en el menú.';
   if (!aprende && String(o.title).endsWith(' ganó')) aprende = 'Los días pasan rápido: avanza un poco el PLAN DE REGRESO [2] cada día sin dejar de cumplir la rutina, y apaga o engaña a la IA cuando puedas.';
   if (!aprende) aprende = ganaste ? 'Probaste una ruta de escape. ¿Y si pruebas otra (plan, sabotaje o motín) o escapas sin que te atrapen?' : 'Cada intento enseña algo: mira el cartel de AHORA para saber dónde ir y vigila las barras con «!».';
-  const estrellas = ganaste ? [
+  const rescate = ganaste && o.route === 'rescate';
+  const rs = rescate ? rescueStars(s) : null;
+  if (rescate) aprende = 'Ganaste como en una misión real: mantener el soporte vital, la energía, la comida y protegerse de la radiación todos los días es lo que trae a la tripulación de vuelta.';
+  const estrellas = rescate ? [
+    { ok: true, txt: 'La tripulación llegó viva al rescate' },
+    { ok: rs.cuidada, txt: 'Sistemas cuidados (promedio de 70 % o más)' },
+    { ok: rs.segura, txt: 'Poca radiación (menos de 50 % del límite) y base sana' },
+  ] : ganaste ? [
     { ok: true, txt: 'Escapaste de la base' },
     { ok: !s.iaOn, txt: `Apagaste a ${ia}` },
     { ok: (s.alert ?? 100) < 50 && (s.integ ?? 0) >= 50, txt: 'Alerta menor a 50 e integridad de 50 o más' },

@@ -719,7 +719,7 @@ function titleScreen() {
   open(`<div class="inicio">
     <p class="kicker">ENTRENAMIENTO DE CADETES ASTRONAUTA</p>
     <h1 class="logo-grande">LIFELINE<b>:RUTINA</b></h1>
-    <p class="lema">Cumple la rutina, esquiva a la IA y prepara en secreto tu regreso a la Tierra.</p>
+    <p class="lema">Mantén viva la base hasta que llegue el rescate: cumple la rutina, cuida los sistemas y esquiva a la IA que falla.</p>
     <p class="puntos">${ic('estrella')} ${mt.pts} PUNTOS · racha ${mt.streak} (mejor ${mt.bestStreak}) · medallas ${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length}</p>
     <h2 class="paso">1 · ELIGE TU DESTINO</h2>
     <div class="tarjetas">${cards}</div>
