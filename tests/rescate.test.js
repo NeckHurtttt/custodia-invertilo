@@ -54,3 +54,18 @@ test('en Normal los peligros NO se resuelven solos', () => {
   for (let t = 0; t < 50 * 20; t++) { s.hazards.forEach((h) => { h.t = 0; }); G.update(s, 1 / 20, { dx: 0, dy: 0 }); }
   assert.ok(!s.log.some((l) => /siguiendo el protocolo/.test(l.text)));
 });
+
+test('Cadete: el armario de emergencia da la herramienta y se abre el protocolo real', () => {
+  const s = G.newGame('estacion', 9, 'cadete'); s.drones = []; s.hazards.length = 0; s.p.inv = [];
+  G.spawnHazard(s, 'fuego'); const h = s.hazards[0];
+  s.p.x = (h.tiles[0] % s.L.W) + 0.5; s.p.y = ((h.tiles[0] / s.L.W) | 0) + 0.5; s.p.sleep = false;
+  G.interact(s);
+  assert.equal(s.pending?.kind, 'protocolo'); assert.equal(s.pending.id, 'fuego');
+  G.resolveProtocol(s, true); assert.equal(s.hazards.length, 0);
+});
+test('Normal: sin herramienta no hay protocolo', () => {
+  const s = G.newGame('estacion', 9, 'normal'); s.drones = []; s.hazards.length = 0; s.p.inv = [];
+  G.spawnHazard(s, 'fuego'); const h = s.hazards[0];
+  s.p.x = (h.tiles[0] % s.L.W) + 0.5; s.p.y = ((h.tiles[0] / s.L.W) | 0) + 0.5; s.p.sleep = false;
+  G.interact(s); assert.equal(s.pending, null);
+});

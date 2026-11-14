@@ -520,7 +520,7 @@ export function spawnHazard(s, kind = pick(s, s.L.hazards), roomId) {
   else if (def.type === 'robot') Object.assign(h, { stun: 0, cd: 0, dir: 0, path: null, chasing: false, goal: null });
   else V.initHazard(s, h, r);
   s.hazards.push(h);
-  const tool = def.tool ? `Necesitas: ${ITEMS[def.tool].name}.` : def.hint ? def.hint : def.type === 'robot' ? 'Inhíbelo (Q) y desármalo con el destornillador.' : def.outside ? 'Métete a la base.' : '';
+  const tool = def.tool ? (dif(s).kit ? `Ve y pulsa E: el armario de emergencia tiene ${ITEMS[def.tool].name}.` : `Necesitas: ${ITEMS[def.tool].name}.`) : def.hint ? def.hint : def.type === 'robot' ? 'Inhíbelo (Q) y desármalo con el destornillador.' : def.outside ? 'Métete a la base.' : '';
   flash(s, def.msg ?? `¡${def.name} en ${roomName(s, h.room)}! ${tool}`, 'bad');
   return h;
 }
@@ -798,7 +798,8 @@ function fixHazard(s, h) {
     if (!has(s, 'destornillador')) return flash(s, 'Necesitas un destornillador para desarmarlo.', 'warn');
     s.pending = { kind: 'cables', h }; return;
   }
-  if (!has(s, def.tool)) return flash(s, `Necesitas: ${ITEMS[def.tool].name}. ${RECIPES.some((r) => r.id === def.tool) ? 'Fabrícalo (tecla C).' : 'Búscalo en los cajones.'}`, 'warn');
+  if (!has(s, def.tool) && !dif(s).kit) return flash(s, `Necesitas: ${ITEMS[def.tool].name}. ${RECIPES.some((r) => r.id === def.tool) ? 'Fabrícalo (tecla C).' : 'Búscalo en los cajones.'}`, 'warn');
+  if (!has(s, def.tool)) say(s, `Tomaste ${ITEMS[def.tool].name} del armario de emergencia.`, 'info'); // Cadete: siempre hay herramienta para vivir el protocolo
   if (def.type === 'bouncer') { h.bits = h.bits.filter((b) => Math.hypot(b.x - s.p.x, b.y - s.p.y) >= 1.8); say(s, def.fire ? 'Apagaste las llamas cercanas.' : 'Amarraste la chatarra.', 'ok'); if (!h.bits.length) { s.hazards.splice(s.hazards.indexOf(h), 1); s.stats.solved++; flash(s, def.fire ? 'Fuego apagado.' : 'Chatarra asegurada.', 'ok'); } return; }
   s.pending = def.cables ? { kind: 'cables', h } : { kind: 'protocolo', id: def.proto, h };
 }
@@ -822,7 +823,7 @@ export function resolveProtocol(s, ok) {
     else { h.stun = 0; flash(s, '¡Cable equivocado! El robot despertó.', 'bad'); }
     return;
   }
-  if (ok) { s.hazards.splice(s.hazards.indexOf(h), 1); s.stats.solved++; flash(s, `Bien hecho: ${def.name.toLowerCase()} resuelto.`, 'ok'); if (def.tool !== 'mascara') take(s, def.tool); }
+  if (ok) { s.hazards.splice(s.hazards.indexOf(h), 1); s.stats.solved++; flash(s, `Bien hecho: ${def.name.toLowerCase()} resuelto.`, 'ok'); if (def.tool !== 'mascara' && has(s, def.tool)) take(s, def.tool); }
   else if (def.type === 'spread') { h.tiles = h.tiles.slice(0, Math.ceil(h.tiles.length / 2)); take(s, def.tool); flash(s, 'Te salió a medias: gastaste la herramienta y solo resolviste la mitad.', 'bad'); }
   else if (def.type === 'pull') { h.tres -= 40; flash(s, 'El parche no agarró bien. Perdiste 40 s.', 'bad'); }
   else { s.p.salud -= 15; flash(s, 'Te salió mal (−15 salud). Inténtalo otra vez.', 'bad'); }
