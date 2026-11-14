@@ -3,6 +3,30 @@
 Último estado: **14/11/2026**, NASA Space Apps 2026 (Santa Cruz, Bolivia), equipo **#LosTiraVida**.
 Desafío: **Build a Junior Astronaut Mission Trainer** (chicos de 7 a 12 años manejan una base en la Luna o Marte, equilibrando soporte vital, escudo contra la radiación, energía, comida y retraso de la comunicación, con datos reales de NASA).
 
+## 0. Instrucciones para el Claude que retome
+
+**Primero, ubícate (5 minutos):**
+1. Lee este archivo entero, y después `CLAUDE.md` (reglas técnicas del juego).
+2. Mira la **Bitácora** (sección 8) y el **Siguiente paso** (sección 5): ahí está exactamente dónde quedó el trabajo.
+3. Corre `git log --oneline | head -15` y `git status`. Si hay cambios sin subir, pregunta antes de tocarlos.
+4. Corre `npm test`. Todo debe pasar antes de empezar.
+
+**Por cada cambio (regla del equipo, la pidió Sergio):**
+1. Un cambio a la vez, chico y con propósito claro.
+2. Si toca reglas: agrega o ajusta su prueba en `tests/` y corre `npm test`. Si toca el equilibrio: `node tools/sim.mjs <destino> 4 cadete 11` en los 3 destinos. Si toca la interfaz: abre el juego y míralo, y si se puede corre `npm run e2e`.
+3. **Actualiza este archivo:** agrega una fila a la Bitácora (sección 8) y reescribe el Siguiente paso (sección 5) para que quien siga sepa qué hacer.
+4. `git commit` con un mensaje claro (en español) y **`git push` inmediato**. No juntes varios cambios sin subir.
+5. Recién después pasa al siguiente.
+
+**No hagas:**
+- Subir nada a otros repos (`NeckHurtttt/Custodia`, `NeckHurtttt/Lifeline`, el de Leo). Este repo es el único para este trabajo.
+- Tocar `referencias/`: son copias para consultar.
+- Presentar como "dato real de NASA" algo sin fuente verificada. Si es de juego, dilo.
+- Romper la esencia del juego (IA misteriosa, drones, notas, finales). El objetivo es **mantener viva la base**; el escape es una ruta extra.
+- Agregar dependencias: el juego es HTML + JS sin librerías.
+
+**Cómo hablar con Sergio:** en español, corto y directo; él decide el rumbo. Pregúntale solo lo que de verdad es decisión suya.
+
 ## 1. Qué es este repositorio y por qué existe
 
 - Es **Custodia** (antes "LIFELINE: Rutina"), adaptado al desafío. Se armó aparte para no mezclar con el repo del equipo ni con la copia de Leo, y para no perder la referencia.
@@ -50,20 +74,26 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 - Pruebas nuevas: `tests/rescate.test.js`, `tests/clima.test.js`, `tests/tormenta.test.js`.
 - Reglas del proyecto (de Leo, siguen vigentes): `CLAUDE.md`. Cero dependencias; cada regla con su prueba; azar con semilla `rand(s)`; todo dato de NASA con su fuente.
 
-## 5. Lo que falta (en orden sugerido)
+## 5. Siguiente paso y cola de trabajo
 
-1. ~~Publicar~~ **Hecho (14/11):** repo https://github.com/NeckHurtttt/proyecto-Hackaton-2.0 · jugar https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete · jurado https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado (probado: entra en Cadete y llega la tormenta).
-2. **Llave propia de api.nasa.gov** (gratis, con correo). La de prueba `DEMO_KEY` se agota y entonces salen las llamaradas archivadas. Hoy se guarda en `localStorage` `lfr.nasaKey`; no hay campo en pantalla todavía.
-3. **Probar con 1 o 2 niños:** guía en `docs/analisis/2026-11-14-lifeline-prueba-con-ninos.md` (está hecha para LIFELINE; sirve cambiando "refugio o ciencia" por "refugio o seguir").
-4. **Entrega en Space Apps:** el borrador de `docs/analisis/2026-11-14-lifeline-entrega-space-apps.md` es de LIFELINE. Hay que adaptarlo a Custodia (nombre, resumen, enlaces) y agregar los nombres del equipo. También hay que cambiar la descripción del equipo en la web de Space Apps (`docs/analisis/2026-11-14-lifeline-descripcion-equipo.md`).
-5. **Opcionales** (si hay tiempo):
-   - el mantenimiento como mini-protocolo de 2 o 3 pasos;
-   - Control de Misión (cooperativo) que vea la llamarada real y avise con retraso;
-   - traer la academia de la versión de Sergio (repo del equipo `NeckHurtttt/Custodia`) como tutorial;
-   - inglés en lo que ve el jurado;
-   - reto diario con la llamarada del día.
-6. **Revisar 3 citas de Leo sin verificar:** NTRS 20250003954 (despresurización), "GeoHealth 2025, Wang et al." (perclorato) y "250 mSv por evento" (`src/sistemas.js`, emergencia `llamarada`). Lo que NASA tiene es un límite de 30 días para la médula ósea.
-7. Pensar si **"delatar a un compañero"** debería ocultarse en Cadete (público de 7-12).
+> **SIGUIENTE PASO:** B · campo para la llave de api.nasa.gov en la pantalla DATOS NASA.
+
+Cola en orden (marca `[x]` al terminar y sube):
+- [x] A · Instrucciones para el Claude que retome + bitácora (este archivo).
+- [ ] B · **Campo para la llave de api.nasa.gov** en DATOS NASA. Hoy solo se lee `localStorage` `lfr.nasaKey`. Al guardar: borrar la caché `lfr.flares` y volver a pedir DONKI.
+- [ ] C · **Ocultar "delatar a un compañero" en Cadete** (público de 7-12). Tecla B en `src/main.js` y `betray()` en `src/core.js`; también el texto "[B] delatar".
+- [ ] D · **Verificar 3 citas de Leo** y corregir o marcar como no verificadas: NTRS 20250003954 (despresurización, `PROTO_FUENTE.fuga`), "GeoHealth 2025, Wang et al." (`PROTO_FUENTE.perclorato`) y "250 mSv por evento" (`src/sistemas.js`, `EMERGS.llamarada.fatal`).
+- [ ] E · **Adaptar la entrega de Space Apps a Custodia**: nuevo `docs/entrega-space-apps.md` en inglés (nombre, resumen, enlaces, datos NASA, uso de IA, guion de 30 s, 7 diapositivas) y la descripción del equipo. Faltan los nombres del equipo: pedírselos a Sergio.
+- [ ] F · **El mantenimiento como mini-protocolo** de 2 o 3 pasos en orden (hoy es "E y esperar 3 s"). Sin romper el bot del simulador ni `npm run e2e`.
+- [ ] G · **Control de Misión (cooperativo) ve la llamarada real** y puede avisar al astronauta (con el retraso del destino).
+- [ ] H · **Inglés** en lo que ve el jurado: inicio, intro, tormenta, tarjeta de restricción, DATOS NASA y resumen final.
+- [ ] I · **Reto diario con la llamarada del día.**
+- [ ] J · (opcional) Traer la academia de la versión de Sergio (repo `NeckHurtttt/Custodia`) como tutorial.
+
+Lo que hace Sergio (no Claude):
+- Sacar la llave gratis en https://api.nasa.gov (con su correo) y pegarla en DATOS NASA cuando exista el campo (B).
+- Probar con 1 o 2 niños (guía: `docs/analisis/2026-11-14-lifeline-prueba-con-ninos.md`; cambiar "refugio o ciencia" por "refugio o seguir").
+- Pegar la descripción del equipo en la web de Space Apps y hacer la entrega.
 
 ### Publicar en GitHub (ya hecho; por si hay que repetirlo en otro lado)
 ```bash
@@ -91,3 +121,13 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
   - Esos 5 problemas son lo que corrigieron los puntos 1 a 7.
 - **Lo que no hay que perder:** la esencia de Custodia (misterio de la IA, drones, notas ocultas, rutas, finales). El villano complica la misión, pero **la misión es mantener viva la base**.
 - Detalle completo: `docs/analisis/comparativa-y-prueba.md`.
+
+## 8. Bitácora (una fila por cambio subido)
+
+| Fecha | Commit | Cambio | Siguiente |
+| :--- | :--- | :--- | :--- |
+| 14/11 | `630b97a` | Base: copia de la versión de Leo (etiqueta `base-leo`) | — |
+| 14/11 | `74019d1`…`f9422b0` | Los 8 puntos (rescate, Cadete, tormentas DONKI, armario, pantalla simple, DATOS NASA, enlaces del jurado) | — |
+| 14/11 | `b7c3663`, `3cd072f` | CONTEXTO, referencias, análisis; publicado en GitHub y Pages | — |
+| 14/11 | (este commit) | A · Instrucciones para el Claude que retome y cola de trabajo | B |
+
