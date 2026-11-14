@@ -403,3 +403,6 @@ button.reto { border-color: var(--amber); color: var(--amber); }
 .dosis-comp i { grid-column: 2; grid-row: 1; height: 12px; display: block; }
 .dosis-comp i.ok { background: #4dff88; } .dosis-comp i.bad { background: #ff5d5d; }
 .dosis-comp b { text-align: right; }
+
+/* Cadete: pantalla más simple (salud, energía, alerta y los 4 sistemas) */
+body.cadete:not(.ver-plan) .vr[data-f="fuerza"], body.cadete:not(.ver-plan) .vr[data-f="saber"], body.cadete .vr[data-f="integ"] { display: none; }

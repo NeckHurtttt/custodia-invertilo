@@ -552,7 +552,7 @@ function slot(it) { const d = ITEMS[it]; return `<div class="slot ${d.plan ? 'pl
 const filas = new Map(); let filasS = null;
 function fila(cont, id, icono, nombre, opc = {}) {
   let f = filas.get(id); if (f) return f;
-  const el = document.createElement('div'); el.className = `vr est-ok${opc.neutro ? ' neutro' : ''}`;
+  const el = document.createElement('div'); el.className = `vr est-ok${opc.neutro ? ' neutro' : ''}`; el.dataset.f = id;
   el.innerHTML = `${ic(icono)}<span class="nom">${nombre}</span><div class="bv"><i></i></div><span class="val"><b></b><em></em></span><span class="dmg"></span>${opc.sub ? '<span class="sub"></span>' : ''}`;
   cont.appendChild(el);
   f = { el, fill: el.querySelector('i'), val: el.querySelector('b'), marca: el.querySelector('em'), dmg: el.querySelector('.dmg'), sub: el.querySelector('.sub'), nombre, estado: 'ok', w: '', txt: null, tt: '', trk: null, tm: 0 };
@@ -587,6 +587,8 @@ function hud() {
   $('bloque').className = late ? 'tarde' : '';
   // tú
   const vit = $('stats');
+  // Cadete (7-12): menos barras a la vista; fuerza y saber vuelven si abres el PLAN (la ruta extra de escape)
+  document.body.classList.toggle('cadete', s.dif === 'cadete'); document.body.classList.toggle('ver-plan', !!ui.plan);
   ponFila(fila(vit, 'salud', 'salud', 'SALUD'), p.salud, UI.nivel('salud', p.salud));
   ponFila(fila(vit, 'energia', 'energia', 'ENERGÍA'), p.energia, UI.nivel('energia', p.energia));
   ponFila(fila(vit, 'fuerza', 'fuerza', 'FUERZA', { neutro: true }), p.fuerza, 'ok');
