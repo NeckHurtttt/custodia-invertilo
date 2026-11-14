@@ -1146,7 +1146,16 @@ function frame(t) {
 }
 addEventListener('beforeunload', save);
 document.fonts?.load('16px VT323').finally(() => {
+  // Enlaces para el jurado: ?cadete fija el nivel Cadete; ?jurado entra directo a la Estación (Cadete) poco antes
+  // de la primera tormenta solar real, para ver la mecánica central en menos de un minuto.
+  const q = new URLSearchParams(location.search);
+  if (q.has('cadete') || q.has('jurado')) setDif('cadete');
   titleScreen(); requestAnimationFrame(frame);
+  if (q.has('jurado')) {
+    M.start(); s = G.newGame('estacion', undefined, 'cadete', { flares: liveFlares, mode: 'campana' }); base = null; close();
+    s.day = 2; s.min = 14 * 60 + 52; s.p.sleep = false; G.say(s, 'Modo jurado: día 2, 14:52. En unos segundos llega la primera tormenta solar real (NASA DONKI). ¿Refugio o sigues?', 'info');
+    intro();
+  }
   const sala = new URLSearchParams(location.search).get('sala'); // enlace directo del astronauta: ...?sala=ABCD → entra como Control de Misión
   if (sala && /^[A-Za-z0-9]{3,12}$/.test(sala)) coopUI.unirse(sala.toUpperCase());
 });

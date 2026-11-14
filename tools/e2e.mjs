@@ -59,7 +59,9 @@ try {
   pagina = await contexto.newPage();
   pagina.on('pageerror', (e) => problemas.push(`error de JavaScript: ${e.message}`));
   pagina.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`consola: ${m.text()}`); });
-  pagina.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('/favicon.ico')) problemas.push(`${r.status()} al pedir ${r.url()}`); });
+  // NASA DONKI puede responder 429 (llave de prueba agotada) o no responder: el juego usa llamaradas archivadas y lo avisa, no es un error.
+  const externoNasa = (u) => /api\.nasa\.gov|ccmc\.gsfc\.nasa\.gov/.test(u);
+  pagina.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('/favicon.ico') && !externoNasa(r.url())) problemas.push(`${r.status()} al pedir ${r.url()}`); });
 
   // 1. Pantalla de título
   await pagina.goto(url);
