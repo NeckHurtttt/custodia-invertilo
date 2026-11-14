@@ -31,7 +31,7 @@ const cam = { x: 0, y: 0 };
 const SKEY = (loc) => `lfr.${loc}`;
 function save() { if (!s || s.over) return; Meta.keepNotes(s); if (s.daily) return; try { localStorage.setItem(SKEY(s.loc), G.serialize(s)); } catch { /* sin almacenamiento */ } }
 function load(loc) { try { const raw = localStorage.getItem(SKEY(loc)); return raw ? G.revive(JSON.parse(raw)) : null; } catch { return null; } }
-const getDif = () => { try { return DIFS[localStorage.getItem('lfr.dif')] ? localStorage.getItem('lfr.dif') : 'normal'; } catch { return 'normal'; } };
+const getDif = () => { try { return DIFS[localStorage.getItem('lfr.dif')] ? localStorage.getItem('lfr.dif') : 'cadete'; } catch { return 'cadete'; } };
 const setDif = (d) => { try { localStorage.setItem('lfr.dif', d); } catch { /* nada */ } };
 const getOpt = (k, d) => { try { return localStorage.getItem('lfr.' + k) ?? d; } catch { return d; } };
 const setOpt = (k, v) => { try { localStorage.setItem('lfr.' + k, v); } catch { /* nada */ } };
@@ -793,7 +793,7 @@ function intro() {
     <div class="pasos3">
       <div><b>${ic('reloj')} 1 · CUMPLE LA RUTINA</b><p>Arriba dice dónde ir y una flecha te guía. Faltar sube la alerta de ${L.ai}.</p></div>
       <div><b>${ic('alerta')} 2 · ESQUIVA A LA IA</b><p>El cono amarillo es lo que ve; rojo, te persigue. Agáchate (Shift) y escóndete (F).</p></div>
-      <div><b>${ic('mochila')} 3 · PREPARA EL ESCAPE</b><p>Junta las 4 piezas del PLAN (tecla 2). Mira siempre las barras: «!» es que algo va mal.</p></div>
+      <div><b>${ic('mant')} 3 · CUIDA LA BASE</b><p>De 08:00 a 12:00 haz las 4 revisiones (tecla 1). Si un sistema baja, la base sufre. Extra: el PLAN para volver antes (tecla 2).</p></div>
     </div>
     <div class="basico"><span><kbd>WASD</kbd> o <kbd>flechas</kbd> moverse</span><span><kbd>E</kbd> usar / hablar</span><span><kbd>Shift</kbd> agacharse</span><span><kbd>Esc</kbd> pausa y ajustes</span></div>
     <details class="mas-info"><summary>MÁS DETALLES</summary>

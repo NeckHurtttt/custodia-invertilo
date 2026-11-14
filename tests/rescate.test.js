@@ -37,3 +37,20 @@ test('el primer día cuenta que llega el rescate', () => {
   const s = G.newGame('estacion', 1, 'normal');
   assert.ok(s.log.some((l) => /rescate/.test(l.text)));
 });
+
+test('Cadete: si nadie resuelve un peligro, un compañero lo controla con su protocolo', () => {
+  const s = G.newGame('estacion', 9, 'cadete'); s.drones = []; s.hazards.length = 0;
+  G.spawnHazard(s, 'fuego'); assert.equal(s.hazards.length, 1);
+  const i0 = s.integ;
+  for (let t = 0; t < 50 * 20; t++) { s.hazards.forEach((h) => { h.t = 0; }); G.update(s, 1 / 20, { dx: 0, dy: 0 }); if (!s.hazards.length) break; }
+  assert.equal(s.hazards.length, 0);
+  assert.ok(s.log.some((l) => /siguiendo el protocolo/.test(l.text)));
+  assert.ok(s.integ < i0);
+});
+
+test('en Normal los peligros NO se resuelven solos', () => {
+  const s = G.newGame('estacion', 9, 'normal'); s.drones = []; s.hazards.length = 0;
+  G.spawnHazard(s, 'fuego');
+  for (let t = 0; t < 50 * 20; t++) { s.hazards.forEach((h) => { h.t = 0; }); G.update(s, 1 / 20, { dx: 0, dy: 0 }); }
+  assert.ok(!s.log.some((l) => /siguiendo el protocolo/.test(l.text)));
+});

@@ -1,5 +1,5 @@
 // Lógica de LIFELINE: Rutina (sin pantalla). La interfaz llama a update(), interact(), useQ(), craft()…
-import { ITEMS, LOOT, RECIPES, HAZARDS, DIFS, PERKS } from './common.js';
+import { ITEMS, LOOT, RECIPES, HAZARDS, DIFS, PERKS, PROTOCOLS } from './common.js';
 import { NOTES, TRUE_END } from './story.js';
 export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
@@ -540,6 +540,16 @@ function updateHazards(s, dt, dm) {
   const kill = (h) => s.hazards.splice(s.hazards.indexOf(h), 1);
   for (const h of [...s.hazards]) {
     const def = h.def;
+    // Cadete: si nadie lo resuelve a tiempo, un compañero lo controla con su protocolo (la base pierde un poco).
+    if (dif(s).crewFix && def.tool && def.type !== 'robot' && def.type !== 'camera') {
+      h.crewT = (h.crewT ?? 0) + dt;
+      if (h.crewT > dif(s).crewFix) {
+        kill(h); s.integ -= 3; s.stats.crewFixed = (s.stats.crewFixed ?? 0) + 1;
+        const c = s.crew.find((x) => !x.betrayed) ?? { name: 'La tripulación' }; const pr = def.proto && PROTOCOLS[def.proto];
+        say(s, `${c.name} controló ${def.name.toLowerCase()}${pr ? ` siguiendo el protocolo: ${pr.steps.slice(0, 3).join(' → ')}…` : '.'} (−3 de integridad). La próxima, ¡resuélvelo tú con su herramienta!`, 'ok');
+        continue;
+      }
+    }
     const near = (x, y, r) => !p.inDuct && Math.hypot(p.x - x, p.y - y) < r;
     if (def.type === 'spread') {
       h.t += dt; if (h.t > def.rate) { h.t = 0; spreadTiles(s, h); }
