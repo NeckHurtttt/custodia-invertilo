@@ -1,0 +1,13 @@
+{
+  "name": "lifeline-rutina",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "sim": "node tools/sim.mjs all 16",
+    "e2e": "node tools/e2e.mjs",
+    "coop": "node tools/serve.mjs 8000 --lan",
+    "e2e:coop": "node tools/e2e-coop.mjs"
+  }
+}

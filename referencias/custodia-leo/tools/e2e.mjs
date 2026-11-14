@@ -1,0 +1,316 @@
+// Prueba de extremo a extremo: abre el juego en un navegador real, empieza una partida en la Estación,
+// usa el teclado, la pausa y la ayuda, avanza un día completo y revisa que nada se rompa.
+//
+// Playwright NO es dependencia del proyecto. Se instala una sola vez, sin tocar package.json:
+//   npm i --no-save playwright
+// Después:  npm run e2e
+// Variables opcionales:
+//   CHROME_PATH=/ruta/a/chrome   usar un Chrome concreto (si no, prueba el Chrome instalado y luego Chromium)
+//   E2E_OUT=carpeta              dónde guardar las capturas (por defecto e2e-out/)
+//   E2E_HEADED=1                 ver el navegador mientras corre
+import http from 'node:http';
+import { readFile, mkdir } from 'node:fs/promises';
+import { extname, join, normalize, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
+
+const raiz = resolve(fileURLToPath(new URL('..', import.meta.url)));
+const salida = resolve(process.env.E2E_OUT || join(raiz, 'e2e-out'));
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json' };
+
+let playwright;
+try { playwright = await import('playwright'); } catch {
+  console.error('Falta Playwright. Instálalo una vez con:  npm i --no-save playwright');
+  process.exit(2);
+}
+const { chromium } = playwright.default ?? playwright;
+
+// Servidor estático mínimo (los módulos ES no cargan con file://).
+const servidor = http.createServer(async (req, res) => {
+  try {
+    const ruta = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^([/\\])+/, '') || 'index.html';
+    const archivo = resolve(raiz, ruta);
+    if (archivo !== raiz && !archivo.startsWith(raiz + sep)) throw new Error('fuera de la carpeta');
+    const datos = await readFile(archivo);
+    res.writeHead(200, { 'content-type': MIME[extname(archivo)] || 'application/octet-stream' });
+    res.end(datos);
+  } catch { res.writeHead(404); res.end('no encontrado'); }
+});
+await new Promise((ok) => servidor.listen(0, '127.0.0.1', ok));
+const url = `http://127.0.0.1:${servidor.address().port}/index.html`;
+await mkdir(salida, { recursive: true });
+
+async function abrirNavegador() {
+  const opciones = { headless: !process.env.E2E_HEADED, args: ['--no-sandbox'] };
+  if (process.env.CHROME_PATH) return chromium.launch({ ...opciones, executablePath: process.env.CHROME_PATH });
+  try { return await chromium.launch({ ...opciones, channel: 'chrome' }); } catch { return chromium.launch(opciones); }
+}
+
+const problemas = [];
+let paso = 0;
+const ok = (texto) => console.log(`✔ ${++paso}. ${texto}`);
+let navegador;
+let pagina;
+let semilla = '?';
+
+try {
+  navegador = await abrirNavegador();
+  const contexto = await navegador.newContext({ viewport: { width: 1280, height: 760 } }); // contexto nuevo = sin partidas guardadas
+  pagina = await contexto.newPage();
+  pagina.on('pageerror', (e) => problemas.push(`error de JavaScript: ${e.message}`));
+  pagina.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`consola: ${m.text()}`); });
+  pagina.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('/favicon.ico')) problemas.push(`${r.status()} al pedir ${r.url()}`); });
+
+  // 1. Pantalla de título
+  await pagina.goto(url);
+  await pagina.waitForSelector('[data-loc="estacion"]', { timeout: 10000 });
+  assert.equal(await pagina.locator('[data-loc]').count(), 3, 'deben verse los 3 destinos');
+  assert.equal(await pagina.locator('#t-jugar').count(), 1, 'hay un solo botón principal: JUGAR');
+  await pagina.screenshot({ path: join(salida, '1-titulo.png') });
+  ok('la pantalla de título muestra los 3 destinos y un botón JUGAR');
+
+  // 1b. Menú: elegir destino marca la tarjeta; el interruptor de reflejos y el botón JUGAR se ven sin hacer scroll
+  const visible = (sel) => pagina.evaluate((q) => { const e = document.querySelector(q); if (!e) return false; const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1 && r.left >= 0 && r.right <= innerWidth + 1; }, sel);
+  assert.ok(await visible('#t-jugar'), 'JUGAR debe verse completo sin hacer scroll (1280×760)');
+  assert.equal(await pagina.getAttribute('[data-loc="estacion"]', 'aria-pressed'), 'true', 'la Estación empieza elegida');
+  await pagina.click('[data-loc="luna"]'); await pagina.waitForSelector('[data-loc="luna"].sel', { timeout: 2000 });
+  assert.equal(await pagina.locator('.tarjeta.sel').count(), 1, 'solo una tarjeta elegida');
+  assert.equal(await pagina.evaluate(() => localStorage.getItem('lfr.dest')), 'luna');
+  assert.match(await pagina.textContent('.tarjeta.sel'), /ELEGIDO/, 'la tarjeta elegida lo dice con texto, no solo con color');
+  await pagina.click('[data-loc="estacion"]'); await pagina.waitForSelector('[data-loc="estacion"].sel');
+  assert.equal(await pagina.getAttribute('#t-reflejos', 'aria-checked'), 'false');
+  await pagina.click('#t-reflejos'); assert.equal(await pagina.getAttribute('#t-reflejos', 'aria-checked'), 'true'); assert.match(await pagina.textContent('#t-reflejos'), /SÍ/);
+  await pagina.click('#t-reflejos'); assert.equal(await pagina.getAttribute('#t-reflejos', 'aria-checked'), 'false');
+  assert.ok((await pagina.locator('#t-coop, #t-ayuda').count()) === 2, 'cooperativo y ayuda accesibles desde el título');
+  await pagina.click('#t-ayuda'); await pagina.waitForSelector('#volver', { timeout: 2000 }); await pagina.click('#volver'); await pagina.waitForSelector('#t-jugar');
+  ok('menú: elegir destino marca la tarjeta (con texto), REFLEJOS es un interruptor SÍ/NO, la ayuda se abre y vuelve');
+
+  // 2. Empezar en la Estación
+  await pagina.click('#t-jugar');
+  await pagina.waitForSelector('#ok', { timeout: 5000 });
+  await pagina.click('#ok');
+  await pagina.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden, null, { timeout: 5000 });
+  const inicio = await pagina.evaluate(() => ({ loc: lfr.s.loc, day: lfr.s.day, min: lfr.s.min, seed: lfr.s.seed }));
+  semilla = inicio.seed;
+  assert.equal(inicio.loc, 'estacion');
+  assert.equal(inicio.day, 1);
+  assert.match(await pagina.textContent('#dia'), /DÍA 1\/10/);
+  ok(`la partida de la Estación empieza el día 1 (semilla ${semilla})`);
+
+  // 3. El reloj avanza solo
+  await pagina.waitForTimeout(1500);
+  const minuto = await pagina.evaluate(() => lfr.s.min);
+  assert.ok(minuto > inicio.min, `el reloj debe avanzar (${inicio.min} → ${minuto})`);
+  assert.match(await pagina.textContent('#reloj'), /^\d\d:\d\d$/);
+  ok('el reloj avanza y se ve en la barra');
+
+  // 4. Teclado: moverse (se salta al bloque de trabajo, cuando el personaje está despierto)
+  await pagina.evaluate(() => { while (lfr.s.min < 490) lfr.G.update(lfr.s, 0.05, { dx: 0, dy: 0, crouch: false }); lfr.s.pending = null; });
+  await pagina.waitForTimeout(300);
+  const antes = await pagina.evaluate(() => ({ x: lfr.s.p.x, y: lfr.s.p.y }));
+  await pagina.keyboard.down('ArrowRight'); await pagina.waitForTimeout(700); await pagina.keyboard.up('ArrowRight');
+  await pagina.keyboard.down('ArrowDown'); await pagina.waitForTimeout(500); await pagina.keyboard.up('ArrowDown');
+  const despues = await pagina.evaluate(() => ({ x: lfr.s.p.x, y: lfr.s.p.y }));
+  assert.ok(Math.hypot(despues.x - antes.x, despues.y - antes.y) > 0.3, `el personaje debe moverse con las flechas (${JSON.stringify(antes)} → ${JSON.stringify(despues)})`);
+  ok('las flechas mueven al personaje');
+
+  // 4b. Sistemas de la base: panel visible, mantenimiento con la tecla E y una emergencia de reflejos
+  assert.equal(await pagina.locator('#sistemas').isHidden(), true, 'los paneles de tecla empiezan cerrados');
+  await pagina.keyboard.press('1'); await pagina.waitForSelector('#sistemas:not([hidden])', { timeout: 2000 });
+  const panel = await pagina.textContent('#ov-sis'); const lateral = await pagina.textContent('#sistemas');
+  for (const n of ['SOPORTE VITAL', 'ENERGÍA', 'RADIACIÓN', 'COMIDA']) assert.ok(panel.includes(n), `el HUD debe mostrar ${n}`);
+  assert.match(panel, /mSv/); assert.match(lateral, /600 mSv/, 'debe mostrar el dato real de la NASA');
+  // todo cabe en pantalla: la página no hace scroll y el HUD queda dentro del mapa
+  const ajuste = await pagina.evaluate(() => { const d = document.documentElement; const l = document.getElementById('lienzo').getBoundingClientRect(); const h = [...document.querySelectorAll('.hud > .caja, .hud-izq > .caja')].filter((e) => e.offsetParent).map((e) => e.getBoundingClientRect()); return { scroll: d.scrollHeight - innerHeight, dentro: h.every((r) => r.left >= l.left - 1 && r.right <= l.right + 1 && r.top >= l.top - 1 && r.bottom <= l.bottom + 1) }; });
+  assert.ok(ajuste.scroll <= 1, `la página no debe hacer scroll (sobran ${ajuste.scroll}px)`); assert.ok(ajuste.dentro, 'el HUD debe quedar dentro de la ventana');
+  assert.equal(await pagina.locator('#sis-tareas li:not(.enc)').count(), 4);
+  // HUD claro: cada barra lleva ícono vectorial, número y marca de texto cuando algo va mal (no solo color)
+  const nVit = await pagina.locator('#stats .vr').count(); assert.ok(nVit >= 4, `vitales: ${nVit} filas`);
+  assert.equal(await pagina.locator('#stats .vr svg.ic use').count(), nVit, 'cada vital tiene su ícono');
+  assert.ok((await pagina.locator('#ov-sis .vr svg.ic use').count()) === 4 && (await pagina.locator('#filas-ia .vr svg.ic use').count()) === 2, 'sistemas e IA con ícono');
+  await pagina.evaluate(() => { lfr.s.p.salud = 20; }); await pagina.waitForTimeout(400);
+  assert.ok(await pagina.locator('#stats .vr.est-bad').count() >= 1, 'una barra crítica se marca en rojo...');
+  assert.match(await pagina.textContent('#stats .vr.est-bad .val'), /!!/, '...y con «!!» en el texto');
+  assert.ok(/crítico/.test(await pagina.getAttribute('#stats .vr.est-bad', 'title')), '...y con una frase en el title');
+  await pagina.evaluate(() => { lfr.s.p.salud = 100; lfr.s.p.hit = 0; }); await pagina.waitForTimeout(1800);
+  // daño: la barra destella UNA vez y aparece «−N»; en modo suave solo queda el número, sin animación
+  await pagina.evaluate(() => { lfr.s.p.salud -= 18; lfr.s.p.hit = 1; }); await pagina.waitForTimeout(250);
+  assert.match(await pagina.textContent('#stats .vr:first-child .dmg'), /^−\d+$/, 'aparece «−N» junto a la barra de salud');
+  assert.ok(await pagina.locator('#stats .vr:first-child.golpe').count(), 'la barra recibe la clase de destello');
+  await pagina.waitForTimeout(1500);
+  await pagina.evaluate(() => lfr.setFx('suave')); await pagina.waitForTimeout(100);
+  await pagina.evaluate(() => { lfr.s.p.salud -= 12; }); await pagina.waitForTimeout(250);
+  assert.ok(await pagina.locator('#stats .vr:first-child.golpe-est').count() && !(await pagina.locator('#stats .vr:first-child.golpe').count()), 'modo suave: sin destello ni sacudida, solo el número');
+  assert.equal(await pagina.evaluate(() => getComputedStyle(document.querySelector('#stats .vr:first-child .dmg')).animationName), 'none', 'modo suave: el número no se anima');
+  await pagina.evaluate(() => { lfr.setFx('normal'); lfr.s.p.salud = 100; }); await pagina.waitForTimeout(1500);
+  await pagina.keyboard.press('1'); assert.equal(await pagina.locator('#sistemas').isHidden(), true, 'la tecla 1 vuelve a cerrar el panel');
+  ok('el HUD muestra los 4 medidores y la dosis sobre el mapa; la tecla 1 abre y cierra las 4 revisiones');
+
+  // avisos flotantes: salen solos, y todo queda en el historial de la pausa
+  await pagina.evaluate(() => lfr.G.say(lfr.s, 'Aviso de prueba e2e', 'bad')); await pagina.waitForTimeout(400);
+  assert.ok((await pagina.textContent('#avisos')).includes('Aviso de prueba e2e'), 'el aviso debe verse flotando');
+  await pagina.keyboard.press('Escape'); await pagina.waitForSelector('#pest', { timeout: 2000 });
+  assert.ok((await pagina.textContent('#pest')).includes('Aviso de prueba e2e'), 'el historial de la pausa debe tener el aviso');
+  await pagina.click('.pestanas [data-t=plan]'); assert.match(await pagina.textContent('#pest'), /Traje/); await pagina.keyboard.press('Escape');
+  ok('los avisos aparecen flotando y el historial completo se ve al pulsar Esc');
+
+  // limpieza visual: tope de avisos, nada repetido ni "solo registro", y letreros solo cuando hacen falta
+  await pagina.evaluate(() => { const { G, s } = lfr; for (let i = 0; i < 14; i++) G.say(s, `Lluvia de avisos ${i}`, ['info', 'ok', 'warn', 'bad', 'ia'][i % 5]); G.say(s, 'Solo para el registro', 'warn', true); G.say(s, 'Repetido e2e', 'warn'); G.say(s, 'Repetido e2e', 'warn'); });
+  let maxAvisos = 0; for (let i = 0; i < 8; i++) { await pagina.waitForTimeout(100); maxAvisos = Math.max(maxAvisos, await pagina.locator('#avisos li:not(.sale)').count()); }
+  assert.ok(maxAvisos > 0 && maxAvisos <= 3, `nunca más de 3 avisos a la vez (hubo ${maxAvisos})`);
+  assert.ok(!(await pagina.textContent('#avisos')).includes('Solo para el registro'), 'lo marcado "quiet" no sube a pantalla');
+  assert.ok(((await pagina.textContent('#avisos')).match(/Repetido e2e/g) ?? []).length <= 1, 'un aviso repetido no se duplica');
+  await pagina.waitForTimeout(3600); const etq = () => pagina.evaluate(() => Number(document.getElementById('lienzo').dataset.etq));
+  assert.ok((await etq()) <= 2, `por defecto como mucho 2 letreros en el mundo (hay ${await etq()})`);
+  await pagina.keyboard.press('n'); await pagina.waitForTimeout(300); const conN = await etq(); assert.ok(conN > 2, `con [N] se ven los nombres de las salas (hay ${conN})`);
+  assert.ok(await pagina.locator('#btn-nombres.sel').count(), 'el botón [N] queda marcado');
+  await pagina.keyboard.press('n'); await pagina.waitForTimeout(300); assert.ok((await etq()) <= 2, 'otra vez [N] los oculta');
+  ok('los avisos nunca pasan de 3, no se repiten, y los nombres solo salen cuando hacen falta ([N] los muestra todos)');
+
+  const irA = (id) => pagina.evaluate((sid) => { const { s, Sys } = lfr; s.crew.forEach((c) => { c.x = 3.5; c.y = 3.5; c.goal = null; c.path = null; }); const o = Sys.station(s, sid); s.p.x = o.x + 0.5; s.p.y = o.y + 0.5; s.p.inDuct = false; s.p.hidden = null; s.grace = 999; }, id);
+  await irA('vida'); await pagina.waitForTimeout(200);
+  await pagina.keyboard.press('e'); await pagina.waitForTimeout(3600);
+  assert.equal(await pagina.evaluate(() => !!lfr.s.sys.done.vida), true, 'la revisión del soporte vital debe quedar hecha tras pulsar E');
+  assert.equal(await pagina.locator('#sis-tareas li.ok').count(), 1);
+  ok('mantenimiento: E sobre el panel hace la revisión y se marca en la lista');
+
+  await pagina.evaluate(() => { lfr.Sys.startEmergency(lfr.s, null, 'sobrecarga'); });
+  await pagina.waitForSelector('#emerg:not([hidden])', { timeout: 2000 });
+  assert.match(await pagina.textContent('#emerg'), /SOBRECARGA/);
+  await pagina.screenshot({ path: join(salida, '2a-emergencia.png') });
+  await irA('energia'); await pagina.waitForTimeout(200);
+  await pagina.keyboard.press('e'); await pagina.waitForTimeout(2000);
+  assert.deepEqual(await pagina.evaluate(() => [lfr.s.sys.emerg, lfr.s.sys.st.saved, !!lfr.s.over]), [null, 1, false], 'la emergencia debe quedar resuelta');
+  await pagina.waitForSelector('#emerg[hidden]', { state: 'attached', timeout: 2000 });
+  ok('reflejos: llegar al panel y pulsar E resuelve la emergencia a tiempo');
+
+  // 4c. Efectos: modo suave (lfr.fx), hitstop, tope de partículas y costo por cuadro
+  await pagina.evaluate(() => { const { s, A } = lfr; s.grace = 9999; for (let i = 0; i < 6; i++) A.burst(s.p.x, s.p.y, '255,150,80', 30); lfr.perf.reset(); });
+  await pagina.waitForTimeout(1500);
+  const costo = await pagina.evaluate(() => ({ avg: lfr.perf.avg, max: lfr.perf.max, n: lfr.perf.n, vivas: lfr.A.vivas() }));
+  assert.ok(costo.n > 20, 'el dibujo debe correr'); assert.ok(costo.vivas <= 144, `nunca más de 144 partículas vivas (hay ${costo.vivas})`); assert.ok(costo.avg < 12, `el cuadro no debe costar más de 12 ms de media (${costo.avg.toFixed(1)} ms)`);
+  const hs = await pagina.evaluate(async () => { const { s } = lfr; const m0 = s.min; s.stats.caught++; s.p.hit = 1; s.shake = 0.6; await new Promise((r) => setTimeout(r, 40)); const durante = s.min - m0; await new Promise((r) => setTimeout(r, 400)); return { durante, despues: s.min - m0 }; });
+  assert.ok(hs.despues > hs.durante, 'tras el hitstop el juego sigue avanzando');
+  assert.equal(await pagina.evaluate(() => lfr.fx.getFx()), 'normal');
+  await pagina.evaluate(() => lfr.setFx('suave')); assert.equal(await pagina.evaluate(() => localStorage.getItem('lfr.fx')), 'suave', 'el modo suave se guarda en lfr.fx');
+  await pagina.evaluate(() => { lfr.s.shake = 0.8; }); await pagina.waitForTimeout(150);
+  await pagina.screenshot({ path: join(salida, '2b-modo-suave.png') });
+  await pagina.evaluate(() => lfr.setFx('normal'));
+  ok(`efectos: ${costo.vivas} partículas vivas como máximo, dibujo ${costo.avg.toFixed(1)} ms de media (máx. ${costo.max.toFixed(1)}), hitstop y modo suave (lfr.fx) funcionan`);
+
+  // 5. Pausa y ayuda
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForSelector('#modal:not([hidden])', { timeout: 2000 });
+  assert.match(await pagina.textContent('#ventana'), /PAUSA/);
+  for (const [id, txt] of [['sw-musica', /MÚSICA/], ['sw-sfx', /EFECTOS DE SONIDO/], ['sw-suave', /EFECTOS VISUALES SUAVES/], ['sw-nombres', /NOMBRES DE OBJETOS/]]) { assert.match(await pagina.textContent('#' + id), txt); assert.ok(['true', 'false'].includes(await pagina.getAttribute('#' + id, 'aria-checked'))); assert.match(await pagina.textContent('#' + id), /SÍ|NO/, 'cada interruptor dice SÍ o NO'); }
+  assert.ok(await visible('#seguir'), 'SEGUIR se ve sin hacer scroll');
+  await pagina.screenshot({ path: join(salida, '6-pausa.png') });
+  // interruptores: cada uno cambia su estado, lo guarda y no cierra la pausa
+  assert.equal(await pagina.getAttribute('#sw-sfx', 'aria-checked'), 'true'); await pagina.click('#sw-sfx');
+  assert.equal(await pagina.getAttribute('#sw-sfx', 'aria-checked'), 'false'); assert.equal(await pagina.evaluate(() => localStorage.getItem('lfr.sfx')), '0', 'efectos de sonido: guardado');
+  await pagina.click('#sw-sfx'); assert.equal(await pagina.evaluate(() => localStorage.getItem('lfr.sfx')), '1');
+  assert.equal(await pagina.getAttribute('#sw-suave', 'aria-checked'), 'false'); await pagina.click('#sw-suave');
+  assert.equal(await pagina.getAttribute('#sw-suave', 'aria-checked'), 'true'); assert.equal(await pagina.evaluate(() => [localStorage.getItem('lfr.fx'), document.body.classList.contains('suave')].join()), 'suave,true', 'efectos suaves: guardado y aplicado al CSS');
+  await pagina.click('#sw-suave'); assert.equal(await pagina.evaluate(() => [localStorage.getItem('lfr.fx'), document.body.classList.contains('suave')].join()), 'normal,false');
+  await pagina.click('#sw-musica'); assert.equal(await pagina.getAttribute('#sw-musica', 'aria-checked'), 'false'); assert.ok(await pagina.locator('#btn-musica.off').count(), 'la barra de arriba refleja la música apagada'); await pagina.click('#sw-musica');
+  await pagina.click('#sw-nombres'); assert.equal(await pagina.evaluate(() => localStorage.getItem('lfr.nombres')), '1'); await pagina.click('#sw-nombres'); assert.equal(await pagina.evaluate(() => localStorage.getItem('lfr.nombres')), '0');
+  const v0 = await pagina.textContent('#vol'); await pagina.click('#vmenos'); assert.notEqual(await pagina.textContent('#vol'), v0, 'el volumen cambia'); await pagina.click('#vmas');
+  assert.ok(await pagina.locator('#modal:not([hidden])').count(), 'los interruptores no cierran la pausa');
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForSelector('#modal[hidden]', { state: 'attached', timeout: 2000 });
+  ok('Esc abre y cierra la pausa; sus interruptores (música, efectos de sonido, efectos suaves, nombres, volumen) cambian y se guardan');
+  await pagina.click('#btn-ayuda');
+  await pagina.waitForSelector('#modal:not([hidden])', { timeout: 2000 });
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForSelector('#modal[hidden]', { state: 'attached', timeout: 2000 });
+  ok('el botón de ayuda abre y se cierra con Esc');
+
+  // 6. Un día completo sin tocar nada (jugada pasiva): nada debe romperse ni volverse NaN
+  await pagina.screenshot({ path: join(salida, '2-jugando.png') });
+  const dia = await pagina.evaluate(() => {
+    const { s, G } = lfr; let pasos = 0; let respira = 0;
+    while (s.day < 2 && !s.over && pasos < 40000) {
+      if (s.pending) { if (s.pending.kind === 'respira') respira++; s.pending = null; }
+      G.update(s, 0.05, { dx: 0, dy: 0, crouch: false }); pasos++;
+    }
+    const nums = [s.p.salud, s.p.energia, s.alert, s.integ, s.min, s.p.x, s.p.y];
+    return { day: s.day, over: s.over ? { won: s.over.won, title: s.over.title } : null, pasos, respira, finitos: nums.every(Number.isFinite), alert: s.alert, integ: s.integ, salud: s.p.salud };
+  });
+  assert.ok(dia.finitos, `hay valores no numéricos en el estado: ${JSON.stringify(dia)}`);
+  assert.ok(dia.over || dia.day === 2, `el día no terminó en ${dia.pasos} pasos: ${JSON.stringify(dia)}`);
+  ok(dia.over ? `una jugada pasiva termina la partida en el día 1 («${dia.over.title}»)` : `un día completo pasivo se simula sin errores (${dia.pasos} pasos, alerta ${Math.round(dia.alert)}, integridad ${Math.round(dia.integ)})`);
+
+  // 7. La pantalla refleja el nuevo estado
+  await pagina.waitForTimeout(600);
+  if (dia.over) {
+    await pagina.waitForSelector('#modal:not([hidden])', { timeout: 3000 });
+    ok('al terminar la partida aparece la pantalla final');
+  } else {
+    assert.match(await pagina.textContent('#dia'), /DÍA 2\/10/);
+    ok('la barra de arriba pasa al día 2');
+  }
+  await pagina.screenshot({ path: join(salida, '3-despues-del-dia.png') });
+
+  // 8. Reflejos: una emergencia ignorada mata (se hace al final, porque termina la partida)
+  if (!dia.over) {
+    await pagina.evaluate(() => { const { s, Sys, G } = lfr; s.pending = null; Sys.startEmergency(s, null, 'meteorito'); for (let i = 0; i < 4000 && !s.over; i++) G.update(s, 0.05, { dx: 0, dy: 0, crouch: false }); });
+    await pagina.waitForSelector('#modal:not([hidden])', { timeout: 3000 });
+    const fin = await pagina.textContent('#ventana');
+    assert.match(fin, /Despresurización/); assert.match(fin, /MISIÓN PERDIDA/);
+    assert.match(fin, /QUÉ PASÓ/); assert.match(fin, /QUÉ APRENDER/); assert.match(fin, /REFLEJOS/, 'el final dice qué aprender de esta emergencia');
+    assert.ok(await visible('#otra') && await visible('#menu'), 'REINTENTAR y MENÚ se ven sin hacer scroll'); assert.match(await pagina.textContent('#otra'), /REINTENTAR/);
+    await pagina.screenshot({ path: join(salida, '4-emergencia-fatal.png') });
+    ok('reflejos: si ignoras la emergencia, la partida termina con una explicación');
+  }
+
+  // 9. Responsive: tablet chica (1024×600) y teléfono en vertical (375×812, táctil). Cada vista: título con JUGAR a la vista, HUD dentro de la ventana,
+  //    nada tapa al jugador (que va SIEMPRE en el centro de la pantalla), botones táctiles ≥ 44 px, la pausa se ve completa. Capturas 7-*.png.
+  for (const [ancho, alto, movil, nombre] of [[1024, 600, false, 'tablet'], [375, 812, true, 'movil']]) {
+    const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
+    const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
+    pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`${nombre}: consola: ${m.text()}`); });
+    await pg.goto(url); await pg.waitForSelector('#t-jugar', { timeout: 10000 });
+    const dentro = (sel) => pg.evaluate((q) => { const e = document.querySelector(q); if (!e) return false; const r = e.getBoundingClientRect(); return r.top >= -1 && r.bottom <= innerHeight + 1 && r.left >= -1 && r.right <= innerWidth + 1; }, sel);
+    assert.ok(await dentro('#t-jugar'), `${nombre}: JUGAR debe verse completo sin hacer scroll`);
+    assert.ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.getElementById('ventana').scrollWidth <= document.getElementById('ventana').clientWidth + 1), `${nombre}: el título no se desborda a los lados`);
+    await pg.screenshot({ path: join(salida, `7-${nombre}-titulo.png`) });
+    await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.screenshot({ path: join(salida, `7-${nombre}-intro.png`) });
+    assert.ok(await dentro('#ok'), `${nombre}: EMPEZAR se ve sin hacer scroll`); await pg.click('#ok');
+    await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden, null, { timeout: 5000 });
+    await pg.evaluate(() => { while (lfr.s.min < 490) lfr.G.update(lfr.s, 0.05, { dx: 0, dy: 0, crouch: false }); lfr.s.pending = null; lfr.s.grace = 9999; lfr.G.say(lfr.s, 'Primer aviso', 'ok'); lfr.G.say(lfr.s, 'Segundo aviso importante', 'bad'); lfr.G.say(lfr.s, 'Tercer aviso', 'warn'); });
+    await pg.keyboard.press('1'); await pg.waitForTimeout(700);
+    const r = await pg.evaluate(() => {
+      const caja = (e) => { const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height }; };
+      const vis = (q) => [...document.querySelectorAll(q)].filter((e) => e.offsetParent !== null && getComputedStyle(e).visibility !== 'hidden');
+      const tapa = vis('.hud .caja, .barra, .hud-teclas button, #tactil button, .avisos li, .hud-inv');
+      const cx = innerWidth / 2, cy = innerHeight / 2; const m = 18; // el sprite del jugador mide ~±18 px alrededor del centro
+      const tapan = tapa.filter((e) => { const b = e.getBoundingClientRect(); return b.left < cx + m && b.right > cx - m && b.top < cy + m && b.bottom > cy - m; }).map((e) => e.id || e.className || e.tagName);
+      const fuera = vis('.hud .caja, .barra').filter((e) => { const b = e.getBoundingClientRect(); return b.left < -1 || b.right > innerWidth + 1 || b.top < -1 || b.bottom > innerHeight + 1; }).map((e) => e.id || e.className);
+      const chicos = vis('.barra button, #tactil button, .hud-teclas button').map((e) => ({ id: e.id || e.textContent.trim().slice(0, 12), ...caja(e) })).filter((b) => b.w < 43.5 || b.h < 43.5);
+      return { tapan, fuera, chicos, scroll: document.documentElement.scrollWidth - innerWidth, tactil: !document.getElementById('tactil').hidden, zoom: lfr.zoom };
+    });
+    assert.deepEqual(r.tapan, [], `${nombre}: el HUD no debe tapar al jugador (centro de la pantalla): ${r.tapan}`);
+    assert.deepEqual(r.fuera, [], `${nombre}: el HUD debe quedar dentro de la ventana: ${r.fuera}`);
+    assert.ok(r.scroll <= 1, `${nombre}: sin scroll horizontal`);
+    if (movil) { assert.ok(r.tactil, 'en el teléfono se ven los controles táctiles'); assert.deepEqual(r.chicos, [], `${nombre}: objetivos táctiles de al menos 44 px: ${JSON.stringify(r.chicos)}`); }
+    await pg.screenshot({ path: join(salida, `7-${nombre}-juego.png`) });
+    await pg.keyboard.press('1'); await pg.click('#btn-menu'); await pg.waitForSelector('#seguir', { timeout: 2000 });
+    assert.ok(await dentro('#seguir'), `${nombre}: SEGUIR se ve sin hacer scroll`); await pg.screenshot({ path: join(salida, `7-${nombre}-pausa.png`) });
+    const sw = await pg.evaluate(() => [...document.querySelectorAll('#ventana .sw')].map((e) => e.getBoundingClientRect().height)); assert.ok(sw.length === 4 && sw.every((h) => h >= 43.5), `${nombre}: 4 interruptores de pausa con altura táctil (${sw})`);
+    await pg.click('#seguir'); await c.close();
+  }
+  ok('responsive (1024×600 y 375×812 táctil): JUGAR visible, HUD dentro de la ventana, nada tapa al jugador, botones táctiles ≥ 44 px, pausa completa');
+
+  assert.deepEqual(problemas, [], `errores durante la prueba:\n  - ${problemas.join('\n  - ')}`);
+  ok('sin errores de JavaScript ni de red');
+  console.log(`\nTodo bien (${paso} pasos). Capturas en ${salida}`);
+} catch (e) {
+  console.error(`\n✘ Falló en el paso ${paso + 1} (semilla ${semilla}): ${e.message}`);
+  if (problemas.length) console.error(`  Problemas vistos:\n  - ${problemas.join('\n  - ')}`);
+  try { await pagina?.screenshot({ path: join(salida, 'fallo.png') }); console.error(`  Captura del fallo: ${join(salida, 'fallo.png')}`); } catch { /* sin captura */ }
+  process.exitCode = 1;
+} finally {
+  await navegador?.close();
+  servidor.close();
+}

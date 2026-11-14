@@ -2,9 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# LIFELINE: Rutina (Custodia) — reglas del proyecto
+# Custodia (Proyecto Hackaton 2.0) — reglas del proyecto
 
-Juego de navegador para el reto de la NASA "Junior Astronaut Mission Trainer": el jugador es un astronauta que cumple una rutina, esquiva a una IA y prepara su regreso. Público objetivo: cadetes de 10 a 14 años. Idioma de los textos: español.
+**Antes de trabajar, lee `CONTEXTO.md`**: qué se hizo, cómo correrlo, qué falta y dónde están los proyectos de referencia (`referencias/`).
+
+Juego de navegador para el reto de la NASA "Junior Astronaut Mission Trainer": el jugador es un astronauta que **mantiene viva la base hasta que llega el rescate** (día 10), con una IA que falla, tormentas solares reales (NASA DONKI) y protocolos de la ISS. El escape es una ruta extra. Público objetivo: **7 a 12 años** (modo **Cadete**, por defecto). Idioma de los textos: español.
+- Módulos nuevos del hackathon: `src/clima.js` (DONKI, tormentas, refugios), `src/datos.js` (datos reales y fuentes); tormentas en `src/sistemas.js`; `rescue()` y reglas de Cadete (`crewFix`, `kit`, `doseK`, `stormK` en `DIFS`) en `src/core.js` / `src/common.js`. `npm test` solo corre `tests/` (no las referencias).
 
 ## Cómo está organizado
 - `src/core.js`: toda la lógica del juego, **sin pantalla ni DOM**. Es determinista (azar con semilla: `rand(s)`) y serializable. No importar nada del navegador aquí.
