@@ -36,6 +36,9 @@ function sysBot(s) {
   const go = (x0, y0) => { const [x, yy] = spot(s, x0, y0); if (Math.hypot(x - p.x, yy - p.y) < 0.3) { G.interact(s); return still; } const m = toward(s, [x, yy], s.L.rooms.filter((r) => r.restricted || r.outside).map((r) => r.id)); if (m.dx || m.dy) return m; if (Math.hypot(x - p.x, yy - p.y) > 0.1) return { dx: x - p.x, dy: yy - p.y }; G.interact(s); return still; };
   // (se para encima del panel: si no, un compañero cercano se lleva la tecla E)
   if (y.emerg && !process.env.DEAF) return go(y.emerg.x, y.emerg.y);
+  // tormenta solar real: al refugio (STORMDEAF=1 la ignora, para medir lo que cuesta quedarse afuera)
+  if (y.storm && !process.env.STORMDEAF && !Sys.inShelter(s)) { const r = s.L.rooms.find((x) => x.id === Sys.shelterOf(s).room); return toward(s, [r.x + Math.floor(r.w / 2) + 0.5, r.y + Math.floor(r.h / 2) + 0.5]); }
+  if (y.storm && !process.env.STORMDEAF) return still;
   if (G.block(s).id === 'trabajo') { const o = Sys.pending(s).map((id) => Sys.station(s, id)).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0]; if (o) return go(o.x + 0.5, o.y + 0.5); }
   return null;
 }
@@ -72,10 +75,10 @@ for (const loc of locs) {
     }
     agg.caught += s.stats.caught; agg.alertMax += mx; agg.days += s.day; agg.integ += s.integ; agg.salud += s.p.salud;
     if (s.over) { if (/salud/.test(s.over.text)) agg.dead++; else agg.lost++; }
-    if (s.sys) { agg.dose = (agg.dose ?? 0) + Sys.dosePct(s); agg.done = (agg.done ?? 0) + s.sys.st.done; agg.skip = (agg.skip ?? 0) + s.sys.st.skipped; agg.saved = (agg.saved ?? 0) + s.sys.st.saved; agg.lvl = (agg.lvl ?? 0) + Object.values(s.sys.lvl).reduce((x, y) => x + y, 0) / 4; if (s.over) agg.why = { ...(agg.why ?? {}), [s.over.title]: ((agg.why ?? {})[s.over.title] ?? 0) + 1 }; }
+    if (s.sys) { agg.dose = (agg.dose ?? 0) + Sys.dosePct(s); agg.refu = (agg.refu ?? 0) + s.sys.st.refugio; agg.expu = (agg.expu ?? 0) + s.sys.st.expuesto; agg.done = (agg.done ?? 0) + s.sys.st.done; agg.skip = (agg.skip ?? 0) + s.sys.st.skipped; agg.saved = (agg.saved ?? 0) + s.sys.st.saved; agg.lvl = (agg.lvl ?? 0) + Object.values(s.sys.lvl).reduce((x, y) => x + y, 0) / 4; if (s.over) agg.why = { ...(agg.why ?? {}), [s.over.title]: ((agg.why ?? {})[s.over.title] ?? 0) + 1 }; }
   }
   if (process.env.DBG) { Object.entries(DBG).sort((a, b) => b[1] - a[1]).filter(([k], i) => i < 6 || k.startsWith('atrapa')).forEach(([k, v]) => console.log('   ', Math.round(v / N), k)); for (const k in DBG) delete DBG[k]; }
   const f = (x) => (x / N).toFixed(1);
   console.log(`${loc.padEnd(9)} atrapado/partida ${f(agg.caught)} · alerta máx ${f(agg.alertMax)} · integridad ${f(agg.integ)} · salud ${f(agg.salud)} · día ${f(agg.days)} · muertes ${agg.dead} · otras derrotas ${agg.lost}`);
-  if (agg.dose !== undefined) console.log(`          sistemas: dosis ${f(agg.dose)} % · revisiones hechas ${f(agg.done)} · omitidas ${f(agg.skip)} · emergencias salvadas ${f(agg.saved)} · nivel medio final ${f(agg.lvl)} %${agg.why ? ' · fin: ' + JSON.stringify(agg.why) : ''}`);
+  if (agg.dose !== undefined) console.log(`          sistemas: dosis ${f(agg.dose)} % · revisiones hechas ${f(agg.done)} · omitidas ${f(agg.skip)} · emergencias salvadas ${f(agg.saved)} · nivel medio final ${f(agg.lvl)} % · tormentas refugio/afuera ${f(agg.refu ?? 0)}/${f(agg.expu ?? 0)}${agg.why ? ' · fin: ' + JSON.stringify(agg.why) : ''}`);
 }

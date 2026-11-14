@@ -388,3 +388,18 @@ button.reto { border-color: var(--amber); color: var(--amber); }
 .basico.esencial { flex-direction: column; gap: .3rem; display: flex !important; } .basico.esencial span { white-space: normal; }
 .fin-cab > div { min-width: 0; } .fin-cab h2 { overflow-wrap: anywhere; }
 @media (max-width: 600px) { .fin-cab h2 { font-size: 1.25rem; letter-spacing: .02em; } .fin-cab .sello { width: 2.6rem; height: 2.6rem; } .fin-cab .sello .ic { width: 1.5rem; height: 1.5rem; } .fin-cab .etq { font-size: .8rem; letter-spacing: .1em; } }
+
+/* ---- Proyecto Hackaton 2.0: tormenta solar real ---- */
+#emerg.tormenta { border-color: #ffc23d; background: rgba(46,34,6,.93); color: #ffe7a3; }
+#emerg.tormenta .cuenta { border-color: #ffc23d; } #emerg.tormenta .cuenta i { background: #ffc23d; }
+#emerg.tormenta.a-salvo { border-color: #4dff88; background: rgba(6,40,20,.93); color: #b6ffcf; animation: none; }
+#emerg.tormenta.a-salvo .cuenta i { background: #4dff88; }
+#emerg small { display: block; opacity: .8; font-size: .78em; margin-top: .2em; }
+.tormenta-card .grande-txt { font-size: 1.12em; }
+.tormenta-card .fuente { color: #ffc23d; }
+.dosis-comp { display: grid; gap: .35em; margin: .6em 0; }
+.dosis-comp div { display: grid; grid-template-columns: 7.5em 1fr 5em; align-items: center; gap: .5em; }
+.dosis-comp div::before { content: ""; grid-column: 2; grid-row: 1; height: 12px; background: #0a0e17; border: 1px solid #334; }
+.dosis-comp i { grid-column: 2; grid-row: 1; height: 12px; display: block; }
+.dosis-comp i.ok { background: #4dff88; } .dosis-comp i.bad { background: #ff5d5d; }
+.dosis-comp b { text-align: right; }

@@ -129,7 +129,7 @@ export const HAZARDS = {
 
 /** Dificultad: multiplicadores sobre vista, velocidad de vigilantes, alerta, daño, villanos por día y gracia tras un castigo (s). */
 export const DIFS = {
-  cadete: { name: 'Cadete', desc: 'Para 7 a 12 años: cumplir la rutina y cuidar la base alcanza para llegar al rescate.', see: 0.55, spd: 0.75, alert: 0.35, dmg: 0.3, vil: [0, 1, 1], search: 0.3, grace: 60, late: 45, robotLife: 60, robotStun: 5, maxHaz: 1, excuse: true, regen: 0.1, react: 1.8, crewFix: 45 },
+  cadete: { name: 'Cadete', desc: 'Para 7 a 12 años: cumplir la rutina y cuidar la base alcanza para llegar al rescate.', see: 0.55, spd: 0.75, alert: 0.35, dmg: 0.3, vil: [0, 1, 1], search: 0.3, grace: 60, late: 45, robotLife: 60, robotStun: 5, maxHaz: 1, excuse: true, regen: 0.1, react: 1.8, crewFix: 45, doseK: 0.5, stormK: 0.75 },
   facil: { name: 'Fácil', desc: 'Para aprender: vigilantes lentos y miopes, menos daño.', see: 0.75, spd: 0.85, alert: 0.55, dmg: 0.5, vil: [1, 1, 2], search: 0.5, grace: 35, late: 30, robotLife: 100, robotStun: 3, maxHaz: 2, excuse: true, regen: 0.06, react: 1.4 },
   normal: { name: 'Normal', desc: 'La experiencia pensada: tenso pero justo.', see: 0.9, spd: 0.93, alert: 0.8, dmg: 0.7, vil: [1, 2, 2], search: 0.75, grace: 25, late: 22, robotLife: 170, robotStun: 2, maxHaz: 3, excuse: true, regen: 0.035, react: 1.15 },
   dificil: { name: 'Terror', desc: 'Sin piedad: ven lejos, corren y cada día llegan 3 amenazas.', see: 1, spd: 1, alert: 1, dmg: 1, vil: [1, 2, 3], search: 1, grace: 12, late: 15, robotLife: Infinity, robotStun: 0, maxHaz: 99, regen: 0.02, react: 1 },

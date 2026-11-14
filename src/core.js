@@ -211,7 +211,7 @@ export const storm = (s) => s.hazards.find((h) => h.def.type === 'front' && h.de
 /** Oscuridad donde está el jugador: tormenta o apagón. */
 export const dark = (s) => !!storm(s) || s.hazards.some((h) => h.def.type === 'blackout' && !h.def.quarantine && h.room === playerRoom(s));
 /** Hay una emergencia real (no cuentan cámaras ni apagones): excusa faltar al horario. */
-export const emergency = (s) => s.hazards.some((h) => !['camera', 'blackout'].includes(h.def.type));
+export const emergency = (s) => s.hazards.some((h) => !['camera', 'blackout'].includes(h.def.type)) || !!s.sys?.storm; // la tormenta solar excusa faltar al horario
 const MAGNET = ['spread', 'chaser', 'pull', 'robot', 'mold'];
 
 export function raise(s, n, why) {

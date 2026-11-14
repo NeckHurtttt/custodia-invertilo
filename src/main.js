@@ -5,6 +5,7 @@ import { NOTES } from './story.js';
 import { LOCS } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
+import { fetchFlares, sourceText } from './clima.js';
 import { VILLAINS } from './villains.js';
 import * as M from './music.js';
 import * as Snd from './sonido.js';
@@ -510,7 +511,9 @@ function danger() {
 function arrowToGoal(t) {
   if (s.final) return;
   const b = G.block(s); let tg = null; const em = s.sys?.emerg;
+  const stm = s.sys?.storm;
   if (em) tg = { x: em.x * TS, y: em.y * TS, label: `${Math.ceil(em.t)} s`, c1: '#ff4b4b', c2: '#ffd0d0' };
+  else if (stm && !Sys.inShelter(s)) { const r = s.L.rooms.find((x) => x.id === Sys.shelterOf(s).room); tg = { x: (r.x + r.w / 2) * TS, y: (r.y + r.h / 2) * TS, label: `REFUGIO ${Math.ceil(stm.t)} s`, c1: '#ffc23d', c2: '#fff0b3' }; }
   else if (s.sys && b.id === 'trabajo') { const o = Sys.pending(s).map((id) => Sys.station(s, id)).sort((a, c) => Math.hypot(a.x - s.p.x, a.y - s.p.y) - Math.hypot(c.x - s.p.x, c.y - s.p.y))[0]; if (o) tg = { x: (o.x + 0.5) * TS, y: (o.y + 0.5) * TS, label: 'Mantenimiento', c1: '#ffc23d', c2: '#ffe08a' }; }
   else if (b.room && G.playerRoom(s) !== b.room) { const r = s.L.rooms.find((x) => x.id === b.room); tg = { x: (r.x + r.w / 2) * TS, y: (r.y + r.h / 2) * TS, label: r.name, c1: '#ffc23d', c2: '#ffe08a' }; }
   if (!tg) return;
@@ -606,8 +609,13 @@ function hud() {
     const nd = sv.tasks.filter((k) => k.done).length; const rv = $('rev'); rv.hidden = b.id !== 'trabajo'; rv.textContent = `REVISIONES ${nd}/${sv.tasks.length} [1]`; rv.className = nd < sv.tasks.length ? 'pend' : 'ok';
     if ($('sistemas').dataset.h !== tareas) { $('sis-tareas').innerHTML = tareas; $('sistemas').dataset.h = tareas; $('sis-nota').textContent = sv.note; }
   }
-  const em = sv?.emerg; $('emerg').hidden = !em;
+  const em = sv?.emerg; const sm = !em && sv?.storm; $('emerg').hidden = !em && !sm;
+  $('emerg').classList.toggle('tormenta', !!sm); $('emerg').classList.toggle('a-salvo', !!sm && sm.inShelter);
   if (em) $('emerg').innerHTML = `${ic('warn')} <b>${em.name}</b><br>${em.verb} → ${em.room} · <b>${Math.ceil(em.t)} s</b><div class="cuenta"><i style="width:${Math.max(0, em.t / em.total * 100)}%"></i></div>`;
+  else if (sm) $('emerg').innerHTML = `${ic('rad')} <b>TORMENTA SOLAR ${sm.n}/3 · clase ${sm.cls}</b><br>${sm.phase === 'aviso'
+    ? (sm.inShelter ? `Estás en el refugio (${sm.shelter}). Llegan en <b>${Math.ceil(sm.t)} s</b>` : `¿Refugio (${sm.shelter}) o sigues? Llegan en <b>${Math.ceil(sm.t)} s</b> · afuera: ${sm.dose} mSv`)
+    : (sm.inShelter ? `Partículas afuera: quédate en el refugio <b>${Math.ceil(sm.t)} s</b>` : `¡Te están llegando partículas! Refugio: ${sm.shelter} · <b>${Math.ceil(sm.t)} s</b>`)}<div class="cuenta"><i style="width:${Math.max(0, sm.t / sm.total * 100)}%"></i></div><small>${sm.source}</small>`;
+  if (sv?.last && sv.last.n !== stormShown && !menu && !s.over) { stormShown = sv.last.n; stormCard(sv.last); }
   // actividad actual: siempre a la vista (lo que toca hacer ahora y dónde)
   { const falta = Math.max(0, Math.round(b.to - s.min)); const enSala = !b.room || G.playerRoom(s) === b.room; let txt;
     const pend = sv && b.id === 'trabajo' ? sv.tasks.filter((k) => !k.done) : [];
@@ -748,7 +756,7 @@ function titleScreen() {
   $('t-mas').ontoggle = () => { masAbierto = $('t-mas').open; };
   cableaAjustes(['musica', 'sfx', 'suave']);
   $('t-coop').onclick = () => coopUI.roles();
-  const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), opts); base = null; close(); intro(); };
+  const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { ...opts, flares: liveFlares }); base = null; close(); intro(); };
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
   V.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { setOpt('dest', b.dataset.loc); titleScreen(); }));
   V.querySelectorAll('[data-modo]').forEach((b) => (b.onclick = () => { setOpt('modo', b.dataset.modo); titleScreen(); }));
@@ -767,7 +775,7 @@ let coop = null; // { session, link, kind } cuando esta computadora es el astron
 function coopStop() { if (coop) { coop.link.close(); coop = null; } coopUI?.destroyGuest(); }
 const coopUI = coopScreens({ $, open, close, beep, setMenu: (v) => { menu = v; }, titleScreen, getDif,
   startHost(locId, link, kind) {
-    M.start(); clearSave(locId); s = G.newGame(locId, undefined, getDif(), { mode: 'campana', perk: getOpt('perk', 'novato'), reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(locId) });
+    M.start(); clearSave(locId); s = G.newGame(locId, undefined, getDif(), { flares: liveFlares, mode: 'campana', perk: getOpt('perk', 'novato'), reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(locId) });
     base = null; coop = { link, kind, session: new HostSession(link, s) }; close(); intro();
   } });
 
@@ -784,6 +792,34 @@ function archiveScreen(back) {
     return `<h3>${L.icon} ${L.name.toUpperCase()} · ${known.size}/${NOTES[loc].length}${known.size >= NOTES[loc].length ? ' · ★ FINAL VERDADERO DESBLOQUEADO' : ''}</h3>${NOTES[loc].map(([t, x], i) => known.has(i) ? `<details class="nota"><summary>📄 ${t}</summary><p>${x}</p></details>` : `<p class="nota no">📄 ??? <small>(en algún cajón)</small></p>`).join('')}`; };
   open(`<h2>📄 ARCHIVO</h2><p style="color:var(--dim)">Las notas aparecen al revisar cajones. Junta las 6 de un destino y gana allí para ver su final verdadero.</p>${(back ? [s.loc] : Object.keys(LOCS)).map(block).join('')}<div class="fila"><button id="volver">VOLVER</button></div>`);
   $('volver').onclick = () => (back ? back() : titleScreen());
+}
+
+// Clima espacial real: se pide a NASA DONKI al abrir el juego (una vez por día, guardado). Si llega cuando la
+// partida ya empezó y aún no pasó ninguna tormenta, se usan las llamaradas nuevas.
+let liveFlares = (() => { try { const c = JSON.parse(localStorage.getItem('lfr.flares') || 'null'); return c && c.day === new Date().toISOString().slice(0, 10) ? c.list : null; } catch { return null; } })();
+if (!liveFlares) fetchFlares({ key: (() => { try { return localStorage.getItem('lfr.nasaKey') || 'DEMO_KEY'; } catch { return 'DEMO_KEY'; } })() }).then((l) => {
+  if (!l) return; liveFlares = l;
+  try { localStorage.setItem('lfr.flares', JSON.stringify({ day: new Date().toISOString().slice(0, 10), list: l })); } catch { /* sin espacio */ }
+  if (s?.sys && !s.sys.storm && s.sys.storms === 0) Sys.setFlares(s, l);
+});
+
+// Tarjeta "LA RESTRICCIÓN REAL" al terminar cada tormenta solar (pausa el juego para leerla).
+let stormShown = 0;
+function stormCard(l) {
+  menu = 'tormenta'; const lim = Sys.DOSE_LIMIT; const pctBar = (v) => Math.min(100, Math.round((v / lim) * 100));
+  open(`<h2>${ic('rad', 'g')} LA RESTRICCIÓN REAL · TORMENTA ${l.n}/3</h2>
+    <p class="fuente">${sourceText(l.flare)}</p>
+    <p class="grande-txt">${l.refugio ? 'Te refugiaste: <b>casi sin radiación</b>, pero perdiste lo que estabas haciendo y el refugio gastó energía.' : 'Te quedaste afuera: avanzaste en lo tuyo, pero <b>esa radiación ya no se borra</b>.'}</p>
+    <div class="dosis-comp">
+      <div><span>Recibiste</span><i style="width:${pctBar(l.got)}%" class="${l.refugio ? 'ok' : 'bad'}"></i><b>${l.got} mSv</b></div>
+      <div><span>En el refugio</span><i style="width:${pctBar(l.could)}%" class="ok"></i><b>${l.could} mSv</b></div>
+      <div><span>Afuera</span><i style="width:${pctBar(l.worst)}%" class="bad"></i><b>${l.worst} mSv</b></div>
+    </div>
+    <p><small>Barras sobre el límite de esta misión del juego (${lim} mSv, una escala chica para 10 días). En la vida real, la NASA permite como máximo <b>600 mSv en TODA la carrera</b> de un astronauta, y trabaja con el lema ALARA: tan poca radiación como sea razonable.</small></p>
+    <p><b>Así lo hacen de verdad:</b> ${Sys.shelterOf(s).why} En la Estación, en una tormenta solar la tripulación se va a los módulos con más blindaje.</p>
+    <p><small>Estudio real de NASA (OSDR · OSD-340): ratones expuestos a radiación como la del espacio profundo tuvieron más riesgo de cáncer de la sangre. Por eso se limita la dosis.</small></p>
+    <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} ENTENDIDO</button></div>`, 'tormenta-card');
+  $('ok').onclick = close;
 }
 
 function intro() {
@@ -964,7 +1000,7 @@ function endScreen() {
     ${!o.won ? `<p style="color:var(--dim)">Siguiente desbloqueo: ${nextUnlock(r.total)}</p>` : ''}
     <div class="fila">${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} COMPARTIR RESULTADO</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? 'JUGAR OTRA VEZ' : 'REINTENTAR'}</button>`}<button id="menu" class="sec">${ic('menu')} MENÚ</button></div></div>`);
   if (s.daily) $('compartir').onclick = () => { navigator.clipboard?.writeText(share).then(() => ($('compartir').textContent = '✓ COPIADO'), () => prompt('Copia tu resultado:', share)); };
-  else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
+  else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
   $('menu').onclick = titleScreen;
 }
 

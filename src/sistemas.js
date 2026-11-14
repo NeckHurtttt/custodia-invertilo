@@ -3,6 +3,7 @@
 // Opcional: emergencias de REFLEJOS (meteoritos, sobrecargas…) que se disparan al hacer mantenimiento y matan si no las atiendes.
 // Lógica pura (sin pantalla): todo vive en s.sys y se guarda con la partida.
 import * as C from './core.js';
+import { missionFlares, STORM_DAYS, STORM_MIN, STORM_SECONDS, warnSeconds, SHELTER, stormDose, SHELTER_FACTOR, SHELTER_ENERGY, classText, sourceText } from './clima.js';
 
 /** Los 4 sistemas. decay = puntos que baja por día sin mantenimiento (Normal ×0.7). */
 export const SYS = {
@@ -58,7 +59,8 @@ export function init(s, opts = {}) {
     lvl: Object.fromEntries(SYS_IDS.map((id) => [id, START_LVL])), dose: 0,
     done: {}, warn: {}, remind: false, emToday: 0, emerg: null,
     reflex: !!opts.reflex && !opts.daily,
-    st: { done: 0, skipped: 0, perfect: 0, saved: 0 },
+    st: { done: 0, skipped: 0, perfect: 0, saved: 0, refugio: 0, expuesto: 0 },
+    flares: missionFlares(opts.flares), storm: null, storms: 0,
   };
 }
 
@@ -172,7 +174,7 @@ export function update(s, dt, dm) {
   const lowPower = L.energia < 35;
   L.energia = clamp(L.energia - SYS.energia.decay * k * decayMul(s, 'energia'));
   for (const id of ['vida', 'rad', 'comida']) L[id] = clamp(L[id] - SYS[id].decay * k * decayMul(s, id) * (lowPower ? 1.6 : 1));
-  y.dose += DOSE_DAY * doseMul(s) * (1 + (100 - L.rad) / 60) * dm / 1440;
+  y.dose += DOSE_DAY * doseMul(s) * (C.dif(s).doseK ?? 1) * (1 + (100 - L.rad) / 60) * dm / 1440;
 
   let cause = null;
   if (L.vida < 30) p.energia = Math.max(0, p.energia - 0.05 * dm);
@@ -194,6 +196,8 @@ export function update(s, dt, dm) {
   for (const [lim, key] of [[50, 'd50'], [75, 'd75'], [90, 'd90']]) if (pct >= lim && !y.warn[key]) { y.warn[key] = 1; C.say(s, `☢ Dosis de radiación: ${Math.round(pct)} % del límite de la misión.`, pct >= 90 ? 'bad' : 'warn'); }
   if (pct >= 100) C.end(s, false, 'Dosis límite superada', `Pasaste el límite de radiación de la misión (${y.dose.toFixed(1)} mSv). La NASA trabaja con ALARA: tan poca como sea razonable. Con el blindaje sin revisar, entró más radiación cada día.`);
 
+  updateStorm(s, dt);
+
   // recordatorio a las 11:00
   if (!y.remind && s.min >= 660 && C.block(s).id === 'trabajo' && pending(s).length) { y.remind = true; C.flash(s, `Queda 1 hora de turno. Falta: ${pending(s).map((id) => SYS[id].name.toLowerCase()).join(', ')}.`, 'warn'); }
 
@@ -205,6 +209,50 @@ export function update(s, dt, dm) {
   }
 }
 
+// ---------- CLIMA ESPACIAL REAL: 3 tormentas por misión con llamaradas de NASA DONKI ----------
+/** Sala refugio del destino. */
+export const shelterOf = (s) => SHELTER[s.loc] ?? { room: 'dorm', why: '' };
+export const inShelter = (s) => !s.p.inDuct && C.playerRoom(s) === shelterOf(s).room;
+/** Reemplaza las llamaradas de la misión cuando llegan las de DONKI (si la tormenta aún no empezó, usa las nuevas). */
+export function setFlares(s, live) { if (s.sys) s.sys.flares = missionFlares(live); }
+
+function updateStorm(s, dt) {
+  const y = s.sys;
+  if (!y.storm) {
+    const day = STORM_DAYS[y.storms];
+    if (day && s.day >= day && s.min >= STORM_MIN && !s.final) startStorm(s);
+    return;
+  }
+  const st = y.storm; st.t -= dt;
+  if (st.phase === 'aviso') {
+    if (st.t <= 0) { st.phase = 'barre'; st.t = STORM_SECONDS; s.sfx?.push('alarma'); C.flash(s, inShelter(s) ? '☢ Llegaron las partículas. Estás en el refugio: quédate hasta que pase.' : '☢ ¡Llegaron las partículas solares! Estás fuera del refugio.', inShelter(s) ? 'ok' : 'bad'); }
+    return;
+  }
+  // barre: la dosis se suma según dónde estés
+  const k = dt / STORM_SECONDS;
+  if (inShelter(s)) { st.got += st.dose * SHELTER_FACTOR * k; st.inside += dt; if (!st.paid) { st.paid = true; y.lvl.energia = clamp(y.lvl.energia - SHELTER_ENERGY); } }
+  else { st.got += st.dose * k; st.outside += dt; }
+  if (st.t <= 0) endStorm(s);
+}
+export function startStorm(s) {
+  const y = s.sys; const f = y.flares[y.storms] ?? y.flares[y.flares.length - 1]; const sh = shelterOf(s);
+  y.storm = { flare: f, phase: 'aviso', t: warnSeconds(s.dif), total: warnSeconds(s.dif), dose: Math.round(stormDose(f.cls, s.loc) * (C.dif(s).stormK ?? 1) * 100) / 100, got: 0, inside: 0, outside: 0, paid: false, n: y.storms + 1 };
+  s.sfx?.push('alarma');
+  C.flash(s, `☀️ TORMENTA SOLAR ${y.storm.n} de ${STORM_DAYS.length}. ${sourceText(f)} En ${y.storm.t} s llegan las partículas. ¿Corres al REFUGIO (${C.roomName(s, sh.room)}) o sigues con lo tuyo?`, 'bad');
+  C.say(s, `En el refugio casi no recibes radiación, pero pierdes lo que estabas haciendo y el refugio gasta energía. Afuera recibes unos ${y.storm.dose} mSv que no se borran. (${classText(f.cls)}.)`, 'warn');
+  return y.storm;
+}
+function endStorm(s) {
+  const y = s.sys; const st = y.storm; y.storm = null; y.storms++;
+  const got = Math.round(st.got * 100) / 100; y.dose += got;
+  const refugio = st.inside >= st.outside; if (refugio) y.st.refugio++; else y.st.expuesto++;
+  const pct = Math.round((got / DOSE_LIMIT) * 100); const sh = shelterOf(s);
+  y.lastStorm = { flare: st.flare, got, pct, refugio, could: Math.round(st.dose * SHELTER_FACTOR * 100) / 100, worst: st.dose, n: st.n };
+  C.say(s, refugio
+    ? `☀️ Pasó la tormenta. En el refugio recibiste solo ${got} mSv (${pct} % del límite de la misión). Costo: el tiempo perdido y ${SHELTER_ENERGY} de ENERGÍA del refugio. ${sh.why}`
+    : `☀️ Pasó la tormenta. Afuera recibiste ${got} mSv (${pct} % del límite de la misión): esa dosis no se borra. En el refugio habrían sido ${y.lastStorm.could} mSv. La NASA limita a 600 mSv la dosis de TODA la carrera de un astronauta.`, refugio ? 'ok' : 'bad');
+}
+
 /** Datos listos para dibujar el panel. */
 export function view(s) {
   const y = s.sys; if (!y) return null;
@@ -213,7 +261,8 @@ export function view(s) {
     meters: SYS_IDS.map((id) => ({ id, name: SYS[id].name, v: y.lvl[id], low: y.lvl[id] < 30 })),
     dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? NASA_NOTE, events: mods(s).map((e) => ({ name: e.name, text: e.hud })),
     tasks: SYS_IDS.map((id) => ({ id, name: taskName(s, id), short: taskShort(s, id), room: stationRoom(s, id), done: !!y.done[id] })),
-    reflex: y.reflex,
+    reflex: y.reflex, last: y.lastStorm ?? null,
+    storm: y.storm ? { n: y.storm.n, phase: y.storm.phase, t: y.storm.t, total: y.storm.phase === 'aviso' ? y.storm.total : STORM_SECONDS, cls: y.storm.flare.cls, source: sourceText(y.storm.flare), shelter: C.roomName(s, shelterOf(s).room), inShelter: inShelter(s), dose: y.storm.dose } : null,
     emerg: e ? { name: ed.name, verb: ed.verb, t: e.t, total: e.total, room: C.roomName(s, e.room), x: e.x, y: e.y } : null,
   };
 }
