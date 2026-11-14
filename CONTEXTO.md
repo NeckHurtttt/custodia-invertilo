@@ -76,11 +76,11 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 
 ## 5. Siguiente paso y cola de trabajo
 
-> **SIGUIENTE PASO:** B · campo para la llave de api.nasa.gov en la pantalla DATOS NASA.
+> **SIGUIENTE PASO:** C · ocultar "delatar a un compañero" en Cadete.
 
 Cola en orden (marca `[x]` al terminar y sube):
 - [x] A · Instrucciones para el Claude que retome + bitácora (este archivo).
-- [ ] B · **Campo para la llave de api.nasa.gov** en DATOS NASA. Hoy solo se lee `localStorage` `lfr.nasaKey`. Al guardar: borrar la caché `lfr.flares` y volver a pedir DONKI.
+- [x] B · **Campo para la llave de api.nasa.gov** en DATOS NASA: se guarda en `lfr.nasaKey`, borra la caché `lfr.flares` y vuelve a pedir DONKI (`pedirDonki()` en `src/main.js`). Si NASA no responde, lo dice y sigue con las archivadas.
 - [ ] C · **Ocultar "delatar a un compañero" en Cadete** (público de 7-12). Tecla B en `src/main.js` y `betray()` en `src/core.js`; también el texto "[B] delatar".
 - [ ] D · **Verificar 3 citas de Leo** y corregir o marcar como no verificadas: NTRS 20250003954 (despresurización, `PROTO_FUENTE.fuga`), "GeoHealth 2025, Wang et al." (`PROTO_FUENTE.perclorato`) y "250 mSv por evento" (`src/sistemas.js`, `EMERGS.llamarada.fatal`).
 - [ ] E · **Adaptar la entrega de Space Apps a Custodia**: nuevo `docs/entrega-space-apps.md` en inglés (nombre, resumen, enlaces, datos NASA, uso de IA, guion de 30 s, 7 diapositivas) y la descripción del equipo. Faltan los nombres del equipo: pedírselos a Sergio.
@@ -91,7 +91,7 @@ Cola en orden (marca `[x]` al terminar y sube):
 - [ ] J · (opcional) Traer la academia de la versión de Sergio (repo `NeckHurtttt/Custodia`) como tutorial.
 
 Lo que hace Sergio (no Claude):
-- Sacar la llave gratis en https://api.nasa.gov (con su correo) y pegarla en DATOS NASA cuando exista el campo (B).
+- Sacar la llave gratis en https://api.nasa.gov (con su correo) y pegarla en el inicio → DATOS NASA → "Llave de api.nasa.gov" → USAR LLAVE (en cada compu/navegador donde se juegue o presente).
 - Probar con 1 o 2 niños (guía: `docs/analisis/2026-11-14-lifeline-prueba-con-ninos.md`; cambiar "refugio o ciencia" por "refugio o seguir").
 - Pegar la descripción del equipo en la web de Space Apps y hacer la entrega.
 
@@ -130,4 +130,4 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
 | 14/11 | `74019d1`…`f9422b0` | Los 8 puntos (rescate, Cadete, tormentas DONKI, armario, pantalla simple, DATOS NASA, enlaces del jurado) | — |
 | 14/11 | `b7c3663`, `3cd072f` | CONTEXTO, referencias, análisis; publicado en GitHub y Pages | — |
 | 14/11 | (este commit) | A · Instrucciones para el Claude que retome y cola de trabajo | B |
-
+| 14/11 | (este commit) | B · Campo para la llave de api.nasa.gov en DATOS NASA (probado con llave falsa: avisa y sigue con archivadas); e2e 18/18 | C |

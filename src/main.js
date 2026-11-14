@@ -801,11 +801,15 @@ function archiveScreen(back) {
 // Clima espacial real: se pide a NASA DONKI al abrir el juego (una vez por día, guardado). Si llega cuando la
 // partida ya empezó y aún no pasó ninguna tormenta, se usan las llamaradas nuevas.
 let liveFlares = (() => { try { const c = JSON.parse(localStorage.getItem('lfr.flares') || 'null'); return c && c.day === new Date().toISOString().slice(0, 10) ? c.list : null; } catch { return null; } })();
-if (!liveFlares) fetchFlares({ key: (() => { try { return localStorage.getItem('lfr.nasaKey') || 'DEMO_KEY'; } catch { return 'DEMO_KEY'; } })() }).then((l) => {
-  if (!l) return; liveFlares = l;
+const nasaKey = () => { try { return localStorage.getItem('lfr.nasaKey') || 'DEMO_KEY'; } catch { return 'DEMO_KEY'; } };
+/** Pide las llamaradas a DONKI; devuelve true si llegaron datos en vivo. */
+const pedirDonki = () => fetchFlares({ key: nasaKey() }).then((l) => {
+  if (!l) return false; liveFlares = l;
   try { localStorage.setItem('lfr.flares', JSON.stringify({ day: new Date().toISOString().slice(0, 10), list: l })); } catch { /* sin espacio */ }
   if (s?.sys && !s.sys.storm && s.sys.storms === 0) Sys.setFlares(s, l);
+  return true;
 });
+if (!liveFlares) pedirDonki();
 
 // Pantalla DATOS NASA: qué es real, de dónde sale y qué es escala de juego.
 function datos(back) {
@@ -813,6 +817,10 @@ function datos(back) {
   open(`<h2>${ic('rad', 'g')} DATOS NASA</h2>
     <p class="grande-txt"><b>La restricción real que enseña el juego:</b> ${RESTRICCION}</p>
     <h3>☀️ Clima espacial: NASA DONKI ${enVivo ? '(EN VIVO, último mes)' : '(sin conexión: llamaradas reales archivadas)'}</h3>
+    <div class="llave"><label for="llave-nasa">Llave de api.nasa.gov</label>
+      <input id="llave-nasa" type="text" autocomplete="off" spellcheck="false" placeholder="pega tu llave (gratis en api.nasa.gov)" value="${nasaKey() === 'DEMO_KEY' ? '' : nasaKey()}">
+      <button id="llave-ok" class="sec">USAR LLAVE</button>
+      <small id="llave-est">${nasaKey() === 'DEMO_KEY' ? 'Usando la llave de prueba DEMO_KEY: se agota rápido y entonces salen llamaradas archivadas. Saca una gratis en <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.' : 'Usando tu llave propia (guardada solo en este navegador).'}</small></div>
     <ul class="datos-lista">${fl.map((f, i) => `<li>Tormenta ${i + 1} · día ${[2, 5, 8][i]}: clase <b>${f.cls}</b> · ${f.date} · ${f.source === 'donki' ? 'DONKI en vivo' : 'archivo DONKI'}</li>`).join('')}</ul>
     <p><small>Refugios: ${Object.entries(SHELTER).map(([k, v]) => `<b>${LOCS[k].name}</b>: ${LOCS[k].rooms.find((r) => r.id === v.room)?.name}. ${v.why}`).join(' ')}</small></p>
     <h3>☢ Radiación medida de verdad</h3>
@@ -826,6 +834,12 @@ function datos(back) {
     <ul class="datos-lista">${ESCALA.map((t) => `<li>${t}</li>`).join('')}</ul>
     <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} VOLVER</button></div>`, 'pant-datos');
   $('ok').onclick = () => (back ? back() : close());
+  $('llave-ok').onclick = () => {
+    const k = $('llave-nasa').value.trim();
+    try { if (k) localStorage.setItem('lfr.nasaKey', k); else localStorage.removeItem('lfr.nasaKey'); localStorage.removeItem('lfr.flares'); } catch { /* sin almacenamiento */ }
+    $('llave-est').textContent = 'Consultando NASA DONKI…'; M.ui('click');
+    pedirDonki().then((ok) => { if (ok) datos(back); else $('llave-est').textContent = 'NASA no respondió (llave inválida o sin internet). Se siguen usando las llamaradas archivadas.'; });
+  };
 }
 
 // Tarjeta "LA RESTRICCIÓN REAL" al terminar cada tormenta solar (pausa el juego para leerla).

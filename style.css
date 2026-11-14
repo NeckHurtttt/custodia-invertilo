@@ -413,3 +413,7 @@ body.cadete:not(.ver-plan) .vr[data-f="fuerza"], body.cadete:not(.ver-plan) .vr[
 .datos-lista li::before { content: "› "; color: #ffc23d; }
 .pant-datos a, .tormenta-card a { color: #ffc23d; }
 .pant-datos h3 { margin-top: .9em; }
+
+.pant-datos .llave { display: flex; flex-wrap: wrap; gap: .4em; align-items: center; margin: .3em 0 .6em; }
+.pant-datos .llave input { flex: 1 1 14em; min-width: 0; padding: .35em .5em; background: #0a0e17; color: #e6edf7; border: 1px solid #334; font: inherit; }
+.pant-datos .llave small { flex-basis: 100%; }
