@@ -406,3 +406,10 @@ button.reto { border-color: var(--amber); color: var(--amber); }
 
 /* Cadete: pantalla más simple (salud, energía, alerta y los 4 sistemas) */
 body.cadete:not(.ver-plan) .vr[data-f="fuerza"], body.cadete:not(.ver-plan) .vr[data-f="saber"], body.cadete .vr[data-f="integ"] { display: none; }
+
+/* Pantalla DATOS NASA */
+.datos-lista { list-style: none; padding-left: 0; margin: .3em 0 .8em; }
+.datos-lista li { margin: .25em 0; padding-left: 1em; text-indent: -1em; }
+.datos-lista li::before { content: "› "; color: #ffc23d; }
+.pant-datos a, .tormenta-card a { color: #ffc23d; }
+.pant-datos h3 { margin-top: .9em; }

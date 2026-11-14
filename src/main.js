@@ -5,7 +5,8 @@ import { NOTES } from './story.js';
 import { LOCS } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
-import { fetchFlares, sourceText } from './clima.js';
+import { fetchFlares, sourceText, missionFlares, SHELTER } from './clima.js';
+import { RESTRICCION, DOSIS_REALES, OSDR, osdUrl, ESCALA } from './datos.js';
 import { VILLAINS } from './villains.js';
 import * as M from './music.js';
 import * as Snd from './sonido.js';
@@ -745,19 +746,20 @@ function titleScreen() {
     <div class="secundarios">
       <button id="t-coop" class="reto" title="Dos computadoras: un astronauta en la base y Control de Misión que lo ayuda">${ic('tripulacion')} COOPERATIVO</button>
       <button id="t-reto" class="reto">${ic('dia')} RETO DEL DÍA${dy.done ? ' · ' + Meta.fmtTime(dy.done) : ''}</button>
-      <button id="t-medallas">${ic('medalla')} MEDALLAS</button><button id="t-archivo">${ic('archivo')} ARCHIVO</button><button id="t-ayuda">${ic('ayuda')} CÓMO SE JUEGA</button>
+      <button id="t-medallas">${ic('medalla')} MEDALLAS</button><button id="t-archivo">${ic('archivo')} ARCHIVO</button><button id="t-ayuda">${ic('ayuda')} CÓMO SE JUEGA</button><button id="t-datos" class="reto">${ic('rad')} DATOS NASA</button>
     </div>
     <details class="mas" id="t-mas" ${masAbierto ? 'open' : ''}><summary>MÁS OPCIONES · modo de juego, personaje, sonido y vista</summary>
       <div class="bloque-op"><span class="lbl">MODO</span><div class="seg">${[['campana', 'CAMPAÑA · 10 días'], ['noche', 'UNA NOCHE · 7 min']].map(([k, n]) => `<button data-modo="${k}" class="${k === mode ? 'on' : ''}">${n}</button>`).join('')}</div></div>
       <div class="bloque-op"><span class="lbl">PERSONAJE</span><div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${d.desc}">${d.name.toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${d.desc}">${ic('info')} ${d.name.toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${PERKS[perk].desc}</small></div>
       <div class="bloque-op">${ajustesHTML(['musica', 'sfx', 'suave'])}</div>
     </details>
-    <p class="pie">UN JUEGO DE #LosTiraVida · basado en LIFELINE</p>
+    <p class="pie">UN JUEGO DE #LosTiraVida · NASA Space Apps 2026 · desafío Junior Astronaut Mission Trainer</p>
   </div>`, 'pant-titulo');
   const V = $('ventana');
   $('t-mas').ontoggle = () => { masAbierto = $('t-mas').open; };
   cableaAjustes(['musica', 'sfx', 'suave']);
   $('t-coop').onclick = () => coopUI.roles();
+  $('t-datos').onclick = () => datos(titleScreen);
   const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { ...opts, flares: liveFlares }); base = null; close(); intro(); };
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
   V.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { setOpt('dest', b.dataset.loc); titleScreen(); }));
@@ -804,6 +806,27 @@ if (!liveFlares) fetchFlares({ key: (() => { try { return localStorage.getItem('
   try { localStorage.setItem('lfr.flares', JSON.stringify({ day: new Date().toISOString().slice(0, 10), list: l })); } catch { /* sin espacio */ }
   if (s?.sys && !s.sys.storm && s.sys.storms === 0) Sys.setFlares(s, l);
 });
+
+// Pantalla DATOS NASA: qué es real, de dónde sale y qué es escala de juego.
+function datos(back) {
+  menu = 'datos'; const fl = missionFlares(liveFlares); const enVivo = fl.some((f) => f.source === 'donki');
+  open(`<h2>${ic('rad', 'g')} DATOS NASA</h2>
+    <p class="grande-txt"><b>La restricción real que enseña el juego:</b> ${RESTRICCION}</p>
+    <h3>☀️ Clima espacial: NASA DONKI ${enVivo ? '(EN VIVO, último mes)' : '(sin conexión: llamaradas reales archivadas)'}</h3>
+    <ul class="datos-lista">${fl.map((f, i) => `<li>Tormenta ${i + 1} · día ${[2, 5, 8][i]}: clase <b>${f.cls}</b> · ${f.date} · ${f.source === 'donki' ? 'DONKI en vivo' : 'archivo DONKI'}</li>`).join('')}</ul>
+    <p><small>Refugios: ${Object.entries(SHELTER).map(([k, v]) => `<b>${LOCS[k].name}</b>: ${LOCS[k].rooms.find((r) => r.id === v.room)?.name}. ${v.why}`).join(' ')}</small></p>
+    <h3>☢ Radiación medida de verdad</h3>
+    <ul class="datos-lista">${DOSIS_REALES.map((d) => `<li><b>${d.donde}:</b> ${d.valor} <small>(${d.fuente})</small></li>`).join('')}</ul>
+    <h3>🧬 Salud de astronautas: estudios del repositorio OSDR de NASA</h3>
+    <ul class="datos-lista">${OSDR.map((o) => `<li><a href="${osdUrl(o.id)}" target="_blank" rel="noopener">${o.id}</a>: ${o.texto}</li>`).join('')}</ul>
+    <h3>🚨 Protocolos de emergencia</h3>
+    <ul class="datos-lista">${Object.entries(PROTO_FUENTE).filter(([, f]) => f.nivel !== 'ficcion').map(([k, f]) => `<li><b>${PROTOCOLS[k].title}</b> — ${PROTO_NIVEL[f.nivel]}. <small>${f.fuente}</small></li>`).join('')}</ul>
+    <p><small>Los demás protocolos del juego están marcados como ficción dentro del minijuego.</small></p>
+    <h3>🎮 Escala de juego (no es dato real)</h3>
+    <ul class="datos-lista">${ESCALA.map((t) => `<li>${t}</li>`).join('')}</ul>
+    <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} VOLVER</button></div>`, 'pant-datos');
+  $('ok').onclick = () => (back ? back() : close());
+}
 
 // Tarjeta "LA RESTRICCIÓN REAL" al terminar cada tormenta solar (pausa el juego para leerla).
 let stormShown = 0;
