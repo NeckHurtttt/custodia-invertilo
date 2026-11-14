@@ -52,7 +52,7 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 
 ## 5. Lo que falta (en orden sugerido)
 
-1. **Publicar:** crear el repo en GitHub y activar Pages (abajo). El enlace del jurado sería `https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado`.
+1. ~~Publicar~~ **Hecho (14/11):** repo https://github.com/NeckHurtttt/proyecto-Hackaton-2.0 · jugar https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete · jurado https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado (probado: entra en Cadete y llega la tormenta).
 2. **Llave propia de api.nasa.gov** (gratis, con correo). La de prueba `DEMO_KEY` se agota y entonces salen las llamaradas archivadas. Hoy se guarda en `localStorage` `lfr.nasaKey`; no hay campo en pantalla todavía.
 3. **Probar con 1 o 2 niños:** guía en `docs/analisis/2026-11-14-lifeline-prueba-con-ninos.md` (está hecha para LIFELINE; sirve cambiando "refugio o ciencia" por "refugio o seguir").
 4. **Entrega en Space Apps:** el borrador de `docs/analisis/2026-11-14-lifeline-entrega-space-apps.md` es de LIFELINE. Hay que adaptarlo a Custodia (nombre, resumen, enlaces) y agregar los nombres del equipo. También hay que cambiar la descripción del equipo en la web de Space Apps (`docs/analisis/2026-11-14-lifeline-descripcion-equipo.md`).
@@ -65,7 +65,7 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 6. **Revisar 3 citas de Leo sin verificar:** NTRS 20250003954 (despresurización), "GeoHealth 2025, Wang et al." (perclorato) y "250 mSv por evento" (`src/sistemas.js`, emergencia `llamarada`). Lo que NASA tiene es un límite de 30 días para la médula ósea.
 7. Pensar si **"delatar a un compañero"** debería ocultarse en Cadete (público de 7-12).
 
-### Publicar en GitHub (si todavía no está)
+### Publicar en GitHub (ya hecho; por si hay que repetirlo en otro lado)
 ```bash
 gh repo create proyecto-Hackaton-2.0 --public --source . --remote origin --push
 git push origin base-leo
