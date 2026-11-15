@@ -2,6 +2,7 @@
 //   { send(obj), onmessage(obj), onpeer(up:boolean), onclose(), close(), kind, peerUp, estado, onestado(e) }
 //   1) wsLink  → por la red local, usando el servidor del juego (node tools/serve.mjs --lan). Hay que escribir el código de sala.
 //   2) rtcHost / rtcGuest → directo de navegador a navegador (WebRTC) sin servidor: se copian y pegan dos códigos a mano.
+import { T } from './i18n.js';
 const mk = (kind) => ({ kind, peerUp: false, onmessage: null, onpeer: null, onclose: null, send() {}, close() {} });
 const peer = (L, up) => { L.peerUp = up; L.onpeer?.(up); }; // recuerda si el otro lado está: así se puede enganchar después
 const enc = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
@@ -36,7 +37,7 @@ export function wsLink(room, role, opt = {}) {
       let w; try { w = new WS(url); } catch (e) { if (primera) return no(e); return reintenta(); }
       ws = w; let abierto = false;
       w.onopen = () => { abierto = true; intentos = 0; ultimo = Date.now(); clearInterval(vigila); vigila = setInterval(silencio, 4000); estado('ok'); if (primera) { primera = false; ok(L); } else L.onback?.(); };
-      w.onerror = () => { if (primera && !abierto) { cerrado = true; no(new Error('No pude conectar. ¿Abriste el juego con “node tools/serve.mjs 8000 --lan”? ¿La sala ya tiene ese rol?')); } };
+      w.onerror = () => { if (primera && !abierto) { cerrado = true; no(new Error(T('No pude conectar. ¿Abriste el juego con “node tools/serve.mjs 8000 --lan”? ¿La sala ya tiene ese rol?', 'Could not connect. Did you open the game with “node tools/serve.mjs 8000 --lan”? Is that role already taken in the room?'))); } };
       w.onmessage = (e) => { if (ws !== w) return; ultimo = Date.now(); let m; try { m = JSON.parse(e.data); } catch { return; } if (m?.t === 'hb') return; if (m?.t === 'peer') peer(L, !!m.up); else L.onmessage?.(m); };
       w.onclose = () => { if (ws !== w) return; clearInterval(vigila); if (!abierto && primera) return; peer(L, false); if (cerrado) { estado('cerrado'); L.onclose?.(); } else reintenta(); };
     }

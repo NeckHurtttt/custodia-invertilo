@@ -232,3 +232,6 @@ const EN_STEPS = {
 for (const [k, steps] of Object.entries(EN_STEPS)) { const p = PROTOCOLS[k]; if (!p) continue; if (p.steps.length !== steps.length) throw new Error('pasos distintos en ' + k); p.stepsEn = steps; }
 const EN_PTITLE = { grieta: 'CRACK · habitat protocol', plaga: 'PEST · greenhouse protocol', hongo: 'MOLD IN THE FILTERS · habitat alert', ia: 'AI SHUTDOWN', desacople: 'MANUAL UNDOCKING · Soyuz', ascenso: 'LIFTOFF · ascent module', mav: 'LIFTOFF · MAV' };
 for (const [k, t] of Object.entries(EN_PTITLE)) if (PROTOCOLS[k]) PROTOCOLS[k].titleEn = t;
+
+/** Retraso de la señal con la Tierra que se simula (segundos reales). Realidad: ISS casi instantáneo; Luna ≈ 1,3 s luz por tramo; Marte entre 3 y 22 MINUTOS luz según la posición de los planetas (distancias Tierra–Marte, NASA). Aquí Marte se acorta para que se pueda jugar. */
+export const SIGNAL_DELAY = { estacion: 0, luna: 2, marte: 6 };

@@ -71,3 +71,22 @@ for (const [loc, lista] of Object.entries(NOTES_EN)) lista.forEach(([t, x], i) =
   Object.defineProperty(nota, 1, { get: () => T(x0, x), enumerable: true, configurable: true });
 });
 for (const [loc, en] of Object.entries(TRUE_END_EN)) { const es = TRUE_END[loc]; Object.defineProperty(TRUE_END, loc, { get: () => T(es, en), enumerable: true, configurable: true }); }
+
+// ---------- Transmisiones de la nave de rescate (ficción; una por mañana, del día 2 al 10) ----------
+// Dan esperanza y repiten, con otras palabras, lo que enseña el juego: rutina, energía, refugio, descanso. El número es los días que faltan.
+export const NAVE = 'ESPERANZA';
+const RESCATE = [
+  ['Despegamos anoche. Llegamos en 9 días. Cuiden el aire, la energía y la comida: nos vemos pronto.', 'We lifted off last night. We arrive in 9 days. Take care of the air, the power and the food: see you soon.'],
+  ['Faltan 8 días. Aquí también hacemos mantenimiento cada mañana: lo aburrido es lo que nos mantiene vivos.', '8 days to go. We also do maintenance every morning here: the boring stuff is what keeps us alive.'],
+  ['Faltan 7 días. Si el Sol se enoja, al refugio sin pensarlo. La radiación no se ve, pero se suma.', '7 days to go. If the Sun gets angry, go to the shelter without thinking twice. You cannot see radiation, but it adds up.'],
+  ['Faltan 6 días: vamos por la mitad del camino. ¿Cómo está la energía? Sin energía, todo lo demás cae.', '6 days to go: we are halfway there. How is the power? Without power, everything else falls.'],
+  ['Faltan 5 días. Toda nuestra tripulación pregunta por ustedes. No están solos.', '5 days to go. Our whole crew keeps asking about you. You are not alone.'],
+  ['Faltan 4 días. Ya vemos su base como un puntito de luz. Sigan con la rutina.', '4 days to go. We can already see your base as a tiny dot of light. Keep up the routine.'],
+  ['Faltan 3 días. Un equipo cansado se equivoca: coman bien y duerman.', '3 days to go. A tired team makes mistakes: eat well and sleep.'],
+  ['Faltan 2 días. Preparen la esclusa. Lo estás haciendo muy bien, cadete.', '2 days to go. Get the airlock ready. You are doing great, cadet.'],
+  ['¡Mañana llegamos! Un día más cuidando la base y vuelven a casa.', 'We arrive tomorrow! One more day looking after the base and you go home.'],
+];
+/** Frase de la nave de rescate para la mañana del día `day` (2…10); '' fuera de ese rango. */
+export const rescateLinea = (day) => { const r = RESCATE[day - 2]; return r ? T(r[0], r[1]) : ''; };
+/** La misma frase con quién habla, lista para el registro. */
+export const rescateAviso = (day) => { const l = rescateLinea(day); return l ? T(`📡 Nave de rescate ${NAVE}: «${l}»`, `📡 Rescue ship ${NAVE}: “${l}”`) : ''; };

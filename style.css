@@ -496,3 +496,38 @@ body.derrota .fin.pierde { border-color: #ff6b6b; }
 /* ---------- leer en voz alta ---------- */
 .btn-leer { float: right; margin: 0 0 .4rem .6rem; min-height: 40px; padding: .3rem .7rem; font-size: .95rem; position: relative; z-index: 2; }
 .btn-leer[aria-pressed="true"] { border-color: #6dff9b; color: #6dff9b; }
+
+/* Bitácora de la misión (informe causal del final y pestaña de la pausa): el estado va en número + marca, no solo en color */
+.bloque.bitacora { border-left-color: var(--amber); } .bloque.bitacora h3 { color: var(--amber); }
+.bitacora .causas { list-style: none; padding: 0; margin: .3rem 0 .5rem; }
+.bitacora .causas li { margin: .28rem 0; line-height: 1.25; }
+.bitacora .causas li.afuera, .bitacora .causas li.energia { color: #ffd9a8; }
+.bitacora .causas li.refugio, .bitacora .causas li.perfecto { color: #c9f5d9; }
+.bit-tabla { overflow-x: auto; margin: .3rem 0; }
+.bit-tabla table { border-collapse: collapse; width: 100%; font-size: .9em; }
+.bit-tabla th, .bit-tabla td { padding: .1rem .35rem; text-align: center; border: 1px solid var(--line); white-space: nowrap; }
+.bit-tabla tbody th { text-align: left; color: var(--dim); font-weight: normal; }
+.bit-tabla thead th { color: var(--dim); font-weight: normal; }
+.bit-tabla td.ok { color: var(--ok); }
+.bit-tabla td.warn { color: var(--warn); background: rgba(255,194,61,.12); }
+.bit-tabla td.bad { color: var(--bad); background: rgba(255,90,90,.16); }
+.bitacora small { color: var(--dim); }
+.pest li.bit { list-style: none; padding: 0; border: 0; } .pest li.bit .bloque { margin: 0; }
+
+/* Cartel del día nuevo: no recibe clics, queda por debajo de las ventanas y se va solo (en modo suave, sin animación) */
+.dia-nuevo { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); z-index: 9; pointer-events: none; width: min(92vw, 30rem); padding: .7rem 1.1rem .8rem; text-align: center;
+  background: rgba(10,14,24,.9); border: 1px solid var(--line); border-top: 3px solid var(--cyan); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,.55); animation: dia-entra 6.5s ease both; }
+.dia-nuevo[hidden] { display: none; }
+@keyframes dia-entra { 0% { opacity: 0; transform: translate(-50%, -8px); } 6%, 90% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+.dia-nuevo p { margin: .15rem 0; }
+.dn-dia { font-size: 2.2rem; letter-spacing: .14em; color: var(--fg); line-height: 1; }
+.dn-dia small { font-size: .5em; color: var(--dim); letter-spacing: .08em; }
+.dn-pista { display: flex; align-items: center; gap: .5rem; margin: .5rem 0 .25rem; }
+.dn-ext { flex: none; font-size: 1.2rem; display: inline-flex; align-items: center; }
+.dn-linea { position: relative; flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.dn-linea i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--cyan); }
+.dn-linea b { position: absolute; top: 50%; transform: translate(-50%, -52%); color: var(--cyan); font-size: 1.1rem; text-shadow: 0 0 8px rgba(95,246,255,.6); }
+.dn-falta { color: var(--cyan); letter-spacing: .04em; }
+.dn-msg { color: var(--dim); font-size: 1.02rem; line-height: 1.2; }
+body.derrota .dia-nuevo { display: none; }
+@media (max-width: 600px) { .dia-nuevo { top: 30%; } .dn-dia { font-size: 1.7rem; } }

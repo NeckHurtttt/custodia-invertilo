@@ -64,8 +64,16 @@ export function init(s, opts = {}) {
     reflex: !!opts.reflex && !opts.daily,
     st: { done: 0, skipped: 0, perfect: 0, saved: 0, refugio: 0, expuesto: 0 },
     flares: missionFlares(opts.flares), storm: null, storms: 0,
+    hist: [], hoy: nuevoHoy(), // bitácora: un renglón por día cerrado + lo que va del día (para el informe causal del final)
   };
 }
+
+// ---------- bitácora de la misión (solo anota; no cambia ninguna regla) ----------
+const nuevoHoy = () => ({ skip: [], storm: null, low: 0 });
+const hoyDe = (y) => (y.hoy ??= nuevoHoy());
+const renglon = (y, day) => ({ day, lvl: Object.fromEntries(SYS_IDS.map((id) => [id, Math.round(y.lvl[id])])), dose: Math.round(y.dose * 100) / 100, skip: [...hoyDe(y).skip], storm: hoyDe(y).storm, low: Math.round(hoyDe(y).low) });
+/** Un renglón por día: los cerrados y, al final, el día en curso. Cada uno: { day, lvl, dose, skip, storm, low }. */
+export const historial = (s) => (s.sys ? [...(s.sys.hist ?? []), renglon(s.sys, Math.max((s.sys.hist ?? []).length + 1, Math.min(s.day, C.DAYS)))] : []);
 
 export const dosePct = (s) => (s.sys.dose / DOSE_LIMIT) * 100;
 export const station = (s, id) => s.objects.find((o) => o.t === 'mant' && o.sys === id);
@@ -74,6 +82,7 @@ export const pending = (s) => (s.sys ? SYS_IDS.filter((id) => !s.sys.done[id]) :
 
 export function newDay(s) {
   const y = s.sys; if (!y) return;
+  (y.hist ??= []).push(renglon(y, s.day - 1)); y.hoy = nuevoHoy(); // se cierra el día anterior en la bitácora
   y.done = {}; y.remind = false; y.emToday = 0;
   for (const e of fl(s).events ?? []) {
     if (s.day === e.from) C.say(s, `${s.L.ai}: ${e.msg}`, 'bad');
@@ -95,7 +104,7 @@ export function blockEnd(s, prevId) {
   const d = C.dif(s).dmg; const left = pending(s);
   if (!left.length) { y.st.perfect++; s.alert = Math.max(0, s.alert - 5); C.say(s, T(`${s.L.ai}: mantenimiento completo. Bien hecho, cadete. (−5 de alerta)`, `${s.L.ai}: maintenance complete. Well done, cadet. (−5 alert)`), 'ok'); return; }
   for (const id of left) {
-    y.lvl[id] = clamp(y.lvl[id] - 10 * d); y.st.skipped++; s.integ -= 2;
+    y.lvl[id] = clamp(y.lvl[id] - 10 * d); y.st.skipped++; s.integ -= 2; hoyDe(y).skip.push(id);
     C.raise(s, 6, T(`Mantenimiento omitido: ${taskName(s, id).toLowerCase()}.`, `Maintenance skipped: ${taskName(s, id).toLowerCase()}.`));
     C.say(s, T(`${SYS[id].name} se degradó por no hacer el mantenimiento (${Math.round(y.lvl[id])} %).`, `${SYS[id].name} degraded because maintenance was not done (${Math.round(y.lvl[id])} %).`), 'warn', true); // el aviso de CUSTODIA de arriba ya lo cuenta: no se repite en pantalla
   }
@@ -180,7 +189,7 @@ export function startEmergency(s, avoidSys = null, forceKind = null) {
 export function update(s, dt, dm) {
   const y = s.sys; if (!y || s.over) return;
   const p = s.p; const k = C.dif(s).dmg * dm / 1440; const L = y.lvl;
-  const lowPower = L.energia < 35;
+  const lowPower = L.energia < 35; if (lowPower) hoyDe(y).low += dm;
   L.energia = clamp(L.energia - SYS.energia.decay * k * decayMul(s, 'energia'));
   for (const id of ['vida', 'rad', 'comida']) L[id] = clamp(L[id] - SYS[id].decay * k * decayMul(s, id) * (lowPower ? 1.6 : 1));
   y.dose += DOSE_DAY * doseMul(s) * (C.dif(s).doseK ?? 1) * (1 + (100 - L.rad) / 60) * dm / 1440;
@@ -257,6 +266,7 @@ function endStorm(s) {
   const got = Math.round(st.got * 100) / 100; y.dose += got;
   const refugio = st.inside >= st.outside; if (refugio) y.st.refugio++; else y.st.expuesto++;
   const pct = Math.round((got / DOSE_LIMIT) * 100); const sh = shelterOf(s);
+  hoyDe(y).storm = { ref: refugio, got, could: Math.round(st.dose * SHELTER_FACTOR * 100) / 100, worst: st.dose, cls: st.flare.cls };
   y.lastStorm = { flare: st.flare, got, pct, refugio, could: Math.round(st.dose * SHELTER_FACTOR * 100) / 100, worst: st.dose, n: st.n };
   C.say(s, refugio
     ? T(`☀️ Pasó la tormenta. En el refugio recibiste solo ${got} mSv (${pct} % del límite de la misión). Costo: el tiempo perdido y ${SHELTER_ENERGY} de ENERGÍA del refugio. ${sh.why}`, `☀️ The storm has passed. In the shelter you received only ${got} mSv (${pct} % of the mission limit). Cost: the lost time and ${SHELTER_ENERGY} POWER used by the shelter. ${sh.why}`)

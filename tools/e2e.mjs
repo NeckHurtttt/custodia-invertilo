@@ -258,7 +258,8 @@ try {
     ok('al terminar la partida aparece la pantalla final');
   } else {
     assert.match(await pagina.textContent('#dia'), /DÍA 2\/10/);
-    ok('la barra de arriba pasa al día 2');
+    { const dn = await pagina.textContent('#dia-nuevo'); assert.ok(await visible('#dia-nuevo'), 'el cartel del día nuevo se ve'); assert.ok(dn.includes('DÍA 2 de 10') && dn.includes('llega en 9 días') && dn.includes('ESPERANZA'), `cartel del día nuevo: ${dn}`); assert.equal(await pagina.evaluate(() => getComputedStyle(document.getElementById('dia-nuevo')).pointerEvents), 'none', 'el cartel no estorba los clics'); await pagina.screenshot({ path: join(salida, '3a-dia-nuevo.png') }); }
+    ok('la barra de arriba pasa al día 2 y el cartel del día nuevo muestra la nave de rescate');
   }
   await pagina.screenshot({ path: join(salida, '3-despues-del-dia.png') });
 
@@ -268,6 +269,7 @@ try {
     await pagina.waitForSelector('#modal:not([hidden])', { timeout: 3000 });
     const fin = await pagina.textContent('#ventana');
     assert.match(fin, /Despresurización/); assert.match(fin, /MISIÓN PERDIDA/);
+    assert.ok(fin.includes('BITÁCORA DE LA MISIÓN'), 'el final trae la bitácora causal'); assert.ok(await pagina.evaluate(() => document.querySelectorAll('#bitacora table tbody tr').length >= 6), 'tabla día por día: 4 sistemas, revisiones, tormenta y dosis');
     assert.match(fin, /QUÉ PASÓ/); assert.match(fin, /QUÉ APRENDER/); assert.match(fin, /REFLEJOS/, 'el final dice qué aprender de esta emergencia');
     assert.ok(await visible('#otra') && await visible('#menu'), 'REINTENTAR y MENÚ se ven sin hacer scroll'); assert.match(await pagina.textContent('#otra'), /REINTENTAR/);
     assert.ok(await pagina.evaluate(() => document.body.classList.contains('derrota')), 'al perder, la pantalla se desatura (body.derrota)'); assert.ok(/¿Sabías que…?/.test(fin), 'el final trae un consejo real');
@@ -390,7 +392,7 @@ try {
     await pg.evaluate(() => { lfr.s.sys.storm = null; lfr.G.rescue(lfr.s); });
     await pg.waitForSelector('.fin', { timeout: 4000 }); const fin = await pg.textContent('#ventana');
     for (const frag of ['YOU MADE IT HOME!', 'Rescue: mission accomplished', 'WHAT HAPPENED', 'WHAT TO LEARN', 'YOUR STARS', 'The rescue ship arrived', 'POINTS', 'PLAY AGAIN', 'MENU']) assert.ok(fin.includes(frag), `el final en inglés debe decir "${frag}"`);
-    assert.ok(!/QUÉ PASÓ|QUÉ APRENDER|VOLVISTE/.test(fin), 'el final no queda en español');
+    assert.ok(!/QUÉ PASÓ|QUÉ APRENDER|VOLVISTE|BITÁCORA/.test(fin), 'el final no queda en español'); assert.ok(fin.includes('MISSION LOG'), 'la bitácora sale en inglés');
     assert.ok(fin.includes('CLOSING QUESTION'), 'la pregunta de cierre también sale en inglés');
     await pg.keyboard.press('1'); await pg.waitForSelector('#quiz-res .quiz-v', { timeout: 2000 }); const qen = await pg.textContent('#quiz-res'); assert.ok(/Correct!|Not quite/.test(qen) && qen.includes('Source:') && qen.includes('COPY MY RESULT'), qen);
     await pg.screenshot({ path: join(salida, '8-ingles-final.png') }); await c.close();

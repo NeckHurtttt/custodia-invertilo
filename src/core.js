@@ -1,6 +1,6 @@
 // Lógica de CUSTODIA (sin pantalla). La interfaz llama a update(), interact(), useQ(), craft()…
-import { ITEMS, LOOT, RECIPES, HAZARDS, DIFS, PERKS, PROTOCOLS } from './common.js';
-import { NOTES, TRUE_END } from './story.js';
+import { ITEMS, LOOT, RECIPES, HAZARDS, DIFS, PERKS, PROTOCOLS, SIGNAL_DELAY } from './common.js';
+import { NOTES, TRUE_END, rescateAviso } from './story.js';
 export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
 import { LOCS, ROOM_EN } from './locs.js';
@@ -257,7 +257,9 @@ export function update(s, dt, input = { dx: 0, dy: 0 }) {
   const bi = s.L.schedule.indexOf(block(s));
   if (bi !== s.block) { const prevId = s.block >= 0 ? s.L.schedule[s.block]?.id : null; S.blockEnd(s, prevId); s.block = bi; s.blockStart = s.min; s.checked = false; s.ate = false; s.worked = 0; onBlockStart(s); }
   if (!s.checked && s.min - s.blockStart >= dif(s).late) { s.checked = true; checkBlock(s); }
-  if (s.events.length && s.min >= s.events[0]) { if (activeHaz(s) >= dif(s).maxHaz) s.events[0] += 45; else { s.events.shift(); spawnHazard(s); V.sfx(s, 'alarma'); } }
+  // en UNA NOCHE el peligro se programa en minutos corridos (puede caer pasada la medianoche, cuando s.min vuelve a 0)
+  if (s.events.length && (s.mode === 'noche' ? (s.day - 1) * 1440 + s.min : s.min) >= s.events[0]) { if (activeHaz(s) >= dif(s).maxHaz) s.events[0] += 45; else { s.events.shift(); spawnHazard(s); V.sfx(s, 'alarma'); } }
+  if (s.radio && (s.radio.t -= dt) <= 0) { s.radio = null; flash(s, hint(s), 'info'); V.sfx(s, 'radio'); } // llegó la respuesta de la Tierra
   // llamarada del reto: minuto corrido de la noche (pasada la medianoche empieza el día 2)
   if (s.dFlare && !s.dFlare.done && (s.day - 1) * 1440 + s.min >= s.dFlare.min) { if (activeHaz(s) >= dif(s).maxHaz) s.dFlare.min += 45; else spawnFlare(s); }
   if (s.min >= 1260 && prevMin < 1260 && s.iaOn) say(s, `${s.L.ai}: ${s.L.aiLines[Math.min(s.day - 1, s.L.aiLines.length - 1)]}`, 'ia');
@@ -307,8 +309,9 @@ function newDay(s) {
   s.min -= 1440; s.day++;
   if (s.day > DAYS) { rescue(s); return; }
   if ((s.day === 4 || s.day === 7) && s.drones.length < 5) { addDrone(s, s.drones.length); say(s, T(`${s.L.ai} activó un tercer ${s.L.watcher} de vigilancia.`, `${s.L.ai} activated a third surveillance ${wEn(s)}.`), 'ia'); }
-  refill(s); planEvents(s); newWants(s); S.newDay(s);
+  refill(s); if (s.mode !== 'noche') planEvents(s); newWants(s); S.newDay(s);
   say(s, T(`— Día ${s.day} de ${DAYS} —`, `— Day ${s.day} of ${DAYS} —`), 'day'); V.startDay(s);
+  if (s.mode !== 'noche') say(s, rescateAviso(s.day), 'ok', true); // solo al registro: en pantalla lo muestra el cartel del día nuevo (main.js)
 }
 
 function onBlockStart(s) {
@@ -724,7 +727,7 @@ export function interact(s) {
       if (s.frags[o.frag]) return flash(s, T('Ya hackeaste este registro.', `You already hacked this record.`), 'info');
       if (p.conoc < 15) return flash(s, T(`No entiendes el código de ${s.L.ai}. Necesitas 15 de conocimiento (estudia en el Laboratorio).`, `You do not understand ${s.L.ai}'s code. You need 15 knowledge (study in the Laboratory).`), 'warn');
       s.illegal = 4; s.pending = { kind: 'codigo', o }; return;
-    case 'capcom': return flash(s, hint(s), 'info');
+    case 'capcom': return radio(s);
     case 'mant': return S.useStation(s, o);
     case 'trabajo': if (b.id !== 'trabajo') return flash(s, T('Esto se hace en el turno de trabajo (08:00–12:00).', `This is done during the work shift (08:00–12:00).`), 'info'); return start(s, 'trabajo', 2, o);
     case 'caja':
@@ -883,7 +886,34 @@ export function useQ(s) {
   flash(s, t.def ? T(`${t.def.type === 'camera' ? 'Cámara' : 'Robot'} inhibido 20 s: ¡desármalo con E!`, `${t.def.type === 'camera' ? 'Camera' : 'Robot'} inhibited for 20 s: take it apart with E!`) : T('Vigilancia inhibida por 20 segundos.', `Surveillance inhibited for 20 seconds.`), 'ok');
 }
 
+/** Consejo de la Tierra sobre la BASE (lo primero es mantenerla viva); null si no hay nada urgente. */
+export function consejoBase(s) {
+  const v = S.view(s); if (!v) return null;
+  if (v.storm) return v.storm.inShelter ? T(`Tierra: "Bien: quédate en el refugio hasta que pase la tormenta."`, `Earth: "Good: stay in the shelter until the storm passes."`) : T(`Tierra: "¡Tormenta solar! Tu refugio es: ${v.storm.shelter}. La dosis que recibas afuera no se borra."`, `Earth: "Solar storm! Your shelter is: ${v.storm.shelter}. The dose you get outside never goes away."`);
+  const bajo = [...v.meters].sort((a, b) => a.v - b.v)[0];
+  if (bajo.v < 50) return bajo.id === 'energia'
+    ? T(`Tierra: "ENERGÍA al ${Math.round(bajo.v)} %. Revísala primero: con poca energía, los otros tres sistemas bajan 1,6 veces más rápido."`, `Earth: "POWER at ${Math.round(bajo.v)} %. Check it first: with low power, the other three systems drop 1.6 times faster."`)
+    : T(`Tierra: "${bajo.name} al ${Math.round(bajo.v)} %. Es tu sistema más débil: hazle mantenimiento en cuanto puedas."`, `Earth: "${bajo.name} at ${Math.round(bajo.v)} %. It is your weakest system: do its maintenance as soon as you can."`);
+  const falta = v.tasks.filter((k) => !k.done);
+  if (falta.length && block(s).id === 'trabajo') return T(`Tierra: "Te ${falta.length > 1 ? 'faltan' : 'falta'} ${falta.length} ${falta.length > 1 ? 'revisiones' : 'revisión'} de hoy. La próxima: ${falta[0].name} (${falta[0].room})."`, `Earth: "You have ${falta.length} ${falta.length > 1 ? 'checks' : 'check'} left today. Next: ${falta[0].name} (${falta[0].room})."`);
+  if (v.clima.day === s.day && s.min < v.clima.min) return T(`Tierra: "Hoy a las ${clock(v.clima.min)} llega una tormenta solar real (${v.clima.flare?.cls ?? '?'}). Ten cerca tu refugio: ${roomName(s, S.shelterOf(s).room)}."`, `Earth: "Today at ${clock(v.clima.min)} a real solar storm arrives (${v.clima.flare?.cls ?? '?'}). Stay near your shelter: ${roomName(s, S.shelterOf(s).room)}."`);
+  return null;
+}
+/**
+ * Radio con la Tierra. En la Estación responde al instante; en la Luna y Marte la respuesta tarda (SIGNAL_DELAY): mientras llega, decides tú.
+ * Dato real: Luna ≈ 1,3 s luz por tramo; Marte entre 3 y 22 minutos luz (distancias Tierra–Marte, NASA). En el juego se acorta.
+ */
+export function radio(s) {
+  const d = SIGNAL_DELAY[s.loc] ?? 0;
+  if (s.radio) return flash(s, T('📡 La respuesta de la Tierra todavía viene en camino…', '📡 The reply from Earth is still on its way…'), 'info');
+  if (!d) return flash(s, hint(s), 'info');
+  s.radio = { t: d };
+  flash(s, s.loc === 'marte'
+    ? T(`📡 Mensaje enviado. Marte está a entre 3 y 22 minutos luz de la Tierra (aquí lo acortamos a ${d} s). Mientras llega la respuesta, decides tú.`, `📡 Message sent. Mars is between 3 and 22 light-minutes from Earth (here we shorten it to ${d} s). Until the reply arrives, you decide.`)
+    : T(`📡 Mensaje enviado. La Luna está a 1,3 segundos luz: la respuesta tarda unos ${d} s en ir y volver.`, `📡 Message sent. The Moon is 1.3 light-seconds away: the reply takes about ${d} s to go and come back.`), 'info');
+}
 export function hint(s) {
+  const base = consejoBase(s); if (base) return base;
   const r = routes(s).find((x) => x.ok); if (r && r.id !== 'plan') return T(`Tierra (señal débil): "Ruta ${r.name.toUpperCase()} lista. Ve a: ${s.L.labels.asiento}."`, `Earth (weak signal): "${r.name.toUpperCase()} route ready. Go to: ${labEn(s, 'asiento')}."`);
   const miss = PLAN_IDS.find((id) => !has(s, id));
   if (!miss) return T(`Tierra (señal débil): "Tienes todo. Ve a: ${s.L.labels.asiento}, y prepárate para correr."`, `Earth (weak signal): "You have everything. Go to: ${labEn(s, 'asiento')}, and get ready to run."`);

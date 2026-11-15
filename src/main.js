@@ -1,7 +1,7 @@
 // Pantalla, controles y menús de CUSTODIA. Mundo en pixel art con cámara que sigue al jugador.
 import { ITEMS, PROTOCOLS, PROTO_FUENTE, PROTO_NIVEL, PROTO_NIVEL_EN, DIFS, PERKS } from './common.js';
 import * as Meta from './meta.js';
-import { NOTES } from './story.js';
+import { NOTES, rescateLinea, NAVE } from './story.js';
 import { LOCS, ROOM_EN } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
@@ -30,6 +30,7 @@ import { HostSession } from './coop.js';
 import { coopScreens } from './coopui.js';
 import { admite, TTL } from './avisos.js';
 import * as UI from './ui.js';
+import { informe, estadoNivel } from './informe.js';
 const { ic } = UI;
 
 const TS = 16;
@@ -567,6 +568,25 @@ function slot(it) { const d = ITEMS[it]; return `<div class="slot ${d.plan ? 'pl
 // Filas de vitales: ícono + etiqueta + barra + número + marca («!» bajo, «!!» crítico). Se crean UNA vez por partida y solo se actualizan,
 // así la barra se desliza con transición CSS y puede animarse el aviso de daño. Qué es «bajo/crítico» lo decide src/ui.js (con pruebas).
 const filas = new Map(); let filasS = null;
+/**
+ * Cartel del día nuevo: «DÍA N de 10», la pista con la nave de rescate acercándose y su transmisión de la mañana.
+ * No tapa el juego (no recibe clics) y se va solo; en modo suave aparece y desaparece sin animación (lo apaga el CSS).
+ */
+let diaDe = null, diaVisto = 0, diaT = 0;
+function diaNuevo() {
+  const el = $('dia-nuevo'); if (!el) return; const faltan = G.DAYS - s.day + 1; const pct = Math.round(((s.day - 1) / G.DAYS) * 100); const msg = rescateLinea(s.day);
+  el.innerHTML = `<p class="dn-dia">${T('DÍA', 'DAY')} ${s.day} <small>${T('de', 'of')} ${G.DAYS}</small></p>
+    <div class="dn-pista" role="img" aria-label="${T(`La nave de rescate lleva ${pct} % del camino`, `The rescue ship has covered ${pct} % of the way`)}"><span class="dn-ext">🌍</span><div class="dn-linea"><i style="width:${pct}%"></i><b style="left:${pct}%">▶</b></div><span class="dn-ext">${ic(s.loc)}</span></div>
+    <p class="dn-falta">${faltan > 1 ? T(`La nave de rescate llega en ${faltan} días`, `The rescue ship arrives in ${faltan} days`) : T('La nave de rescate llega mañana', 'The rescue ship arrives tomorrow')}</p>
+    ${msg ? `<p class="dn-msg">📡 ${NAVE}: «${msg}»</p>` : ''}`;
+  el.hidden = false; clearTimeout(diaT); diaT = setTimeout(() => { el.hidden = true; }, 6500);
+}
+function vigilaDia() {
+  if (diaDe !== s) { diaDe = s; diaVisto = s.day; const el = $('dia-nuevo'); if (el) el.hidden = true; return; }
+  if (s.day === diaVisto) return;
+  const subio = s.day > diaVisto; diaVisto = s.day;
+  if (subio && s.mode !== 'noche' && s.day <= G.DAYS && !s.over) diaNuevo();
+}
 function fila(cont, id, icono, nombre, opc = {}) {
   let f = filas.get(id); if (f) return f;
   const el = document.createElement('div'); el.className = `vr est-ok${opc.neutro ? ' neutro' : ''}`; el.dataset.f = id;
@@ -593,7 +613,7 @@ function ponFila(f, v, estado, { pct = v, texto = String(Math.floor(v)), sube = 
 const SIS_ICONO = { vida: 'vida', energia: 'energia', rad: 'rad', comida: 'comida' };
 const SIS_UMBRAL = { vida: 'vida', energia: 'energiaBase', rad: 'rad', comida: 'comida' };
 function hud() {
-  const p = s.p; const b = G.block(s); const L = s.L;
+  const p = s.p; const b = G.block(s); const L = s.L; vigilaDia();
   if (filasS !== s) { filasS = s; filas.clear(); for (const id of ['stats', 'filas-ia', 'sis-barras']) $(id).innerHTML = ''; }
   { const cb = $('coop-badge'); cb.hidden = !coop; if (coop) { const up = coop.session.up, rec = coop.link.estado === 'reconectando'; cb.textContent = rec ? '🛰️ RECONECTANDO…' : up ? '🛰️ CONTROL: CONECTADO' : '🛰️ CONTROL: ESPERANDO…'; cb.className = up && !rec ? 'ok' : 'pend'; } }
   $('dia').textContent = s.mode === 'noche' ? `${s.daily ? T('RETO', 'DAILY') : T('UNA NOCHE', 'ONE NIGHT')} · ${nm(G.dif(s)).toUpperCase()} · ${Meta.fmtTime(s.t)}` : `${T('DÍA', 'DAY')} ${s.day}/${G.DAYS} · ${nm(G.dif(s)).toUpperCase()}`;
@@ -614,7 +634,7 @@ function hud() {
   // vigilancia de la IA e integridad de la base
   $('t-alerta').textContent = T(`${L.ai} · VIGILANCIA`, `${L.ai} · SURVEILLANCE`);
   const ia = $('filas-ia'); const al = s.iaOn ? s.alert : 0;
-  ponFila(fila(ia, 'alerta', 'alerta', 'ALERTA'), al, UI.nivel('alerta', al), { sube: true, umbral: 6, texto: s.iaOn ? String(Math.floor(al)) : 'OFF' });
+  ponFila(fila(ia, 'alerta', 'alerta', T('ALERTA', 'ALERT')), al, UI.nivel('alerta', al), { sube: true, umbral: 6, texto: s.iaOn ? String(Math.floor(al)) : 'OFF' });
   ponFila(fila(ia, 'integ', 'integ', 'INTEGRIDAD'), Math.max(0, s.integ), UI.nivel('integ', s.integ));
   const sv = Sys.view(s); $('ov-sis').hidden = !sv; if (!sv) $('rev').hidden = true;
   if (sv) {
@@ -1091,6 +1111,21 @@ function nextUnlock(total) {
   const n = all.filter(([k, , c]) => c && !mt.unlocked.includes(k)).sort((a, b) => a[2] - b[2])[0];
   return n ? `${n[1]} (${n[2]} pts, te faltan ${Math.max(0, n[2] - total)})` : 'ya tienes todo';
 }
+/** Bitácora de la misión: las causas («Día N: hiciste X → pasó Y») y la tabla día por día de los 4 sistemas, las revisiones, las tormentas y la dosis. */
+function bitacoraHTML() {
+  const inf = informe(s); if (!inf) return '';
+  const celda = (v, est, extra = '') => `<td class="${est}">${v}${UI.MARCA[est]}${extra}</td>`;
+  const fila = (id) => `<tr><th>${ic(id)} ${Sys.SYS[id].name}</th>${inf.dias.map((d) => celda(d.lvl[id], estadoNivel(d.lvl[id]))).join('')}</tr>`;
+  return `<section class="bloque bitacora" id="bitacora"><h3>${T('BITÁCORA DE LA MISIÓN · POR QUÉ PASÓ', 'MISSION LOG · WHY IT HAPPENED')}</h3>
+    ${inf.causas.length ? `<ul class="causas">${inf.causas.map((c) => `<li class="${c.tipo}">${ic(c.ic)} ${c.txt}</li>`).join('')}</ul>` : ''}
+    <div class="bit-tabla"><table><thead><tr><th>${T('Día', 'Day')}</th>${inf.dias.map((d) => `<th>${d.day}</th>`).join('')}</tr></thead><tbody>
+      ${Sys.SYS_IDS.map(fila).join('')}
+      <tr><th>${ic('ok')} ${T('Revisiones', 'Checks')}</th>${inf.dias.map((d) => d.curso ? `<td title="${T('turno en curso', 'shift in progress')}">${d.hechas}/4…</td>` : celda(`${d.hechas}/4`, d.hechas === 4 ? 'ok' : d.hechas >= 2 ? 'warn' : 'bad')).join('')}</tr>
+      <tr><th>☀ ${T('Tormenta', 'Storm')}</th>${inf.dias.map((d) => d.storm ? `<td class="${d.storm === 'refugio' ? 'ok' : 'bad'}" title="${d.storm === 'refugio' ? T('en el refugio', 'in the shelter') : T('afuera', 'outside')}">${d.storm === 'refugio' ? T('ref.', 'shel.') : T('afuera', 'out')}</td>` : '<td>·</td>').join('')}</tr>
+      <tr><th>${ic('rad')} ${T('Dosis %', 'Dose %')}</th>${inf.dias.map((d) => celda(d.dosePct, d.dosePct >= 75 ? 'bad' : d.dosePct >= 50 ? 'warn' : 'ok')).join('')}</tr>
+    </tbody></table></div>
+    <small>${T('Cada columna es un día. Los números son el nivel de cada sistema al terminar el día; «!» avisa que estuvo bajo. La dosis solo sube: nunca se borra.', 'Each column is one day. The numbers are each system level at the end of the day; “!” warns it was low. The dose only goes up: it never goes away.')}</small></section>`;
+}
 function endScreen() {
   menu = 'fin'; clearSave(s.loc); document.body.classList.toggle('derrota', !s.over.won);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
@@ -1098,13 +1133,13 @@ function endScreen() {
   // pregunta de cierre (mide si se aprendió lo central; ver quiz.js)
   const qz = Quiz.preguntaPara(s.seed ?? 0, Meta.quizHist()); const qop = Quiz.opciones(qz, s.seed ?? 0);
   const quizHTML = `<section class="bloque quiz" id="quiz"><h3>${T('PREGUNTA DE CIERRE', 'CLOSING QUESTION')}</h3><p><b>${qz.q}</b></p><div class="quiz-op">${qop.map((o, i) => `<button type="button" data-qi="${i}"><kbd>${i + 1}</kbd> ${o.t}</button>`).join('')}</div><div id="quiz-res" aria-live="polite"></div></section>\n    `;
-  const share = s.daily ? `CUSTODIA · ${T('Reto', 'Challenge')} ${Meta.today()} · ${s.L.name}: ${o.won ? T(`escapé en ${Meta.fmtTime(s.t)} `, `I escaped in ${Meta.fmtTime(s.t)} `) + '★'.repeat(o.stars) : T('no escapé 💀', 'I did not escape 💀')} · ${T('atrapado', 'caught')} ${s.stats.caught}×${s.dFlare ? ` · ☀️ ${s.dFlare.flare.cls}: ${s.dFlare.result === 'refugio' ? T('refugio', 'shelter') : s.dFlare.result === 'impacto' ? T('afuera', 'outside') : '—'}` : ''} · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
+  const share = s.daily ? `CUSTODIA · ${T('Reto', 'Challenge')} ${Meta.today()} · ${s.L.name}: ${o.won ? T(`escapé en ${Meta.fmtTime(s.t)} `, `I escaped in ${Meta.fmtTime(s.t)} `) + '★'.repeat(o.stars) : T('no escapé 💀', 'I did not escape 💀')} · ${T('atrapado', 'caught')} ${s.stats.caught}×${s.dFlare ? ` · ☀️ ${s.dFlare.flare.cls}: ${s.dFlare.result === 'refugio' ? T('refugio', 'shelter') : s.dFlare.result === 'impacto' ? T('afuera', 'outside') : '—'}` : ''} · ${location.origin}${location.pathname}` : '';
   open(`<div class="fin ${o.won ? 'gana' : 'pierde'}">
     <div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? T('¡VOLVISTE A CASA!', 'YOU MADE IT HOME!') : T('MISIÓN PERDIDA', 'MISSION LOST')}</p><h2>${R_.titulo}</h2></div></div>
     ${o.won ? `<div class="estrellas" aria-label="${o.stars} ${T('de 3 estrellas', 'of 3 stars')}">${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}</div>` : ''}
     <section class="bloque">${T(`<h3>QUÉ PASÓ</h3>`, `<h3>WHAT HAPPENED</h3>`)}<p>${o.text}</p></section>
     <section class="bloque aprende">${T(`<h3>QUÉ APRENDER</h3>`, `<h3>WHAT TO LEARN</h3>`)}<p>${R_.aprende}</p>${R_.pistas.length ? `<ul>${R_.pistas.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}</section>
-    ${quizHTML}${o.won ? `<section class="bloque">${T(`<h3>TUS ESTRELLAS</h3>`, `<h3>YOUR STARS</h3>`)}<ul class="crit">${R_.estrellas.map((e) => `<li class="${e.ok ? 'si' : 'no'}">${ic(e.ok ? 'estrella' : 'bad')} ${e.txt}${e.ok ? '' : T(' (pendiente)', ' (pending)')}</li>`).join('')}</ul></section>` : ''}
+    ${bitacoraHTML()}${quizHTML}${o.won ? `<section class="bloque">${T(`<h3>TUS ESTRELLAS</h3>`, `<h3>YOUR STARS</h3>`)}<ul class="crit">${R_.estrellas.map((e) => `<li class="${e.ok ? 'si' : 'no'}">${ic(e.ok ? 'estrella' : 'bad')} ${e.txt}${e.ok ? '' : T(' (pendiente)', ' (pending)')}</li>`).join('')}</ul></section>` : ''}
     <div class="datos">${R_.datos.map((d) => `<span>${ic(d.ic)} ${d.txt}</span>`).join('')}${s.sys ? `<span>${ic('rad')} ${T(`Radiación ${Math.round(Sys.dosePct(s))} % del límite`, `Radiation ${Math.round(Sys.dosePct(s))} % of the limit`)}</span><span>${ic('alerta')} ${T(`Emergencias salvadas ${s.sys.st.saved}`, `Emergencies saved ${s.sys.st.saved}`)}</span>` : ''}</div>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
     <div class="premio">${T(`+${r.pts} PUNTOS (total ${r.total})${r.streak > 1 ? ` · RACHA ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} nota(s) nueva(s)` : ''}`, `+${r.pts} POINTS (total ${r.total})${r.streak > 1 ? ` · STREAK ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} new note(s)` : ''}`)}</div>
@@ -1157,9 +1192,9 @@ function pausa() {
     <div class="ajustes">${ajustesHTML(conVoz(['musica', 'sfx', 'suave', 'nombres']))}
       <div class="vol"><span class="lbl">${T('VOLUMEN', 'VOLUME')}</span><button id="vmenos" aria-label="${T('Bajar volumen', 'Lower volume')}">−</button><span id="vol">${Math.round(M.volume() * 100)} %</span><button id="vmas" aria-label="${T('Subir volumen', 'Raise volume')}">+</button></div>
       <p class="nota-aj">${T('Los efectos visuales suaves quitan sacudidas y destellos (útil si te mareas o te cansa la vista).', 'Soft visual effects remove shaking and flashes (useful if you feel dizzy or your eyes get tired).')}</p></div>
-    <div class="pestanas"><button data-t="reg">${T('HISTORIAL', 'HISTORY')}</button><button data-t="mant">${T('MANTENIMIENTO', 'MAINTENANCE')}</button><button data-t="plan">${T('PLAN DE REGRESO', 'RETURN PLAN')}</button><button data-t="amen">${T('AMENAZAS', 'THREATS')}</button><button data-t="crew">${T('TRIPULACIÓN', 'CREW')}</button></div><ul id="pest" class="log pest"></ul>`);
+    <div class="pestanas"><button data-t="reg">${T('HISTORIAL', 'HISTORY')}</button><button data-t="mant">${T('MANTENIMIENTO', 'MAINTENANCE')}</button><button data-t="plan">${T('PLAN DE REGRESO', 'RETURN PLAN')}</button><button data-t="amen">${T('AMENAZAS', 'THREATS')}</button><button data-t="crew">${T('TRIPULACIÓN', 'CREW')}</button>${s.sys ? `<button data-t="bit">${T('BITÁCORA', 'MISSION LOG')}</button>` : ''}</div><ul id="pest" class="log pest"></ul>`);
   menu = 'pausa';
-  const tab = (t) => { $('pest').innerHTML = { reg: () => logHTML(50), mant: mantHTML, plan: planHTML, amen: amenazasHTML, crew: crewFichas }[t](); $('pest').className = (t === 'reg' ? 'log' : 'plan') + ' pest'; $('ventana').querySelectorAll('.pestanas button').forEach((x) => x.classList.toggle('sel', x.dataset.t === t)); };
+  const tab = (t) => { $('pest').innerHTML = { reg: () => logHTML(50), mant: mantHTML, plan: planHTML, amen: amenazasHTML, crew: crewFichas, bit: () => `<li class="bit">${bitacoraHTML()}</li>` }[t](); $('pest').className = (t === 'reg' ? 'log' : 'plan') + ' pest'; $('ventana').querySelectorAll('.pestanas button').forEach((x) => x.classList.toggle('sel', x.dataset.t === t)); };
   $('ventana').querySelectorAll('.pestanas button').forEach((x) => (x.onclick = () => tab(x.dataset.t))); tab('reg');
   cableaAjustes(conVoz(['musica', 'sfx', 'suave', 'nombres']));
   $('vmenos').onclick = () => { $('vol').textContent = Math.round(M.volume(-0.25) * 100) + ' %'; }; $('vmas').onclick = () => { $('vol').textContent = Math.round(M.volume(0.25) * 100) + ' %'; };

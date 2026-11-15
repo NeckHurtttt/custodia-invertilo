@@ -6,10 +6,11 @@
 import * as C from './core.js';
 import * as Sys from './sistemas.js';
 import { T } from './i18n.js';
+import { SIGNAL_DELAY } from './common.js';
 
 export const SNAP_EVERY = 0.5;      // segundos reales entre fotos
 /** Retraso de la señal (s) que se simula. Realidad: Luna ≈ 1,3 s; Marte entre 3 y 22 MINUTOS (aquí acelerado para que se pueda jugar). */
-export const DELAY = { estacion: 0, luna: 2, marte: 6 };
+export const DELAY = SIGNAL_DELAY;
 export const DELAY_NOTE = { estacion: 'La ISS está a ~400 km: la señal llega casi al instante.', luna: 'La Luna está a ~1,3 s luz: cada orden tarda en llegar.', marte: 'Marte está a 3–22 minutos luz. Aquí lo acortamos a 6 s, pero las órdenes llegan tarde: anticípate.' };
 
 /** Órdenes que puede dar Control. cd = segundos de espera antes de repetir la misma. */
