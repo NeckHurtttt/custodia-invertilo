@@ -33,6 +33,8 @@ CUSTODIA is a free browser game for kids aged 7–12. You are an astronaut on a 
 
 **Mission Control co-op (optional).** One player is the astronaut and a second one, on another computer, is Mission Control: sees the systems, the map and the alarms, and can only send four orders (reassign resources, open an unlocked hatch, mark a point, send a prepared message). On the Moon and Mars the orders arrive with a delay. It works on the same Wi-Fi or by copying codes by hand.
 
+**Measuring learning.** Every game ends with a closing question (with explanation and source) about what the game teaches; the first one is always the core idea that radiation received outside the shelter is never erased. Results are kept in the player's browser and can be copied, so teachers can see how many students get it right.
+
 **Benefit.** Kids practice the decision logic of a mission, not only facts: they see why a system failed, what it cost, and try another strategy.
 
 ## Tools and technology

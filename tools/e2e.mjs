@@ -272,6 +272,13 @@ try {
     assert.ok(await visible('#otra') && await visible('#menu'), 'REINTENTAR y MENÚ se ven sin hacer scroll'); assert.match(await pagina.textContent('#otra'), /REINTENTAR/);
     assert.ok(await pagina.evaluate(() => document.body.classList.contains('derrota')), 'al perder, la pantalla se desatura (body.derrota)'); assert.ok(/¿Sabías que…?/.test(fin), 'el final trae un consejo real');
     await pagina.screenshot({ path: join(salida, '4-emergencia-fatal.png') });
+    // pregunta de cierre: la primera vez es la idea central (la dosis no se borra); responder muestra explicación y fuente y se guarda
+    assert.ok(fin.includes('PREGUNTA DE CIERRE') && fin.includes('Estuviste afuera durante una tormenta solar'), 'el final trae la pregunta de la idea central');
+    assert.equal(await pagina.locator('.quiz-op button').count(), 3);
+    await pagina.locator('.quiz-op button', { hasText: 'No se borra' }).click(); await pagina.waitForSelector('#quiz-res .quiz-v.si', { timeout: 2000 });
+    const qres = await pagina.textContent('#quiz-res'); assert.ok(qres.includes('¡Correcto!') && qres.includes('NASA-STD-3001') && qres.includes('1 de 1'), qres);
+    assert.equal(await pagina.locator('.quiz-op button:disabled').count(), 3, 'tras responder no se puede cambiar');
+    assert.deepEqual(await pagina.evaluate(() => JSON.parse(localStorage.getItem('lfr.meta')).quiz), { 'radiacion-suma': { ok: 1, mal: 0 } }, 'el resultado se guarda');
     await pagina.keyboard.press('r'); await pagina.waitForSelector('#ok', { timeout: 3000 }); assert.ok(!(await pagina.evaluate(() => document.body.classList.contains('derrota'))), 'R reintenta al instante y vuelve el color');
     ok('reflejos: si ignoras la emergencia, la partida termina con una explicación');
   }
@@ -376,6 +383,8 @@ try {
     await pg.waitForSelector('.fin', { timeout: 4000 }); const fin = await pg.textContent('#ventana');
     for (const frag of ['YOU MADE IT HOME!', 'Rescue: mission accomplished', 'WHAT HAPPENED', 'WHAT TO LEARN', 'YOUR STARS', 'The rescue ship arrived', 'POINTS', 'PLAY AGAIN', 'MENU']) assert.ok(fin.includes(frag), `el final en inglés debe decir "${frag}"`);
     assert.ok(!/QUÉ PASÓ|QUÉ APRENDER|VOLVISTE/.test(fin), 'el final no queda en español');
+    assert.ok(fin.includes('CLOSING QUESTION'), 'la pregunta de cierre también sale en inglés');
+    await pg.keyboard.press('1'); await pg.waitForSelector('#quiz-res .quiz-v', { timeout: 2000 }); const qen = await pg.textContent('#quiz-res'); assert.ok(/Correct!|Not quite/.test(qen) && qen.includes('Source:') && qen.includes('COPY MY RESULT'), qen);
     await pg.screenshot({ path: join(salida, '8-ingles-final.png') }); await c.close();
     ok('inglés: ?lang=en y el selector ES/EN (se recuerda) traducen el título, DATOS NASA, la intro, el mantenimiento, el cartel de la tormenta y el final');
   }

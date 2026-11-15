@@ -9,6 +9,7 @@ import { fetchFlares, donkiEstado, sourceText, missionFlares, SHELTER } from './
 import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang } from './i18n.js';
 import { ficha } from './personajes.js';
+import * as Quiz from './quiz.js';
 import { arranqueDebe, arranqueLineas, consejo, comandoDatos, SECCIONES_DATOS, nombreSeccion } from './inicio.js';
 // Idioma (ES por defecto; EN con ?lang=en, ?en o el selector del título). Solo presentación.
 try { setLang(pickLang(location.search, localStorage.getItem('lfr.lang'))); document.documentElement.lang = getLang(); } catch { /* sin almacenamiento */ }
@@ -830,6 +831,7 @@ if (!liveFlares) pedirDonki();
 
 // Pantalla DATOS NASA: qué es real, de dónde sale y qué es escala de juego.
 /** Ir a una sección de la terminal DATOS NASA (la pone datos()). */
+let finQuiz = null;
 let datosIr = null; let datosSec = 'restriccion';
 function datos(back, sec0 = 'restriccion') {
   menu = 'datos'; const fl = missionFlares(liveFlares); const enVivo = fl.some((f) => f.source === 'donki');
@@ -1087,13 +1089,16 @@ function endScreen() {
   menu = 'fin'; clearSave(s.loc); document.body.classList.toggle('derrota', !s.over.won);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
   const r = Meta.finish(s); const dr = r.daily; const R_ = UI.resumenFin(s);
+  // pregunta de cierre (mide si se aprendió lo central; ver quiz.js)
+  const qz = Quiz.preguntaPara(s.seed ?? 0, Meta.quizHist()); const qop = Quiz.opciones(qz, s.seed ?? 0);
+  const quizHTML = `<section class="bloque quiz" id="quiz"><h3>${T('PREGUNTA DE CIERRE', 'CLOSING QUESTION')}</h3><p><b>${qz.q}</b></p><div class="quiz-op">${qop.map((o, i) => `<button type="button" data-qi="${i}"><kbd>${i + 1}</kbd> ${o.t}</button>`).join('')}</div><div id="quiz-res" aria-live="polite"></div></section>\n    `;
   const share = s.daily ? `CUSTODIA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}×${s.dFlare ? ` · ☀️ ${s.dFlare.flare.cls}: ${s.dFlare.result === 'refugio' ? 'refugio' : s.dFlare.result === 'impacto' ? 'afuera' : '—'}` : ''} · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
   open(`<div class="fin ${o.won ? 'gana' : 'pierde'}">
     <div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? T('¡VOLVISTE A CASA!', 'YOU MADE IT HOME!') : T('MISIÓN PERDIDA', 'MISSION LOST')}</p><h2>${R_.titulo}</h2></div></div>
     ${o.won ? `<div class="estrellas" aria-label="${o.stars} ${T('de 3 estrellas', 'of 3 stars')}">${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}</div>` : ''}
     <section class="bloque">${T(`<h3>QUÉ PASÓ</h3>`, `<h3>WHAT HAPPENED</h3>`)}<p>${o.text}</p></section>
     <section class="bloque aprende">${T(`<h3>QUÉ APRENDER</h3>`, `<h3>WHAT TO LEARN</h3>`)}<p>${R_.aprende}</p>${R_.pistas.length ? `<ul>${R_.pistas.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}</section>
-    ${o.won ? `<section class="bloque">${T(`<h3>TUS ESTRELLAS</h3>`, `<h3>YOUR STARS</h3>`)}<ul class="crit">${R_.estrellas.map((e) => `<li class="${e.ok ? 'si' : 'no'}">${ic(e.ok ? 'estrella' : 'bad')} ${e.txt}${e.ok ? '' : T(' (pendiente)', ' (pending)')}</li>`).join('')}</ul></section>` : ''}
+    ${quizHTML}${o.won ? `<section class="bloque">${T(`<h3>TUS ESTRELLAS</h3>`, `<h3>YOUR STARS</h3>`)}<ul class="crit">${R_.estrellas.map((e) => `<li class="${e.ok ? 'si' : 'no'}">${ic(e.ok ? 'estrella' : 'bad')} ${e.txt}${e.ok ? '' : T(' (pendiente)', ' (pending)')}</li>`).join('')}</ul></section>` : ''}
     <div class="datos">${R_.datos.map((d) => `<span>${ic(d.ic)} ${d.txt}</span>`).join('')}${s.sys ? `<span>${ic('rad')} ${T(`Radiación ${Math.round(Sys.dosePct(s))} % del límite`, `Radiation ${Math.round(Sys.dosePct(s))} % of the limit`)}</span><span>${ic('alerta')} ${T(`Emergencias salvadas ${s.sys.st.saved}`, `Emergencies saved ${s.sys.st.saved}`)}</span>` : ''}</div>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
     <div class="premio">${T(`+${r.pts} PUNTOS (total ${r.total})${r.streak > 1 ? ` · RACHA ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} nota(s) nueva(s)` : ''}`, `+${r.pts} POINTS (total ${r.total})${r.streak > 1 ? ` · STREAK ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} new note(s)` : ''}`)}</div>
@@ -1104,6 +1109,16 @@ function endScreen() {
   if (s.daily) $('compartir').onclick = () => { navigator.clipboard?.writeText(share).then(() => ($('compartir').textContent = '✓ COPIADO'), () => prompt('Copia tu resultado:', share)); };
   else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
   $('menu').onclick = titleScreen;
+  let respondida = false;
+  const responde = (i) => {
+    if (respondida || !qop[i]) return; respondida = true; const acerto = qop[i].ok; const hist = Meta.quizAnota(qz.id, acerto); M.ui(acerto ? 'ok' : 'error');
+    $('ventana').querySelectorAll('.quiz-op button').forEach((b, k) => { b.disabled = true; b.classList.toggle('ok', qop[k].ok); b.classList.toggle('mal', k === i && !acerto); });
+    const rs = Quiz.resumen(hist); const copia = Quiz.textoResultado(qz.id, acerto, hist);
+    $('quiz-res').innerHTML = `<p class="quiz-v ${acerto ? 'si' : 'no'}"><b>${acerto ? T('✔ ¡Correcto!', '✔ Correct!') : T('✘ Casi. Ahora ya lo sabes:', '✘ Not quite. Now you know:')}</b> ${qz.expl}</p><p><small>${T('Fuente', 'Source')}: ${qz.fuente}</small></p><p><small>${T(`Llevas ${rs.aciertos} de ${rs.intentos} respuestas correctas · preguntas dominadas ${rs.dominadas}/${rs.total}`, `You have ${rs.aciertos} of ${rs.intentos} answers right · questions mastered ${rs.dominadas}/${rs.total}`)}</small> <button type="button" id="quiz-copia" class="mini">${T('COPIAR MI RESULTADO', 'COPY MY RESULT')}</button></p>`;
+    $('quiz-copia').onclick = () => { navigator.clipboard?.writeText(copia); $('quiz-copia').textContent = T('✓ COPIADO', '✓ COPIED'); };
+  };
+  $('ventana').querySelectorAll('.quiz-op button').forEach((b) => (b.onclick = () => responde(+b.dataset.qi)));
+  finQuiz = responde;
 }
 
 // ---------- controles ----------
@@ -1151,6 +1166,7 @@ addEventListener('keydown', (e) => {
   keys.add(k);
   if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
+  if (menu === 'fin' && /^[1-3]$/.test(k) && !e.target.closest?.('input, textarea')) { finQuiz?.(+k - 1); return; } // 1–3 responden la pregunta de cierre
   if (menu === 'fin' && (k === 'r' || (k === 'enter' && !e.target.closest?.('button, summary, input, textarea')))) { ($('otra') ?? $('menu'))?.click(); return; } // reintento inmediato con una tecla
   if (menu === 'datos' && /^[1-6]$/.test(k) && !e.target.closest?.('input, textarea')) { datosIr?.(+k - 1); return; } // atajos 1–6 en la terminal de DATOS NASA
   if (k === 'enter' && menu === 'titulo' && !e.target.closest?.('button, summary, input, textarea')) { $('t-jugar')?.click(); return; } // Enter = JUGAR en el título

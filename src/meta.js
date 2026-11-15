@@ -25,10 +25,13 @@ export const MEDALS = {
 };
 
 const KEY = 'lfr.meta';
-const blank = () => ({ pts: 0, unlocked: ['novato'], medals: {}, notes: {}, wins: {}, streak: 0, bestStreak: 0, daily: {}, games: 0 });
+const blank = () => ({ pts: 0, unlocked: ['novato'], medals: {}, notes: {}, wins: {}, streak: 0, bestStreak: 0, daily: {}, games: 0, quiz: {} });
 export function load() { try { return { ...blank(), ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return blank(); } }
 function save(m) { try { localStorage.setItem(KEY, JSON.stringify(m)); } catch { /* sin almacenamiento */ } }
 
+/** Pregunta de cierre: lo que ya respondió este navegador ({ id: { ok, mal } }). */
+export const quizHist = () => load().quiz ?? {};
+export function quizAnota(id, acerto) { const m = load(); m.quiz = { ...(m.quiz ?? {}) }; const v = { ok: 0, mal: 0, ...(m.quiz[id] ?? {}) }; if (acerto) v.ok++; else v.mal++; m.quiz[id] = v; save(m); return m.quiz; }
 export const isUnlocked = (m, perk) => m.unlocked.includes(perk) || !PERKS[perk]?.cost;
 export const difUnlocked = (m, d) => !DIFS[d]?.locked || m.unlocked.includes('dif:' + d);
 /** Compra un personaje o la dificultad secreta. Devuelve true si se pudo. */

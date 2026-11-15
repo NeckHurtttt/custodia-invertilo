@@ -479,3 +479,12 @@ body.derrota .fin.pierde { border-color: #ff6b6b; }
 .mcc-top b { letter-spacing: .12em; text-shadow: 0 0 8px rgba(95,246,255,.35); }
 #m-estado::before { content: '> '; opacity: .6; }
 .pant-datos .term { padding-bottom: 3.6rem; }
+
+/* ---------- pregunta de cierre ---------- */
+.quiz { border-left-color: #5ff6ff; }
+.quiz-op { display: grid; gap: .4rem; margin: .4rem 0; }
+.quiz-op button { text-align: left; min-height: 44px; padding: .45rem .7rem; }
+.quiz-op button kbd { margin-right: .4rem; }
+.quiz-op button.ok { border-color: #4dff88; background: rgba(77,255,136,.12); }
+.quiz-op button.mal { border-color: #ff6b6b; background: rgba(255,107,107,.12); }
+.quiz-v.si { color: #6dff9b; } .quiz-v.no { color: #ffb23d; }
