@@ -1525,14 +1525,16 @@ $('btn-nombres').onclick = () => { if (s && !menu) alternaNombres(); }; $('btn-f
 // Celular y tablet: se juega en HORIZONTAL. Al primer toque pide pantalla completa y fija la orientación (Android/Chrome lo permite;
 // en iPhone no, y ahí queda el aviso «Gira el teléfono» del CSS). Si lo pones en vertical a mitad de partida, el juego se pausa.
 const tacto = matchMedia('(pointer: coarse)'); const vertical = matchMedia('(orientation: portrait)');
+/** Teléfono = pantalla táctil cuyo lado corto mide menos de 600 px. Tablets y PC quedan fuera (no se fuerza horizontal ni hay rueda). */
+const esTelefono = () => tacto.matches && Math.min(screen.width, screen.height) < 600;
 function aHorizontal() {
-  if (!tacto.matches) return;
+  if (!esTelefono()) return;
   if (screen.orientation?.type?.startsWith('landscape') && document.fullscreenElement) return;
   const fija = () => screen.orientation?.lock?.('landscape').catch(() => {});
   if (document.fullscreenElement) fija(); else document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).then(fija).catch(fija);
 }
 addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') aHorizontal(); }, { capture: true });
-vertical.addEventListener?.('change', () => { if (tacto.matches && vertical.matches && s && !menu && !crew) pausa(); });
+vertical.addEventListener?.('change', () => { if (esTelefono() && vertical.matches && s && !menu && !crew) pausa(); });
 /**
  * Rueda de acciones (pantalla táctil): para que la pantalla no se llene de botones, quedan solo USAR y ☰ ATAJOS.
  * USAR: un toque = usar (E); mantenerlo RUEDA_MS = se abre la rueda con esconder, lanzar, inhibir, agachar, mochila y mapa.
@@ -1577,7 +1579,7 @@ function conRueda(btn, corto, ops, ms) {
   btn.addEventListener('contextmenu', (e) => e.preventDefault()); // mantener apretado no abre el menú del navegador
   btn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); if (!s || menu) return; id = e.pointerId; abierta = false; try { btn.setPointerCapture(e.pointerId); } catch { /* nada */ }
-    if (!ms) return;
+    if (!ms || !esTelefono()) return; // fuera del teléfono USAR es un botón normal
     btn.style.setProperty('--carga', `${ms}ms`); btn.classList.add('cargando');
     tim = setTimeout(() => { btn.classList.remove('cargando'); abierta = true; const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); navigator.vibrate?.(20); }, ms);
   });
@@ -1586,7 +1588,7 @@ function conRueda(btn, corto, ops, ms) {
     if (e.pointerId !== id) return; id = null; clearTimeout(tim); btn.classList.remove('cargando');
     if (abierta) { if (ruedaSel !== null) { const o = rueda._ops[ruedaSel]; cierraRueda(); o.run(); } return; } // soltó sobre una opción; si no, la rueda queda abierta para tocar
     if (cancel || !s || menu) return;
-    if (ms) corto(); else { const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); }
+    if (ms || !esTelefono()) corto?.(); else { const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); }
   };
   btn.addEventListener('pointerup', (e) => fin(e, false)); btn.addEventListener('pointercancel', (e) => fin(e, true));
   btn.addEventListener('click', (e) => { if (e.detail === 0 && s && !menu) corto(); }); // teclado / lector de pantalla: Enter = toque corto
@@ -1596,7 +1598,7 @@ conRueda($('t-menu'), null, opsAtajos, 0);
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && !rueda.hidden) cierraRueda(); });
 // controles táctiles: en pantallas táctiles o angostas (teléfono); body.tactil-on deja sitio a los atajos
 const esTactil = () => matchMedia('(pointer: coarse)').matches || UI.esAngosta(innerWidth);
-function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('cruz-on', on && vista.cruz); }
+function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('telefono', esTelefono()); document.body.classList.toggle('cruz-on', on && vista.cruz); }
 sincTactil(); addEventListener('resize', sincTactil); sincBotones();
 const dirs = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 /**

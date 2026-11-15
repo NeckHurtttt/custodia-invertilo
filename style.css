@@ -753,10 +753,10 @@ body.invitado #t-f { display: flex !important; }
 /* Con el mapa completo abierto se esconde el HUD (menos la barra y los botones) para que no tape las salas */
 body.mapa-on .hud:not(.barra):not(.hud-teclas), body.mapa-on .hud-teclas button:not(#btn-mapa) { visibility: hidden; }
 body.mapa-on.tactil-on #btn-mapa { visibility: hidden; }
-/* Celular/tablet en vertical: se pide girar (el juego es horizontal). En PC (puntero fino) nunca aparece. */
+/* Teléfono en vertical: se pide girar (el juego es horizontal). En tablet y PC nunca aparece. */
 .girar { display: none; }
 @media (pointer: coarse) and (orientation: portrait) {
-  .girar { display: flex; position: fixed; inset: 0; z-index: 50; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: 2rem; text-align: center; background: #02060b; color: var(--fg); }
+  body.telefono .girar { display: flex; position: fixed; inset: 0; z-index: 50; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: 2rem; text-align: center; background: #02060b; color: var(--fg); }
   .girar-tel { font-size: 4.5rem; animation: girar-tel 2.4s ease-in-out infinite; }
   .girar-tit { font-size: 1.8rem; letter-spacing: .12em; color: var(--cyan); margin: 0; }
   .girar-txt { color: var(--dim); font-size: 1.1rem; max-width: 20rem; margin: 0; }
@@ -774,15 +774,16 @@ body.mapa-on.tactil-on #btn-mapa { visibility: hidden; }
   body.tactil-on .hud-teclas { top: 108px; }
 }
 body.tactil-on #btn-mapa { display: none; }
-/* ---- Pantalla táctil limpia: solo ☰ ATAJOS y USAR; el resto va en ruedas (mantener USAR 2 s / tocar ☰) ---- */
-body.tactil-on .hud-teclas { display: none !important; }
-.tactil .acciones { display: flex !important; align-items: flex-end; gap: 10px; }
-.tactil .acciones button:not(#t-e):not(#t-menu) { display: none !important; }
-.tactil .acciones #t-e { width: 92px !important; height: 92px !important; border-radius: 50%; position: relative; }
-.tactil .acciones #t-e b { font-size: 2.6rem; }
-.tactil .acciones #t-menu { width: 62px !important; height: 62px !important; border-radius: 50%; }
-.tactil .acciones #t-menu b { font-size: 1.6rem; }
-@media (max-height: 520px) and (min-width: 601px) { .tactil .acciones #t-e { width: 80px !important; height: 80px !important; } }
+/* ---- Solo TELÉFONO (body.telefono): quedan USAR y ☰ ATAJOS; el resto va en ruedas (mantener USAR 2 s / tocar ☰). Tablet y PC no cambian ---- */
+.tactil .acciones #t-menu { display: none; }
+body.telefono .hud-teclas { display: none !important; }
+body.telefono .tactil .acciones { display: flex !important; align-items: flex-end; gap: 10px; }
+body.telefono .tactil .acciones button:not(#t-e):not(#t-menu) { display: none !important; }
+body.telefono .tactil .acciones #t-e { width: 92px !important; height: 92px !important; border-radius: 50%; position: relative; }
+body.telefono .tactil .acciones #t-e b { font-size: 2.6rem; }
+body.telefono .tactil .acciones #t-menu { display: flex; width: 62px !important; height: 62px !important; border-radius: 50%; }
+body.telefono .tactil .acciones #t-menu b { font-size: 1.6rem; }
+@media (max-height: 520px) and (min-width: 601px) { body.telefono .tactil .acciones #t-e { width: 80px !important; height: 80px !important; } }
 /* anillo que se llena mientras mantienes USAR */
 #t-e::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; opacity: 0;
   background: conic-gradient(var(--amber) calc(var(--p, 0) * 1turn), transparent 0); -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%); mask: radial-gradient(circle, transparent 62%, #000 64%); }
