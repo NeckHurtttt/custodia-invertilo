@@ -782,7 +782,8 @@ function paneles() {
 let toastS = null; let seenLog = 0;
 const KIND_IC = { ok: 'ok', warn: 'warn', bad: 'bad', ia: 'alerta', day: 'dia', info: 'info' }; // cada aviso lleva su ícono: el tipo no depende solo del color
 const vivos = []; // avisos que están en pantalla ahora: { id, kind, text, li, timer }
-function quitaAviso(v) { clearTimeout(v.timer); v.li.classList.add('sale'); setTimeout(() => v.li.remove(), 500); const i = vivos.indexOf(v); if (i >= 0) vivos.splice(i, 1); }
+function quitaAviso(v) { clearTimeout(v.timer); if (document.body.classList.contains('telefono')) v.li.remove(); else { v.li.classList.add('sale'); setTimeout(() => v.li.remove(), 500); } // teléfono: se va al instante (nunca se ven dos)
+  const i = vivos.indexOf(v); if (i >= 0) vivos.splice(i, 1); }
 /** Pasa los mensajes nuevos del registro a pantalla SOLO si caben en el presupuesto (src/avisos.js): tope de 3, sin repetidos, sin ruido en emergencias. */
 function toasts() {
   const ul = $('avisos');
