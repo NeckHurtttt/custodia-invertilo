@@ -138,7 +138,7 @@ const OBJ_COLOR = { cajon: '#ffd23d', registro: '#ff6b6b', capcom: '#5ff6ff', es
 /** Cuántos letreros se pintaron en este cuadro (lo lee la prueba e2e para vigilar que no se acumulen). */
 let nEtq = 0;
 /** [N] Nombres: apagado por defecto. Apagado = solo el nombre del objeto sobre el que actuarías con E y el de la sala donde estás. */
-const vista = { nombres: getOpt('nombres', '0') === '1', cruz: getOpt('cruz', '0') === '1' };
+const vista = { nombres: getOpt('nombres', '0') === '1', cruz: getOpt('cruz', '0') === '1', rueda: getOpt('rueda', '0') === '1' };
 function alternaNombres() { vista.nombres = !vista.nombres; setOpt('nombres', vista.nombres ? '1' : '0'); hud(); }
 /** Letrero del objeto sobre el que usarás con E (con marco). Con [N] activado también los cercanos, chicos y más tenues. */
 function objetoEtiquetas(t) {
@@ -833,6 +833,7 @@ const AJ = {
   suave: { id: 'sw-suave', ico: 'suave', get txt() { return T('EFECTOS VISUALES SUAVES', 'SOFT VISUAL EFFECTS'); }, get pista() { return T('Sin sacudidas ni destellos', 'No shaking or flashes'); }, get: () => FX.suave(), set: () => FX.toggleFx() },
   voz: { id: 'sw-voz', ico: 'sfx', get txt() { return T('LEER EN VOZ ALTA', 'READ ALOUD'); }, get pista() { return T('Lee las ventanas y los avisos importantes', 'Reads windows and important alerts'); }, get: () => vozAuto(), set: () => { alternaVoz(); } },
   cruz: { id: 'sw-cruz', ico: 'jugar', get txt() { return T('CRUZ DE FLECHAS', 'ARROW PAD'); }, get pista() { return T('Si NO, te mueves deslizando el dedo por el mapa', 'If NO, you move by sliding your finger on the map'); }, get: () => vista.cruz, set: () => { vista.cruz = !vista.cruz; setOpt('cruz', vista.cruz ? '1' : '0'); sincTactil(); } },
+  rueda: { id: 'sw-rueda', ico: 'jugar', get txt() { return T('RUEDA DE ACCIONES', 'ACTION WHEEL'); }, get pista() { return T('Solo USAR: mantenlo 2 s y desliza el dedo a la acción', 'Only USE: hold it 2 s and slide your finger to the action'); }, get: () => vista.rueda, set: () => { vista.rueda = !vista.rueda; setOpt('rueda', vista.rueda ? '1' : '0'); sincTactil(); } },
   nombres: { id: 'sw-nombres', ico: 'nombres', get txt() { return T('NOMBRES DE OBJETOS', 'OBJECT NAMES'); }, get pista() { return T('Tecla N', 'Key N'); }, get: () => vista.nombres, set: () => alternaNombres() },
 };
 const ajustesHTML = (claves) => claves.map((k) => interruptor(AJ[k].id, AJ[k].ico, AJ[k].txt, AJ[k].get(), AJ[k].pista)).join('');
@@ -923,7 +924,7 @@ function tutoFin(guardar) { tu = null; if (guardar) setOpt(Tu.CLAVE, '1'); pinta
 function pintaTuto() {
   const el = $('tuto'); if (!el) return; document.body.classList.toggle('tuto-on', !!tu); // con el tutorial a la vista se esconde «AHORA» para dejar sitio (no estorba en celular)
   if (!tu) { el.hidden = true; el.innerHTML = ''; return; }
-  const e = estacionVida(); const x = Tu.texto(tu, esTactil(), e ? G.roomName(s, G.roomIdAt(s, e.x + 0.5, e.y + 0.5)) : '', document.body.classList.contains('telefono'));
+  const e = estacionVida(); const x = Tu.texto(tu, esTactil(), e ? G.roomName(s, G.roomIdAt(s, e.x + 0.5, e.y + 0.5)) : '', document.body.classList.contains('rueda-on'));
   if (!x) { tutoFin(true); return; }
   if (Tu.actual(tu) === 'finales') { el.hidden = true; finalesTuto(x); return; } // el último paso es una ventana con los finales
   el.hidden = false;
@@ -1567,6 +1568,8 @@ vertical.addEventListener?.('change', () => { if (esTelefono() && vertical.match
  * Cada opción reusa el botón original (oculto), así el texto (ESCONDER/DISTRAER) y el estado (agachado) siguen iguales.
  */
 const RUEDA_MS = 2000;
+/** ¿Los controles van con rueda? Siempre en el teléfono; en tablet, si se eligió RUEDA DE ACCIONES en los ajustes. */
+const conRuedaOn = () => document.body.classList.contains('rueda-on');
 const rueda = document.createElement('div'); rueda.id = 'rueda'; rueda.hidden = true; document.body.appendChild(rueda);
 let ruedaSel = null;
 const RUEDA_ACC = ['t-f', 't-t', 't-q', 't-sh', 't-i', 't-m'];
@@ -1597,7 +1600,7 @@ function ruedaMarca(e) { // con el dedo aún apoyado: resalta la opción que est
 const opDe = (id) => { const b = $(id); return { html: b.innerHTML, sel: b.classList.contains('sel'), run: () => b.click() }; };
 // Teléfono sin ☰: FABRICAR entra a la rueda de USAR (los paneles 1-4 y Nombres están en la pausa)
 const opFabricar = () => ({ html: `<b>🔧</b><small>${T('FABRICAR', 'CRAFT')}</small>`, sel: false, run: () => $('btn-fabricar').click() });
-const opsAcciones = () => { const o = RUEDA_ACC.map(opDe); if (document.body.classList.contains('telefono')) o.splice(o.length - 1, 0, opFabricar()); return o; };
+const opsAcciones = () => { const o = RUEDA_ACC.map(opDe); if (conRuedaOn()) o.splice(o.length - 1, 0, opFabricar()); return o; };
 const opsAtajos = () => RUEDA_ATAJOS.map(([q, k]) => { const b = q.startsWith('[') ? document.querySelector(`#teclas ${q}`) : $(q); const nom = [...b.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim(); return { html: `<b>${k}</b><small>${nom}</small>`, sel: b.classList.contains('sel'), run: () => b.click() }; });
 /** Botón con toque corto + mantener: corto() al soltar rápido; largo() abre la rueda tras RUEDA_MS (con anillo de carga). */
 function conRueda(btn, corto, ops, ms) {
@@ -1605,7 +1608,7 @@ function conRueda(btn, corto, ops, ms) {
   btn.addEventListener('contextmenu', (e) => e.preventDefault()); // mantener apretado no abre el menú del navegador
   btn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); if (!s || menu) return; id = e.pointerId; abierta = false; try { btn.setPointerCapture(e.pointerId); } catch { /* nada */ }
-    if (!ms || !esTelefono()) return; // fuera del teléfono USAR es un botón normal
+    if (!ms || !conRuedaOn()) return; // sin rueda (PC, tablet por defecto) USAR es un botón normal
     btn.style.setProperty('--carga', `${ms}ms`); btn.classList.add('cargando');
     tim = setTimeout(() => { btn.classList.remove('cargando'); abierta = true; const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); navigator.vibrate?.(20); }, ms);
   });
@@ -1614,7 +1617,7 @@ function conRueda(btn, corto, ops, ms) {
     if (e.pointerId !== id) return; id = null; clearTimeout(tim); btn.classList.remove('cargando');
     if (abierta) { if (ruedaSel !== null) { const o = rueda._ops[ruedaSel]; cierraRueda(); o.run(); } return; } // soltó sobre una opción; si no, la rueda queda abierta para tocar
     if (cancel || !s || menu) return;
-    if (ms || !esTelefono()) corto?.(); else { const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); }
+    if (ms || !conRuedaOn()) corto?.(); else { const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); }
   };
   btn.addEventListener('pointerup', (e) => fin(e, false)); btn.addEventListener('pointercancel', (e) => fin(e, true));
   btn.addEventListener('click', (e) => { if (e.detail === 0 && s && !menu) corto(); }); // teclado / lector de pantalla: Enter = toque corto
@@ -1624,7 +1627,7 @@ conRueda($('t-menu'), null, opsAtajos, 0);
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && !rueda.hidden) cierraRueda(); });
 // controles táctiles: en pantallas táctiles o angostas (teléfono); body.tactil-on deja sitio a los atajos
 const esTactil = () => matchMedia('(pointer: coarse)').matches || UI.esAngosta(innerWidth);
-function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('telefono', esTelefono()); document.body.classList.toggle('cruz-on', on && vista.cruz); }
+function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('telefono', esTelefono()); document.body.classList.toggle('rueda-on', on && (esTelefono() || vista.rueda)); document.body.classList.toggle('cruz-on', on && vista.cruz); }
 sincTactil(); addEventListener('resize', sincTactil); sincBotones();
 const dirs = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 /**
@@ -1749,7 +1752,7 @@ addEventListener('appinstalled', () => { instalarEv = null; pintaOffline(); });
 // Botón 🔊 LEER en cada ventana; el ajuste «LEER EN VOZ ALTA» lee solo la intro, la tormenta y el final, y los avisos importantes.
 const vozAuto = () => { try { return localStorage.getItem('lfr.voz') === '1'; } catch { return false; } };
 const alternaVoz = () => { const v = !vozAuto(); try { localStorage.setItem('lfr.voz', v ? '1' : '0'); } catch { /* nada */ } if (!v) Voz.parar(); return v; };
-const conVoz = (lista) => { const l = esTactil() ? [...lista, 'cruz'] : lista; return Voz.disponible() ? [...l, 'voz'] : l; };
+const conVoz = (lista) => { const l = esTactil() ? [...lista, 'cruz', ...(esTelefono() ? [] : ['rueda'])] : lista; /* la rueda es opcional solo en tablet (en el teléfono ya viene) */ return Voz.disponible() ? [...l, 'voz'] : l; };
 const MENUS_SIN_VOZ = ['titulo', 'protocolo', 'codigo', 'cables', 'respira']; // el título son botones y el resto son minijuegos: no se leen
 /** Texto de la ventana abierta, sin botones ni cosas ocultas (por ejemplo, las secciones cerradas de DATOS NASA). */
 function textoVentana() {
