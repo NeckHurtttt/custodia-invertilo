@@ -412,7 +412,8 @@ function drawFrame(t) {
   // carteles del mundo: se apilan justo sobre la mochila (abajo al centro), nunca bajo la barra de arriba. Pulso lento (≤1 Hz) en vez de alternar colores.
   cx.textAlign = 'center'; cartelY = (invTop || cv.height - 80) - 20; const hz = FX.suave() ? 0 : 0.8;
   if (G.isOutside(s) && !p.inDuct) cartel(`O₂ ${Math.ceil(p.o2)}%${G.has(s, 'traje') ? '' : T(' · ¡SIN TRAJE!', ' · NO SUIT!')}`, p.o2 < 30 ? '#ff7a7a' : '#5ff6ff', 20, t, p.o2 < 30 ? hz : 0);
-  if (p.hidden) cartel(T('ESCONDIDO · muévete o pulsa F para salir', 'HIDDEN · move or press F to come out'), '#9fd4ff', 18, t, 0);
+  if (document.body.classList.contains('telefono')) { /* teléfono: «escondido/agachado» ya se ve en el personaje y en el botón; no se repite */ }
+  else if (p.hidden) cartel(T('ESCONDIDO · muévete o pulsa F para salir', 'HIDDEN · move or press F to come out'), '#9fd4ff', 18, t, 0);
   else if (p.crouch) cartel(T('agachado: silencioso y difícil de ver', 'crouching: quiet and hard to see'), '#9fd4ff', 16, t, 0);
   // una noche: cuenta regresiva al amanecer
   if (s.mode === 'noche' && !s.final) { const left = ((s.day >= 2 ? 360 : 1800) - s.min) / (G.MIN_PER_SEC * G.NIGHT_SPEED); cartel(T(`☀ AMANECE EN ${Meta.fmtTime(Math.max(0, left))}`, `☀ DAWN IN ${Meta.fmtTime(Math.max(0, left))}`), left < 60 ? '#ff8a8a' : '#9fd4ff', 22, t, left < 60 ? hz : 0); }
@@ -435,14 +436,17 @@ function drawFrame(t) {
 let invTop = 0; let cartelY = 0;
 /** Cartel centrado con placa oscura. hz = ciclos por segundo del pulso de brillo (0 = fijo); nunca alterna colores. */
 function cartel(txt, col, px, t, hz = 0) {
+  if (document.body.classList.contains('telefono')) px = Math.round(px * 0.72); // teléfono: carteles más chicos
   cx.font = `${px}px VT323`; const w = Math.min(cv.width - 16, cx.measureText(txt).width + 28), h = px + 8; const y = cartelY; cartelY -= h + 6;
   R(cx, 'rgba(8,11,18,.82)', cv.width / 2 - w / 2, y - h / 2, w, h);
   cx.globalAlpha = hz ? 0.7 + 0.3 * UI.pulso(t, hz) : 1; cx.fillStyle = col; cx.fillText(txt, cv.width / 2, y); cx.globalAlpha = 1;
 }
 function bubble(x, y, txt, color) {
+  const max = document.body.classList.contains('telefono') ? 26 : 46; // en el teléfono los globos son cortos
+  if (txt.length > max) txt = txt.slice(0, max - 1) + '…';
   const w = Math.min(190, cx.measureText(txt).width + 8);
   R(cx, 'rgba(10,14,24,.9)', x - w / 2, y - 6, w, 12); R(cx, color, x - w / 2, y + 6, w, 1);
-  cx.fillStyle = '#e8f0ff'; cx.fillText(txt.length > 46 ? txt.slice(0, 45) + '…' : txt, x, y);
+  cx.fillStyle = '#e8f0ff'; cx.fillText(txt, x, y);
 }
 
 function drawHazard(h, t, vis) {
@@ -778,7 +782,8 @@ function paneles() {
 let toastS = null; let seenLog = 0;
 const KIND_IC = { ok: 'ok', warn: 'warn', bad: 'bad', ia: 'alerta', day: 'dia', info: 'info' }; // cada aviso lleva su ícono: el tipo no depende solo del color
 const vivos = []; // avisos que están en pantalla ahora: { id, kind, text, li, timer }
-function quitaAviso(v) { clearTimeout(v.timer); v.li.classList.add('sale'); setTimeout(() => v.li.remove(), 500); const i = vivos.indexOf(v); if (i >= 0) vivos.splice(i, 1); }
+function quitaAviso(v) { clearTimeout(v.timer); if (document.body.classList.contains('telefono')) v.li.remove(); else { v.li.classList.add('sale'); setTimeout(() => v.li.remove(), 500); } // teléfono: se va al instante (nunca se ven dos)
+  const i = vivos.indexOf(v); if (i >= 0) vivos.splice(i, 1); }
 /** Pasa los mensajes nuevos del registro a pantalla SOLO si caben en el presupuesto (src/avisos.js): tope de 3, sin repetidos, sin ruido en emergencias. */
 function toasts() {
   const ul = $('avisos');
@@ -786,7 +791,8 @@ function toasts() {
   const emergencia = !$('emerg').hidden;
   for (const l of s.log) {
     if ((l.id ?? 0) <= seenLog) continue; seenLog = l.id;
-    const r = admite(vivos, l, { emergencia });
+    const tel = document.body.classList.contains('telefono');
+    const r = admite(vivos, l, tel ? { emergencia, max: 1, minPrio: 3 } : { emergencia }); // teléfono: 1 aviso y solo lo importante
     for (const id of r.quitar) { const v = vivos.find((x) => x.id === id); if (v) quitaAviso(v); }
     if (!r.mostrar) continue; if (vozAuto() && ['bad', 'ia', 'warn'].includes(l.kind)) Voz.hablar(l.text, { prio: l.kind === 'warn' ? 'baja' : 'alta' });
     const li = document.createElement('li'); li.className = l.kind; li.innerHTML = `${ic(KIND_IC[l.kind] ?? 'info')}<span>${l.text}</span>`; ul.appendChild(li);

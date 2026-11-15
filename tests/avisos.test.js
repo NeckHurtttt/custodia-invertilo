@@ -47,3 +47,10 @@ test('avisos: el juego marca como "quiet" lo que ya dice otro panel (AHORA) o re
   const ahora = s.log.filter((l) => l.text.startsWith('Ahora:')); assert.ok(ahora.length > 0, 'el juego anunció algún bloque');
   assert.ok(ahora.every((l) => l.quiet === true));
 });
+
+test('avisos en teléfono: uno a la vez y solo lo importante', () => {
+  const ctx = { max: 1, minPrio: 3 };
+  assert.equal(simula([{ kind: 'info', text: 'i' }, { kind: 'ok', text: 'o' }], ctx).length, 0, 'info y ok no suben');
+  const r = simula([{ kind: 'warn', text: 'w' }, { kind: 'bad', text: 'b' }], ctx);
+  assert.deepEqual(r.map((v) => v.text), ['b'], 'lo grave reemplaza a lo anterior');
+});

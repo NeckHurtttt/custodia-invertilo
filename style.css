@@ -803,3 +803,28 @@ body.telefono .tactil .acciones #t-menu b { font-size: 1.6rem; }
 @keyframes r-entra { from { opacity: 0; transform: scale(.6); } }
 .suave #rueda .r-op { animation: none; }
 .tactil button, #rueda { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* ---- Teléfono: HUD mínimo. Vitales como fichas chicas (ícono + número, color según estado), sin títulos ni barras;
+   «AHORA» en una sola línea; tripulación oculta (está en la pausa). El mapa queda libre. ---- */
+body.telefono .hud-izq { top: 50px; left: .3em; width: auto; max-width: 13.5em; flex-direction: row; flex-wrap: wrap; gap: 3px; font-size: 11px; }
+body.telefono .hud-izq .grupo { display: contents; }
+body.telefono .hud-izq h3, body.telefono .hud-izq .sub, body.telefono .hud-izq .nom, body.telefono .hud-izq .dmg, body.telefono .hud-izq .sub-sis { display: none !important; }
+body.telefono .hud-izq .filas { display: contents; }
+body.telefono .hud-izq .vr.neutro, body.telefono .hud-izq [data-f="integ"] { display: none; }
+body.telefono .hud-izq .vr { display: flex; align-items: center; gap: 2px; min-width: 0; padding: 1px 4px; border: 1px solid var(--est); border-radius: 10px; background: rgba(8,11,18,.72); font-size: 1em; }
+body.telefono .hud-izq .vr .bv { display: none; }
+body.telefono .hud-izq .vr .val { color: var(--est); }
+body.telefono .hud-izq .vr.est-ok { border-color: rgba(110,130,175,.35); }
+body.telefono .hud-izq .vr.est-ok .val { color: var(--fg); }
+body.telefono .hud-centro { top: 50px; width: min(36%, 18em); font-size: 11px; max-height: 26vh; }
+body.telefono #actividad { padding: .15em .45em; font-size: 1em; flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
+body.telefono #actividad small { display: none; }
+body.telefono #actividad b { overflow: hidden; text-overflow: ellipsis; }
+body.telefono .avisos li { font-size: .95em; }
+body.telefono .hud-crew { display: none; }
+body.telefono .hud-inv { font-size: 11px; } body.telefono .hud-inv h3.cap { display: none; }
+/* Teléfono: el aviso es UNA línea (el texto completo queda en el historial, ☰ → 4 Avisos) */
+body.telefono .avisos li { align-items: center; padding: .12em .45em; }
+body.telefono .avisos li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+body.telefono #emerg { font-size: .95em; padding: .2em .4em; }
+body.telefono .hud-izq .vr.neutro, body.telefono .hud-izq .vr[data-f="integ"] { display: none !important; }
+body.telefono #emerg small, body.telefono #emerg .fuente, body.telefono #emerg p:not(:first-child) { display: none; }
