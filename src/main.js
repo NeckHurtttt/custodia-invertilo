@@ -34,6 +34,7 @@ import { informe, estadoNivel } from './informe.js';
 import { idMant } from './variedad.js';
 import * as Tu from './tutorial.js';
 import * as Cert from './certificado.js';
+import * as Doc from './docente.js';
 import * as Cu from './cuerpos.js';
 const { ic } = UI;
 
@@ -804,7 +805,7 @@ function titleScreen() {
     <details class="mas" id="t-mas" ${masAbierto ? 'open' : ''}><summary>${T(`MÁS OPCIONES · modo de juego, personaje, sonido y vista`, `MORE OPTIONS · game mode, character, sound and view`)}</summary>
       <div class="bloque-op">${T(`<span class="lbl">MODO</span>`, `<span class="lbl">MODE</span>`)}<div class="seg">${[['campana', T('CAMPAÑA · 10 días', 'CAMPAIGN · 10 days')], ['noche', T('UNA NOCHE · 7 min', 'ONE NIGHT · 7 min')]].map(([k, n]) => `<button data-modo="${k}" class="${k === mode ? 'on' : ''}">${n}</button>`).join('')}</div></div>
       <div class="bloque-op">${T(`<span class="lbl">PERSONAJE</span>`, `<span class="lbl">CHARACTER</span>`)}<div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${ds(d)}">${nm(d).toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${ds(d)}">${ic('info')} ${nm(d).toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${ds(PERKS[perk])}</small></div>
-      <div class="bloque-op"><span class="lbl">${T('APRENDER', 'LEARN')}</span><button id="t-tuto">🎓 ${T('ENTRENAMIENTO GUIADO', 'GUIDED TRAINING')}</button></div>
+      <div class="bloque-op"><span class="lbl">${T('APRENDER', 'LEARN')}</span><button id="t-tuto">🎓 ${T('ENTRENAMIENTO GUIADO', 'GUIDED TRAINING')}</button><button id="t-clase">🏫 ${T('MODO CLASE', 'CLASS MODE')}${getOpt('clase', '') ? ' · ' + esc2(getOpt('clase', '')) : ''}</button><button id="t-docente">🧑‍🏫 ${T('PANEL DOCENTE', 'TEACHER PANEL')}</button></div>
       <div class="bloque-op">${ajustesHTML(conVoz(['musica', 'sfx', 'suave']))}</div>
     </details>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
@@ -819,6 +820,7 @@ function titleScreen() {
   V.querySelectorAll('[data-lang]').forEach((b) => (b.onclick = () => cambiaIdioma(b.dataset.lang, titleScreen)));
   pintaOffline();
   const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { ...opts, flares: liveFlares }); base = null; close(); intro(); };
+  $('t-clase').onclick = claseScreen; $('t-docente').onclick = docenteScreen;
   $('t-tuto').onclick = () => { setOpt(Tu.CLAVE, '0'); nueva(sel, { mode: 'campana', perk, reflex: false, seen: Meta.seenNotes(sel) }); }; // el entrenamiento siempre es una campaña tranquila
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
   V.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { setOpt('dest', b.dataset.loc); titleScreen(); }));
@@ -1285,6 +1287,47 @@ function bitacoraHTML() {
     </tbody></table></div>
     <small>${T('Cada columna es un día. Los números son el nivel de cada sistema al terminar el día; «!» avisa que estuvo bajo. La dosis solo sube: nunca se borra.', 'Each column is one day. The numbers are each system level at the end of the day; “!” warns it was low. The dose only goes up: it never goes away.')}</small></section>`;
 }
+// ---------- modo clase (alumno) y panel docente (docente): sin servidor; el alumno copia una línea y el docente pega todas ----------
+let ultimoQuiz = null; // la pregunta de cierre de la partida que acaba de terminar (para la línea del docente)
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+function lineaClase(o) {
+  const sis = s.sys ? Math.round(Object.values(s.sys.lvl).reduce((a, b) => a + b, 0) / 4) : 0;
+  return Doc.formatoLinea({ clase: getOpt('clase', ''), nombre: getOpt('nombre', ''), fecha: hoyISO(), destino: s.loc, nivel: s.dif, gano: !!o.won, estrellas: o.stars ?? 0, dosis: s.sys ? Math.min(100, Sys.dosePct(s)) : 0, sistemas: sis, quizId: ultimoQuiz?.id ?? '', quizOk: !!ultimoQuiz?.ok });
+}
+function claseScreen() {
+  menu = 'clase';
+  open(`<h2>🏫 ${T('MODO CLASE', 'CLASS MODE')}</h2>
+    <p>${T('Tu docente te da un <b>código de clase</b> (por ejemplo 5B). Al terminar una partida aparece el botón <b>COPIAR PARA MI DOCENTE</b>: copias una línea y se la mandas (chat o correo).', 'Your teacher gives you a <b>class code</b> (for example 5B). When a game ends, the <b>COPY FOR MY TEACHER</b> button appears: you copy one line and send it (chat or email).')}</p>
+    <p style="color:var(--dim)">${T('No se envía nada por internet: todo se queda en este aparato hasta que tú copias la línea.', 'Nothing is sent over the internet: everything stays on this device until you copy the line.')}</p>
+    <label class="cert-nombre"><span>${T('Tu nombre:', 'Your name:')}</span><input id="cl-nombre" maxlength="${Doc.MAX_NOMBRE}" autocomplete="off" value="${esc2(Doc.limpiaNombre(getOpt('nombre', '')))}"></label>
+    <label class="cert-nombre"><span>${T('Código de clase:', 'Class code:')}</span><input id="cl-clase" maxlength="${Doc.MAX_CLASE}" autocomplete="off" value="${esc2(Doc.limpiaClase(getOpt('clase', '')))}" placeholder="5B"></label>
+    <div class="fila"><button id="cl-guardar" class="grande">${ic('ok')} ${T('GUARDAR', 'SAVE')}</button><button id="cl-borrar" class="sec">${T('QUITAR', 'REMOVE')}</button><button id="volver" class="sec">${T('VOLVER', 'BACK')}</button></div>`);
+  $('cl-guardar').onclick = () => { setOpt('nombre', Doc.limpiaNombre($('cl-nombre').value)); setOpt('clase', Doc.limpiaClase($('cl-clase').value)); M.ui('ok'); titleScreen(); };
+  $('cl-borrar').onclick = () => { setOpt('clase', ''); M.ui('cerrar'); titleScreen(); };
+  $('volver').onclick = titleScreen;
+}
+function docenteScreen() {
+  menu = 'docente';
+  open(`<h2>🧑‍🏫 ${T('PANEL DOCENTE', 'TEACHER PANEL')}</h2>
+    <p>${T('Pega aquí las líneas que te mandan tus alumnos (una por línea; se aceptan mensajes completos de chat) y toca ANALIZAR.', 'Paste here the lines your students send you (one per line; whole chat messages are fine) and tap ANALYZE.')}</p>
+    <textarea id="dc-texto" rows="5" placeholder="CUSTODIA1|5B|Ana|2026-11-15|estacion|cadete|1|3|12|92|radiacion-suma|1" aria-label="${T('Líneas de los alumnos', 'Student lines')}"></textarea>
+    <div class="fila"><button id="dc-analiza" class="grande">${ic('ok')} ${T('ANALIZAR', 'ANALYZE')}</button><button id="volver" class="sec">${T('VOLVER', 'BACK')}</button></div>
+    <div id="dc-res" aria-live="polite"></div>`);
+  $('volver').onclick = titleScreen;
+  $('dc-analiza').onclick = () => {
+    const { partidas, invalidas, repetidas } = Doc.leeVarias($('dc-texto').value); const res = Doc.resumen(partidas); const cont = $('dc-res');
+    if (!partidas.length) { cont.innerHTML = `<p class="quiz-v no">${T('No encontré resultados de CUSTODIA en lo que pegaste.', 'I did not find CUSTODIA results in what you pasted.')}${invalidas ? ' (' + invalidas + ')' : ''}</p>`; return; }
+    const pq = (id) => { const q = Quiz.PREGUNTAS().find((x) => x.id === id); return q ? q.q : id; };
+    cont.innerHTML = `<p><b>${partidas.length}</b> ${T('partidas leídas', 'games read')}${repetidas ? ' · ' + repetidas + ' ' + T('repetidas ignoradas', 'duplicates ignored') : ''}${invalidas ? ' · ' + invalidas + ' ' + T('líneas no válidas', 'invalid lines') : ''}</p>
+      <div class="bit-tabla"><table class="doc-tabla"><thead><tr><th>${T('Clase', 'Class')}</th><th>${T('Alumnos', 'Students')}</th><th>${T('Partidas', 'Games')}</th><th>${T('% ganó', '% won')}</th><th>${T('% aciertos', '% correct')}</th></tr></thead><tbody>${res.clases.map((c) => `<tr><td>${esc2(c.clase)}</td><td>${c.alumnos}</td><td>${c.partidas}</td><td>${c.pctGanadas} %</td><td>${c.pctQuiz === null ? '—' : c.pctQuiz + ' %'}</td></tr>`).join('')}</tbody></table></div>
+      <div class="bit-tabla"><table class="doc-tabla"><thead><tr><th>${T('Alumno', 'Student')}</th><th>${T('Clase', 'Class')}</th><th>${T('Partidas', 'Games')}</th><th>${T('Ganadas', 'Won')}</th><th>★</th><th>${T('Preguntas', 'Questions')}</th></tr></thead><tbody>${res.alumnos.map((a) => `<tr><td>${esc2(a.nombre)}</td><td>${esc2(a.clase)}</td><td>${a.partidas}</td><td>${a.ganadas}</td><td>${a.estrellasProm}</td><td class="${a.pctQuiz === null ? '' : a.pctQuiz >= 60 ? 'ok' : 'bad'}">${a.pctQuiz === null ? '—' : a.pctQuiz + ' %' + (a.pctQuiz < 60 ? '!' : '')}</td></tr>`).join('')}</tbody></table></div>
+      ${res.masDificil ? `<p class="bloque aprende"><b>${T('La idea que más cuesta', 'The idea that is hardest')}:</b> ${esc2(pq(res.masDificil.id))} (${res.masDificil.pct} % ${T('de aciertos', 'correct')})</p>` : ''}
+      <div class="fila"><button id="dc-copia" class="sec">📋 ${T('COPIAR CSV', 'COPY CSV')}</button><button id="dc-baja" class="sec">⬇ ${T('DESCARGAR CSV', 'DOWNLOAD CSV')}</button></div>`;
+    const csv = Doc.aCSV(res);
+    $('dc-copia').onclick = () => navigator.clipboard?.writeText(csv).then(() => { $('dc-copia').textContent = T('✓ COPIADO', '✓ COPIED'); M.ui('ok'); });
+    $('dc-baja').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })); a.download = 'resultados-custodia.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); M.ui('ok'); };
+  };
+}
 /** Certificado de Cadete (ventana encima del final, así el final no se vuelve a calcular). Funciona igual en compu y en celular: nombre, vista previa, descargar y compartir. */
 function certificado(o) {
   if ($('cert-modal')) return; const antes = menu; menu = 'cert';
@@ -1306,7 +1349,7 @@ function certificado(o) {
 }
 const esc2 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function endScreen() {
-  menu = 'fin'; clearSave(s.loc); document.body.classList.toggle('derrota', !s.over.won);
+  ultimoQuiz = null; menu = 'fin'; clearSave(s.loc); document.body.classList.toggle('derrota', !s.over.won);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
   const r = Meta.finish(s); const dr = r.daily; const R_ = UI.resumenFin(s);
   // pregunta de cierre (mide si se aprendió lo central; ver quiz.js)
@@ -1325,14 +1368,15 @@ function endScreen() {
     ${r.medals.map((id) => `<div class="medalla si nueva"><b>${ic('medalla')} ${Meta.MEDALS[id][0]}</b><small>${Meta.MEDALS[id][1]}</small></div>`).join('')}
     ${dr ? `<p>${dr.isNew ? T('¡NUEVO RÉCORD DEL DÍA!', 'NEW RECORD OF THE DAY!') : dr.best ? T(`Tu récord de hoy: ${Meta.fmtTime(dr.best)}`, `Your record today: ${Meta.fmtTime(dr.best)}`) : ''}</p>` : ''}
     ${!o.won ? `<p style="color:var(--dim)">${T(`Siguiente desbloqueo: ${nextUnlock(r.total)}`, `Next unlock: ${nextUnlock(r.total)}`)}</p>` : ''}
-    <div class="fila">${o.won && s.sys ? `<button id="certif" class="sec">🎓 ${T('CERTIFICADO', 'CERTIFICATE')}</button>` : ''}${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')} <kbd>R</kbd></button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
+    <div class="fila">${getOpt('clase', '') && getOpt('nombre', '') ? `<button id="copia-clase" class="sec">📋 ${T('COPIAR PARA MI DOCENTE', 'COPY FOR MY TEACHER')}</button>` : ''}${o.won && s.sys ? `<button id="certif" class="sec">🎓 ${T('CERTIFICADO', 'CERTIFICATE')}</button>` : ''}${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')} <kbd>R</kbd></button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
   if (s.daily) $('compartir').onclick = () => { navigator.clipboard?.writeText(share).then(() => ($('compartir').textContent = '✓ COPIADO'), () => prompt('Copia tu resultado:', share)); };
   else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
   $('menu').onclick = titleScreen;
   if ($('certif')) $('certif').onclick = () => certificado(o, R_);
+  if ($('copia-clase')) $('copia-clase').onclick = () => { const l = lineaClase(o); navigator.clipboard?.writeText(l).then(() => { $('copia-clase').textContent = T('✓ COPIADO', '✓ COPIED'); M.ui('ok'); }, () => prompt(T('Copia esta línea y mándasela a tu docente:', 'Copy this line and send it to your teacher:'), l)); };
   let respondida = false;
   const responde = (i) => {
-    if (respondida || !qop[i]) return; respondida = true; const acerto = qop[i].ok; const hist = Meta.quizAnota(qz.id, acerto); M.ui(acerto ? 'ok' : 'error');
+    if (respondida || !qop[i]) return; respondida = true; const acerto = qop[i].ok; ultimoQuiz = { id: qz.id, ok: acerto }; const hist = Meta.quizAnota(qz.id, acerto); M.ui(acerto ? 'ok' : 'error');
     $('ventana').querySelectorAll('.quiz-op button').forEach((b, k) => { b.disabled = true; b.classList.toggle('ok', qop[k].ok); b.classList.toggle('mal', k === i && !acerto); });
     const rs = Quiz.resumen(hist); const copia = Quiz.textoResultado(qz.id, acerto, hist);
     $('quiz-res').innerHTML = `<p class="quiz-v ${acerto ? 'si' : 'no'}"><b>${acerto ? T('✔ ¡Correcto!', '✔ Correct!') : T('✘ Casi. Ahora ya lo sabes:', '✘ Not quite. Now you know:')}</b> ${qz.expl}</p><p><small>${T('Fuente', 'Source')}: ${qz.fuente}</small></p><p><small>${T(`Llevas ${rs.aciertos} de ${rs.intentos} respuestas correctas · preguntas dominadas ${rs.dominadas}/${rs.total}`, `You have ${rs.aciertos} of ${rs.intentos} answers right · questions mastered ${rs.dominadas}/${rs.total}`)}</small> <button type="button" id="quiz-copia" class="mini">${T('COPIAR MI RESULTADO', 'COPY MY RESULT')}</button></p>`;

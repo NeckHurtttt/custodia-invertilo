@@ -537,6 +537,31 @@ try {
   }
   ok('certificado de cadete (compu y celular): se dibuja con el nombre, se descarga con nombre seguro, cabe en la pantalla, la R no reinicia y no repite puntos');
 
+  // 14. Modo clase y panel docente (compu y celular): el alumno copia su línea y el docente la pega y ve el resumen.
+  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'docente compu'], [375, 812, true, 'docente celular']]) {
+    const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, permissions: ['clipboard-read', 'clipboard-write'], ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
+    await pg.goto(`${url}?noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-mas summary'); await pg.click('#t-clase'); await pg.waitForSelector('#cl-nombre');
+    await pg.fill('#cl-nombre', 'Ana'); await pg.fill('#cl-clase', '5b'); await pg.click('#cl-guardar'); await pg.waitForSelector('#t-clase');
+    assert.ok((await pg.textContent('#t-clase')).includes('5B'), `${nombre}: el título muestra la clase`);
+    await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok'); await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden);
+    await pg.evaluate(() => { lfr.s.sys.storm = null; lfr.G.rescue(lfr.s); }); await pg.waitForSelector('#copia-clase', { timeout: 5000 });
+    await pg.click('.quiz-op button'); await pg.waitForSelector('#quiz-res .quiz-v'); await pg.click('#copia-clase');
+    const linea = await pg.evaluate(() => navigator.clipboard.readText()); assert.match(linea, /^CUSTODIA1|5B|Ana|d{4}-d{2}-d{2}|estacion|cadete|1|3|d+|d+|radiacion-suma|[01]$/, `${nombre}: la línea → ${linea}`);
+    await pg.click('#menu'); await pg.waitForSelector('#t-mas summary'); if (!(await pg.evaluate(() => document.getElementById('t-mas').open))) await pg.click('#t-mas summary'); await pg.click('#t-docente'); await pg.waitForSelector('#dc-texto');
+    await pg.fill('#dc-texto', `Hola profe
+${linea}
+[10:31] Leo: CUSTODIA1|5B|Leo|2026-11-15|luna|normal|0|0|40|55|alara|0
+${linea}
+basura`); await pg.click('#dc-analiza'); await pg.waitForSelector('.doc-tabla');
+    const res = await pg.textContent('#dc-res'); assert.ok(res.includes('2') && /partidas leídas/.test(res) && /1 repetidas ignoradas/.test(res) && res.includes('Ana') && res.includes('Leo') && res.includes('5B'), `${nombre}: resumen → ${res.slice(0, 200)}`);
+    assert.ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 && [...document.querySelectorAll('#dc-res button, #dc-analiza')].every((b) => b.getBoundingClientRect().height >= 43.5)), `${nombre}: sin desborde y botones ≥ 44 px`);
+    await pg.screenshot({ path: join(salida, `docente-${movil ? 'celular' : 'compu'}.png`) });
+    const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 6000 }), pg.click('#dc-baja')]); assert.equal(dl.suggestedFilename(), 'resultados-custodia.csv', `${nombre}: CSV`);
+    await c.close();
+  }
+  ok('modo clase y panel docente (compu y celular): el alumno guarda nombre y clase, copia su línea al terminar y el docente la pega, ve el resumen y descarga el CSV');
+
   ok('sin errores de JavaScript ni de red');
   console.log(`\nTodo bien (${paso} pasos). Capturas en ${salida}`);
 } catch (e) {
