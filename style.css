@@ -951,7 +951,7 @@ html body.telefono .hud-der { left: auto !important; right: 8px !important; top:
 html body.telefono .ventana > .fila:last-child { position: sticky; bottom: -.8rem; justify-content: center; margin: .5rem -.8rem -.8rem; padding: .7rem .8rem .8rem; background: linear-gradient(rgba(21,27,43,0), var(--panel) 30%); }
 html body.telefono .ventana button { min-height: 44px; }
 /* Teléfono angosto (≤660 px): los avisos del centro se corren a la derecha de la barra superior (⏸, día, reloj) para no taparla */
-@media (max-width: 660px) { html body.telefono .hud-centro { left: 218px; right: 90px; width: auto; transform: none; } }
+@media (max-width: 660px) { html body.telefono .hud-centro { left: 230px; right: 90px; width: auto; transform: none; } } /* 230: la barra (⏸ de 44 px + día + reloj) llega a ~222 px */
 /* Teléfono angosto: la mochila va abajo al centro, entre la cruceta y USAR (en vez de pegada a la izquierda, encima de la cruceta) */
 @media (max-width: 660px) { html body.telefono .hud-inv { left: 50% !important; right: auto !important; top: auto !important; bottom: 8px !important; transform: translateX(-50%) !important; } }
 /* Pantalla muy baja (≤340 px, p. ej. iPhone SE de lado): joystick y cruceta un poco más chicos para no tapar el panel de estado */

@@ -377,7 +377,7 @@ try {
       await revisa('base');
       await pg.keyboard.press('1'); await revisa('panel 1'); await pg.keyboard.press('1');
       await pg.evaluate(() => { const { s, Sys, G } = lfr; Sys.startEmergency(s, null, 'meteorito'); s.grace = 9999; for (let i = 0; i < 40; i++) G.update(s, 0.05, { dx: 0, dy: 0, crouch: false }); }); await revisa('emergencia');
-      await pg.evaluate(() => { const { s, Sys } = lfr; s.sys.emerg = null; s.pending = null; Object.assign(s.p, { x: 5.5, y: 13.5 }); Sys.startStorm(s); s.grace = 9999; }); await revisa('tormenta');
+      await pg.evaluate(() => { const { s, Sys } = lfr; s.sys.emerg = null; s.pending = null; Object.assign(s.p, { ...((r) => ({ x: r.x + Math.floor(r.w / 2) + 0.5, y: r.y + Math.floor(r.h / 2) + 0.5 }))(s.L.rooms.find((q) => q.id === 'comedor')) }); Sys.startStorm(s); s.grace = 9999; }); await revisa('tormenta');
       await pg.evaluate(() => { lfr.s.sys.storm = null; });
       await pg.keyboard.press('Tab'); await pg.waitForTimeout(400); const mm = await revisa('mapa');
       assert.deepEqual(mm.botonesMapa, ['btn-cerrar-mapa'], `${ancho}×${alto} ${modo}: con el mapa abierto solo debe verse ✕ CERRAR MAPA (se ve: ${mm.botonesMapa})`);
@@ -434,7 +434,7 @@ try {
       await revisa('base');
       for (const k of ['1', '2', '3', '4']) { await pg.keyboard.press(k); await revisa('panel ' + k); await pg.keyboard.press(k); }
       await pg.evaluate(() => { const { s, Sys, G } = lfr; Sys.startEmergency(s, null, 'meteorito'); s.grace = 9999; for (let i = 0; i < 40; i++) G.update(s, 0.05, { dx: 0, dy: 0, crouch: false }); }); await revisa('emergencia');
-      await pg.evaluate(() => { const { s, Sys } = lfr; s.sys.emerg = null; s.pending = null; Object.assign(s.p, { x: 5.5, y: 13.5 }); Sys.startStorm(s); s.grace = 9999; }); await revisa('tormenta');
+      await pg.evaluate(() => { const { s, Sys } = lfr; s.sys.emerg = null; s.pending = null; Object.assign(s.p, { ...((r) => ({ x: r.x + Math.floor(r.w / 2) + 0.5, y: r.y + Math.floor(r.h / 2) + 0.5 }))(s.L.rooms.find((q) => q.id === 'comedor')) }); Sys.startStorm(s); s.grace = 9999; }); await revisa('tormenta');
       await pg.evaluate(() => { lfr.s.sys.storm = null; });
       await pg.keyboard.press('Tab'); await pg.waitForTimeout(400); const mm = await revisa('mapa');
       assert.deepEqual(mm.botonesMapa, ['btn-cerrar-mapa'], `${ancho}×${alto} ${modo}: con el mapa abierto solo debe verse ✕ CERRAR MAPA (se ve: ${mm.botonesMapa})`);
@@ -506,7 +506,7 @@ try {
     await pg.keyboard.press('c'); await pg.waitForSelector('.recetas', { timeout: 3000 }); const fab = await pg.textContent('#ventana'); assert.ok(fab.includes('CRAFT') && fab.includes('MAKE') && !/FABRICAR|HACER/.test(fab), `fabricar en inglés: ${fab.slice(0, 80)}`); await pg.click('#cerrar');
     assert.match(await pg.textContent('.hud-crew'), /happy|asks for/, 'la tripulación del HUD en inglés');
     // tormenta solar: cartel del HUD en inglés
-    await pg.evaluate(() => { const { s, Sys } = lfr; Object.assign(s.p, { x: 5.5, y: 13.5 }); Sys.startStorm(s); s.grace = 9999; });
+    await pg.evaluate(() => { const { s, Sys } = lfr; Object.assign(s.p, { ...((r) => ({ x: r.x + Math.floor(r.w / 2) + 0.5, y: r.y + Math.floor(r.h / 2) + 0.5 }))(s.L.rooms.find((q) => q.id === 'comedor')) }); Sys.startStorm(s); s.grace = 9999; });
     await pg.waitForFunction(() => /SOLAR STORM 1\/3/.test(document.getElementById('emerg')?.textContent ?? ''), null, { timeout: 4000 });
     const hud = await pg.textContent('#emerg'); assert.match(hud, /class X|class M|class C/); assert.match(hud, /Shelter|shelter/); assert.match(hud, /arrive in/);
     await pg.screenshot({ path: join(salida, '8-ingles-tormenta.png') });
