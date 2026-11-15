@@ -76,6 +76,8 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 
 ## 5. Siguiente paso y cola de trabajo
 
+> **README (15/11/2026):** reescritura con expediente de misión, voseo y tono épico; enlaces locales verificados, cooperativo Tripulante/Control actualizado. Cambio propuesto mediante PR desde alejondr3/custodia-invertilo (rama docs/readme-mision-toro). La cola funcional sigue igual.
+
 > **SIGUIENTE PASO:** E2 · completar los nombres del equipo en `docs/entrega-space-apps.md` (pedírselos a Sergio), revisar qué campos pide el formulario de Space Apps y hacer la prueba con 1 o 2 niños (`docs/analisis/2026-11-14-lifeline-prueba-con-ninos.md`). Antes de presentar: pegar una llave propia de api.nasa.gov en DATOS NASA y abrir el juego una vez en la compu de la demo (la llave DEMO_KEY se agota por red). Lo demás de la cola está hecho, salvo J (descartado por ahora, ver la bitácora).
 >
 > **También pendiente (IA progresiva, fusionada el 15/11/2026):** probar la IA progresiva con jugadores en días 1, 4, 7 y 10 (Normal/Terror), revisar el límite temporal del simulador en Cadete y después retomar C · ocultar "delatar a un compañero" en Cadete. Análisis y límites de validación: `docs/analisis/ia-progresiva.md`.
@@ -128,6 +130,7 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
 
 | Fecha | Commit | Cambio | Siguiente |
 | :--- | :--- | :--- | :--- |
+| 15/11 | (este cambio) | README: expediente de misión, voseo y tono épico; cooperativo Tripulante/Control actualizado. Enlaces locales verificados y 236 pruebas correctas con node --test. | Revisar y fusionar el PR; luego continúa E2 |
 | 14/11 | (este cambio) | README renovado: portada SVG propia, enlaces a jugar/demo, guía de misión, controles, IA, ciencia, cooperativo, desarrollo y resumen en inglés. Portada revisada en navegador y enlaces locales verificados. | Continúa el siguiente paso de la sección 5 |
 | 14/11 | (este cambio) | IA progresiva: visión, velocidad, reacción y persistencia por avance y nivel; memoria local de recorridos observados y escondites; 151 pruebas correctas y simulaciones Cadete/Normal en tres destinos. Análisis: `docs/analisis/ia-progresiva.md`. | Validar balance con jugadores y métricas del simulador; retomar C |
 | 14/11 | `630b97a` | Base: copia de la versión de Leo (etiqueta `base-leo`) | — |
