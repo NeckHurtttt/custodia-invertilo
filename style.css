@@ -309,7 +309,7 @@ button.reto { border-color: var(--amber); color: var(--amber); }
   .inicio { gap: .55rem; } .tarjeta .arte { width: 44px; height: 44px; } .tarjeta { padding: .5rem; } .logo-grande { font-size: 2.6rem; }
 }
 /* teléfono en vertical: el HUD se vuelve fichas compactas (ícono + número), sin tapar al jugador en el centro */
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 520px) {
   .barra { gap: .5em; padding: .25em .4em; font-size: 15px; }
   .barra .logo, .barra #bloque, .barra .ib .txt, .barra .mini, .chip#chip-dia #ic-dest { display: none; }
   #rev { font-size: .85em; }
@@ -531,3 +531,18 @@ body.derrota .fin.pierde { border-color: #ff6b6b; }
 .dn-msg { color: var(--dim); font-size: 1.02rem; line-height: 1.2; }
 body.derrota .dia-nuevo { display: none; }
 @media (max-width: 600px) { .dia-nuevo { top: 30%; } .dn-dia { font-size: 1.7rem; } }
+
+/* Teléfono: todo un poco más chico (ventanas y botones en rem) */
+@media (max-width: 600px) { html { font-size: 18px; } }
+/* Teléfono acostado (alto ≤ 520 px): mismas fichas compactas, pero repartidas para que el mapa se vea */
+@media (max-height: 520px) and (min-width: 601px) {
+  html { font-size: 16px; }
+  .hud-izq { left: .3em; right: auto; top: 54px; width: 17em; font-size: 12px; }
+  .hud-centro { left: 50%; right: auto; transform: translateX(-50%); top: 54px; width: min(44%, 26em); }
+  .hud-der { left: auto; right: 188px; top: 54px; width: 15em; max-height: calc(100vh - 54px - 120px); font-size: 12px; }
+  .hud-inv { bottom: .4em; left: 50%; transform: translateX(-50%); } .hud-inv .slot { width: 1.9em; height: 1.9em; }
+  .hud-teclas { right: .3em; top: 54px; bottom: auto; display: grid; grid-template-columns: repeat(3, 56px); flex-direction: unset; gap: 4px; font-size: 12px; }
+  .tarjetas { grid-template-columns: repeat(3, 1fr); } .tarjeta { flex-direction: column; text-align: center; } .tarjeta .txt { align-items: center; }
+  .dos, .ajustes { grid-template-columns: 1fr 1fr; } .pasos3 { grid-template-columns: repeat(3, 1fr); }
+  .ventana { max-height: 96vh; } .grande { font-size: 1.2rem; }
+}
