@@ -255,6 +255,29 @@ const perf = { sum: 0, n: 0, max: 0, get avg() { return this.n ? this.sum / this
 function draw(t) {
   const t0 = performance.now(); drawFrame(t); const ms = performance.now() - t0; perf.sum += ms; perf.n++; if (ms > perf.max) perf.max = ms;
 }
+/**
+ * Guardia del HUD: la cámara ya centra al jugador, pero si por cualquier motivo (ventana rara, zoom del navegador, HUD más alto de lo esperado)
+ * su dibujo cae debajo de un panel, se corre la cámara lo justo para que quede a la vista. Se mide contra los paneles de verdad (cada ~8 cuadros)
+ * y se suaviza; el desplazamiento tiene tope y se calcula sobre la posición SIN corrimiento, así que no oscila.
+ */
+const guardia = { x: 0, y: 0, tx: 0, ty: 0, n: 0, rects: [] };
+const MAX_CORRE = 240;
+const HUD_TAPA = '.hud .caja:not([hidden]), .avisos li, .barra, .hud-teclas button, #tactil:not([hidden]) button';
+function guardaHud(sx0, sy0) {
+  if (guardia.n++ % 8 === 0) {
+    guardia.rects = [...document.querySelectorAll(HUD_TAPA)].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 4 && r.height > 4);
+    let mejor = null;
+    for (const r of guardia.rects) {
+      const l = r.left - 16, rr = r.right + 16, a = r.top - 30, b = r.bottom + 12; // el sprite mide ~±8 px de ancho y ~26 de alto (la cabeza queda arriba)
+      if (sx0 <= l || sx0 >= rr || sy0 <= a || sy0 >= b) continue;
+      const opc = [[rr - sx0, 0], [-(sx0 - l), 0], [0, b - sy0], [0, -(sy0 - a)]].sort((p, q) => Math.hypot(...p) - Math.hypot(...q))[0];
+      if (!mejor || Math.hypot(...opc) < Math.hypot(...mejor)) mejor = opc;
+    }
+    guardia.tx = mejor ? Math.max(-MAX_CORRE, Math.min(MAX_CORRE, mejor[0])) : 0; guardia.ty = mejor ? Math.max(-MAX_CORRE, Math.min(MAX_CORRE, mejor[1])) : 0;
+  }
+  guardia.x += (guardia.tx - guardia.x) * 0.2; guardia.y += (guardia.ty - guardia.y) * 0.2;
+  if (Math.abs(guardia.x) < 0.3 && !guardia.tx) guardia.x = 0; if (Math.abs(guardia.y) < 0.3 && !guardia.ty) guardia.y = 0;
+}
 function drawFrame(t) {
   const pdt = Math.min(0.05, Math.max(0, (t - drawLast) / 1000)); drawLast = t;
   if (baseLoc !== s.loc || !base) drawBase();
@@ -264,6 +287,7 @@ function drawFrame(t) {
   // el jugador va SIEMPRE en el centro de la pantalla (sin tope en los bordes del mapa): así el HUD de las esquinas nunca lo tapa; más allá del mapa solo se ve el espacio
   cam.x = ww <= VW ? (ww - VW) / 2 : p.x * TS - VW / 2;
   cam.y = wh <= VH ? (wh - VH) / 2 : p.y * TS - VH / 2;
+  { const sx0 = (p.x * TS - cam.x) * ZOOM, sy0 = ((p.y - 0.3) * TS - cam.y) * ZOOM; guardaHud(sx0, sy0); cam.x -= guardia.x / ZOOM; cam.y -= guardia.y / ZOOM; } // si un panel lo tapara, la cámara se corre
   cx.setTransform(1, 0, 0, 1, 0, 0); cx.imageSmoothingEnabled = false;
   cx.fillStyle = '#000'; cx.fillRect(0, 0, cv.width, cv.height);
   FX.shakeOffset(s.shake, t, shk); // sacudida corta y suave (≤4 px, se apaga sola; 0 en modo suave)
