@@ -652,7 +652,7 @@ function diaNuevo() {
   el.hidden = false; clearTimeout(diaT); diaT = setTimeout(() => { el.hidden = true; }, 4500);
 }
 function vigilaDia() {
-  if (diaDe !== s && esTactil() && !vista.cruz && getOpt('joyhint', '0') !== '1') { setOpt('joyhint', '1'); G.say(s, T('Para moverte: toca el mapa con el dedo y deslízalo hacia donde quieras ir.', 'To move: touch the map with your finger and slide it where you want to go.'), 'info'); }
+  if (diaDe !== s && esTactil() && !vista.cruz && getOpt('joyhint', '0') !== '1') { setOpt('joyhint', '1'); G.say(s, T('Para moverte: usa el joystick de abajo a la izquierda (o desliza el dedo en la mitad izquierda de la pantalla).', 'To move: use the joystick at the bottom left (or slide your finger on the left half of the screen).'), 'info'); }
   if (diaDe !== s) { diaDe = s; diaVisto = s.day; const el = $('dia-nuevo'); if (el) el.hidden = true; return; }
   if (s.day === diaVisto) return;
   const subio = s.day > diaVisto; diaVisto = s.day;
@@ -914,28 +914,42 @@ function tutoFrame(dt) {
   if (!s || menu || crew || s.over) return;
   if (tuDe !== s) { tuDe = s; tu = tutoPermitido() && !coop && getOpt(Tu.CLAVE, '0') !== '1' && Tu.aplica(s) ? Tu.nuevo(s) : null; pintaTuto(); }
   if (!tu) return;
-  const r = Tu.tick(tu, s, dt, { crouch: !!s.p.crouch, estacion: estacionVida() });
+  const r = Tu.tick(tu, s, dt, { crouch: !!s.p.crouch, mapa: mapaOn, estacion: estacionVida() });
   if (r.salta != null) { s.min = Math.max(s.min, r.salta); G.flash(s, T('⏩ El reloj avanzó a las 08:00 para que practiques.', '⏩ The clock moved to 08:00 so you can practice.'), 'info'); }
   if (r.cambio) { M.ui('ok'); pintaTuto(); }
-  if (r.fin) tutoFin(true);
+  if (r.fin) { tutoFin(true); G.flash(s, T('🚀 ¡Bienvenido a CUSTODIA, cadete! La misión empieza ahora: mantén viva la base 10 días.', '🚀 Welcome to CUSTODIA, cadet! The mission starts now: keep the base alive for 10 days.'), 'ok'); M.ui('ok'); }
 }
 function tutoFin(guardar) { tu = null; if (guardar) setOpt(Tu.CLAVE, '1'); pintaTuto(); }
 function pintaTuto() {
   const el = $('tuto'); if (!el) return; document.body.classList.toggle('tuto-on', !!tu); // con el tutorial a la vista se esconde «AHORA» para dejar sitio (no estorba en celular)
   if (!tu) { el.hidden = true; el.innerHTML = ''; return; }
-  const e = estacionVida(); const x = Tu.texto(tu, esTactil(), e ? G.roomName(s, G.roomIdAt(s, e.x + 0.5, e.y + 0.5)) : '');
+  const e = estacionVida(); const x = Tu.texto(tu, esTactil(), e ? G.roomName(s, G.roomIdAt(s, e.x + 0.5, e.y + 0.5)) : '', document.body.classList.contains('telefono'));
   if (!x) { tutoFin(true); return; }
+  if (Tu.actual(tu) === 'finales') { el.hidden = true; finalesTuto(x); return; } // el último paso es una ventana con los finales
   el.hidden = false;
-  el.innerHTML = `<small>🎓 ${T('ENTRENAMIENTO', 'TRAINING')} · ${x.n}</small><b>${x.titulo}</b><p>${x.texto}</p><div class="tuto-bt">${Tu.pideOk(tu) ? `<button id="tuto-ok" class="grande">${ic('ok')} ${tu.i === Tu.PASOS.length - 1 ? T('A JUGAR', 'LET\'S PLAY') : T('ENTENDIDO', 'GOT IT')}</button>` : ''}<button id="tuto-salta" class="sec">${T('SALTAR', 'SKIP')}</button></div>`;
+  // Sin botón SALTAR: el entrenamiento es obligatorio la primera vez (se aprende jugando, son pocos minutos).
+  el.innerHTML = `<small>🎓 ${T('ENTRENAMIENTO', 'TRAINING')} · ${x.n}</small><b>${x.titulo}</b><p>${x.texto}</p>${Tu.pideOk(tu) ? `<div class="tuto-bt"><button id="tuto-ok" class="grande">${ic('ok')} ${T('ENTENDIDO', 'GOT IT')}</button></div>` : ''}`;
   const ok = $('tuto-ok'); if (ok) ok.onclick = () => { Tu.entendido(tu); M.ui('click'); };
-  $('tuto-salta').onclick = () => { M.ui('cerrar'); tutoFin(true); };
+}
+/** Fin del entrenamiento: los finales por descubrir (los secretos como «???» con pista; si ya ganaste la medalla, se revela) y bienvenida. */
+function finalesTuto(x) {
+  const md = Meta.load().medals ?? {};
+  const fila = (f) => { const ya = f.medalla && md[f.medalla]; return `<li class="fin-tuto${f.secreto && !ya ? ' secreto' : ''}"><span class="fi">${ya ? '🏅' : f.ico}</span><span><b>${ya ? f.revela : f.nombre}</b><br><small>${f.como}</small></span></li>`; };
+  const L = Tu.FINALES();
+  open(`<h2>🎓 ${x.titulo}</h2><p>${T('Ya sabes moverte, revisar paneles, agacharte, esconderte, usar el mapa y protegerte del Sol. Ahora empieza la misión de verdad.', 'You can now move, check panels, crouch, hide, use the map and shelter from the Sun. Now the real mission begins.')}</p>
+    <h3>${T('FINALES POR DESCUBRIR', 'ENDINGS TO DISCOVER')}</h3><ul class="fines-tuto">${L.filter((f) => !f.secreto).map(fila).join('')}</ul>
+    <h3>${T('FINALES SECRETOS', 'SECRET ENDINGS')}</h3><ul class="fines-tuto">${L.filter((f) => f.secreto).map(fila).join('')}</ul>
+    <p class="nota-aj">${T('También hay muchas formas de perder (aire, comida, radiación, incendios…): cada una te enseña algo.', 'There are also many ways to lose (air, food, radiation, fires…): each one teaches you something.')}</p>
+    <div class="dos"><button id="tuto-fin" class="grande">🚀 ${T('¡EMPEZAR LA MISIÓN!', 'START THE MISSION!')}</button></div>`, 'finales-tuto');
+  menu = 'finales';
+  $('tuto-fin').onclick = () => { close(); Tu.entendido(tu); M.ui('ok'); };
 }
 /** Aro dorado alrededor del panel (en el mundo) y flecha al borde si está fuera de la pantalla. */
 function tutoAro(t) {
   if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (!o) return;
   const k = 0.5 + 0.5 * Math.sin(t / 600); cx.strokeStyle = `rgba(255,194,61,${0.55 + 0.45 * k})`; cx.lineWidth = 2; cx.beginPath(); cx.arc(o.x * TS, o.y * TS, 10 + k * 3, 0, 7); cx.stroke();
 }
-function tutoFlecha(t) { if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (o) arrowTo(o.x, o.y, '#ffc23d', T('PANEL', 'PANEL'), t); }
+function tutoFlecha(t) { if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (o) arrowTo(o.x, o.y, '#ffc23d', Tu.actual(tu) === 'esconder' ? T('ESCONDITE', 'HIDING SPOT') : T('PANEL', 'PANEL'), t); }
 
 // ---------- cooperativo: TRIPULANTE (la otra persona maneja a un compañero en el mismo mapa) ----------
 // El anfitrión (astronauta) manda el estado ~15 veces por segundo; aquí se copia en `s` (sin simular) y se dibuja desde el compañero elegido.
@@ -1517,7 +1531,7 @@ addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keys.add(k);
   if (k === 'shift' && s && !menu && !avisoAgachar) { avisoAgachar = true; G.flash(s, T('Agachado (Shift): haces menos ruido y te ven menos, pero caminas más lento. Suelta Shift para pararte.', 'Crouching (Shift): you make less noise and are seen less, but you walk slower. Release Shift to stand up.'), 'info'); }
-  if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
+  if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira', 'finales'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
   if (k === 'tab') { e.preventDefault(); if (s && !menu) alternaMapa(); return; }
   if (k === 'escape' && mapaOn) { alternaMapa(false); return; }
@@ -1614,20 +1628,23 @@ function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; documen
 sincTactil(); addEventListener('resize', sincTactil); sincBotones();
 const dirs = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 /**
- * Joystick flotante: pon el dedo en cualquier parte del mapa y desliza; el círculo aparece donde empezaste y el personaje camina hacia donde
- * llevas el dedo. Si te pasas del círculo, este te sigue (así cambiar de dirección es rápido). Al soltar, se detiene. Solo toques (no mouse);
- * con la «cruz de flechas» activada no se usa. Los botones (E, F, atajos…) no lo activan.
+ * Joystick FIJO y visible (pantallas táctiles): base abajo a la izquierda, siempre a la vista durante la partida.
+ * Restricción: la perilla nunca sale del círculo (se queda en el borde aunque el dedo se vaya más lejos) y la base no se mueve.
+ * Se toma tocando en cualquier parte de la mitad izquierda de la pantalla; la dirección es siempre desde el centro de la base.
+ * Con la «cruz de flechas» activada no se usa. Los botones (USAR, ☰…) no lo activan.
  */
-const joy = { id: null, x: 0, y: 0 }; const JOY_R = 46, JOY_MUERTO = 9;
-const joyEl = document.createElement('div'); joyEl.id = 'joy'; joyEl.hidden = true; joyEl.innerHTML = '<i></i>'; document.body.appendChild(joyEl);
+const joy = { id: null }; const JOY_R = 52, JOY_MUERTO = 10;
+const joyEl = document.createElement('div'); joyEl.id = 'joy'; joyEl.innerHTML = '<i></i>'; document.body.appendChild(joyEl);
+/** Centro de la base en pantalla (lo pone el CSS: abajo a la izquierda). */
+const joyCentro = () => { const r = joyEl.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
 function joyMueve(e) {
-  let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const len = Math.hypot(dx, dy);
-  if (len > JOY_R) { joy.x += (dx / len) * (len - JOY_R); joy.y += (dy / len) * (len - JOY_R); dx = e.clientX - joy.x; dy = e.clientY - joy.y; } // el círculo sigue al dedo
+  const c = joyCentro(); let dx = e.clientX - c.x, dy = e.clientY - c.y; const len = Math.hypot(dx, dy);
+  if (len > JOY_R) { dx = (dx / len) * JOY_R; dy = (dy / len) * JOY_R; } // restricción: la perilla se queda dentro del círculo
   const l = Math.hypot(dx, dy);
   if (l < JOY_MUERTO) { touch.dx = 0; touch.dy = 0; } else { touch.dx = dx / l; touch.dy = dy / l; }
-  joyEl.style.left = joy.x + 'px'; joyEl.style.top = joy.y + 'px'; joyEl.firstChild.style.transform = `translate(${dx}px, ${dy}px)`;
+  joyEl.firstChild.style.transform = `translate(${dx}px, ${dy}px)`; joyEl.classList.add('activo');
 }
-function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch.dx = 0; touch.dy = 0; joyEl.hidden = true; }
+function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch.dx = 0; touch.dy = 0; joyEl.firstChild.style.transform = ''; joyEl.classList.remove('activo'); }
 {
   const pant = document.querySelector('.pantalla');
   pant.addEventListener('pointerdown', (e) => {
@@ -1637,7 +1654,8 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
       if (mx >= cv.width - g.w - g.borde - 6 && my >= g.oy - 6 && my <= g.oy + g.h + 6) { alternaMapa(true); return; }
     }
     if (e.pointerType === 'mouse' || joy.id !== null || menu || !s || vista.cruz || e.target.closest('button, input, textarea, a')) return;
-    joy.id = e.pointerId; joy.x = e.clientX; joy.y = e.clientY; joyEl.hidden = false; try { pant.setPointerCapture(e.pointerId); } catch { /* sin captura */ } joyMueve(e);
+    if (e.clientX > innerWidth * 0.5) return; // solo la mitad izquierda maneja el joystick
+    joy.id = e.pointerId; try { pant.setPointerCapture(e.pointerId); } catch { /* sin captura */ } joyMueve(e);
   });
   pant.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) joyMueve(e); });
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pant.addEventListener(ev, joySuelta);
