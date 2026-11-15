@@ -20,7 +20,7 @@ for (const loc of Object.keys(LOCS)) {
       if (FLUSH.includes(o.t) && r && !r.outside) assert.ok(o.x === r.x || o.y === r.y || o.x === r.x + r.w - 1 || o.y === r.y + r.h - 1, `${o.t} en ${o.x},${o.y} (${r.name}) está en medio de la sala: debe ir pegado a una pared`);
     }
     // todo el piso libre se alcanza caminando desde el dormitorio, y cada objeto tiene un lado desde donde usarlo
-    const seen = new Set(['4,4']); const q = [[4, 4]];
+    const [ix, iy] = G.inicio(s).map(Math.floor); const seen = new Set([`${ix},${iy}`]); const q = [[ix, iy]]; // desde el dormitorio de este mapa
     while (q.length) { const [x, y] = q.shift(); for (const [dx, dy] of N4) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H || !g(nx, ny) || sol(nx, ny) || seen.has(`${nx},${ny}`)) continue; seen.add(`${nx},${ny}`); q.push([nx, ny]); } }
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g(x, y) && !sol(x, y)) assert.ok(seen.has(`${x},${y}`), `la casilla ${x},${y} queda aislada`);
     for (const o of s.objects) assert.ok(N4.some(([dx, dy]) => seen.has(`${o.x + dx},${o.y + dy}`)), `${o.t} en ${o.x},${o.y} no se puede usar desde ningún lado`);

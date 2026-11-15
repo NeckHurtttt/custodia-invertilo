@@ -172,8 +172,8 @@ export function coopScreens(ctx) {
     V.log = [];
     link.onmessage = (m) => {
       V.rx = performance.now();
-      if (m.t === 'hi') { V.delay = m.delay ?? 0; V.note = m.note ?? ''; if (LOCS[m.loc]) { V.ref = G.newGame(m.loc, 1, m.dif ?? 'normal', { mode: m.mode ?? 'campana' }); V.log = []; } $m('m-ordenes').innerHTML = ord(); root.querySelectorAll('[data-apoyo]').forEach((b) => (b.onclick = () => mandar({ k: 'apoyo', sys: b.dataset.apoyo }))); root.querySelectorAll('[data-aviso]').forEach((b) => (b.onclick = () => mandar({ k: 'aviso', id: b.dataset.aviso }))); V.ack = V.note; }
-      else if (m.t === 'snap') { if (!V.ref && LOCS[m.loc]) V.ref = G.newGame(m.loc, 1); V.snap = m; V.log.push(...m.log); V.log = V.log.slice(-30); dibujaMapa(); }
+      if (m.t === 'hi') { V.delay = m.delay ?? 0; V.note = m.note ?? ''; if (LOCS[m.loc]) { V.ref = G.newGame(m.loc, 1, m.dif ?? 'normal', { mode: m.mode ?? 'campana', lay: m.lay ?? undefined }); V.log = []; } $m('m-ordenes').innerHTML = ord(); root.querySelectorAll('[data-apoyo]').forEach((b) => (b.onclick = () => mandar({ k: 'apoyo', sys: b.dataset.apoyo }))); root.querySelectorAll('[data-aviso]').forEach((b) => (b.onclick = () => mandar({ k: 'aviso', id: b.dataset.aviso }))); V.ack = V.note; }
+      else if (m.t === 'snap') { if ((!V.ref || JSON.stringify(V.ref.lay ?? null) !== JSON.stringify(m.lay ?? null)) && LOCS[m.loc]) V.ref = G.newGame(m.loc, 1, 'normal', { lay: m.lay ?? undefined }); V.snap = m; V.log.push(...m.log); V.log = V.log.slice(-30); dibujaMapa(); }
       else if (m.t === 'ack') { V.ack = m.text; if (!m.ok) beep(160, 0.15, 'sawtooth'); }
       pinta();
     };

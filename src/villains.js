@@ -250,7 +250,7 @@ function updateWalker(s, w, dt) {
 export function caughtBy(s, w) {
   const d = VILLAINS[w.vid]; const p = s.p; w.cd = 6; w.mode = 'patrulla'; w.goal = null; s.stats.caught++; s.grace = C.dif(s).grace; p.hit = 1; s.shake = 0.6; sfx(s, 'atrapado'); calmAll(s);
   const tools = () => { const lost = p.inv.filter(C.isContraband); p.inv = p.inv.filter((i) => !C.isContraband(i)); return lost.map((i) => C.itemName(s, i)).join(', '); };
-  const toDorm = () => Object.assign(p, { x: 3.5, y: 3.5, inDuct: false, hidden: null });
+  const toDorm = () => Object.assign(p, { x: (s.L.inicio ?? [3.5])[0], y: (s.L.inicio ?? [0, 3.5])[1], inDuct: false, hidden: null });
   const skip = (m) => { s.min = Math.min(s.min + m, 1439); };
   switch (d.onCatch) {
     case 'confisca': { const l = tools(); C.raise(s, 10); return C.flash(s, T(`${d.name} te revisó${l ? ' y te quitó: ' + l : ', pero no llevabas nada'}.`, `${d.name} searched you${l ? ' and took: ' + l : ', but you were carrying nothing'}.`), 'bad'); }

@@ -43,7 +43,7 @@ for (const [k, en] of Object.entries(AVISOS_EN)) { const a = AVISOS[k]; const es
 export function snapshot(s, since = 0, mark = null, paused = false) {
   const view = Sys.view(s); const b = C.block(s);
   return {
-    t: 'snap', loc: s.L.id, day: s.day, min: Math.floor(s.min), clock: C.clock(s.min), block: { id: b.id, name: b.name }, paused,
+    t: 'snap', loc: s.L.id, lay: s.lay ?? null, day: s.day, min: Math.floor(s.min), clock: C.clock(s.min), block: { id: b.id, name: b.name }, paused,
     p: { x: +s.p.x.toFixed(2), y: +s.p.y.toFixed(2), salud: Math.round(s.p.salud), energia: Math.round(s.p.energia), room: C.roomName(s, C.playerRoom(s)), hidden: !!s.p.hidden },
     alert: Math.round(s.alert), integ: Math.round(s.integ), ia: s.iaOn,
     sys: view && { meters: view.meters.map((m) => ({ id: m.id, name: m.name, v: Math.round(m.v) })), dosePct: Math.round(view.dosePct), tasks: view.tasks.map((k) => ({ id: k.id, short: k.short, room: k.room, done: k.done })), events: view.events, emerg: view.emerg && { ...view.emerg, t: Math.ceil(view.emerg.t) }, clima: view.clima, storm: view.storm && { ...view.storm, t: Math.ceil(view.storm.t) } },
@@ -119,7 +119,7 @@ export class HostSession {
   }
   /** Partida nueva (o primera): se olvidan órdenes pendientes, esperas y baliza. */
   reset(s) { this.s = s; this.who = null; this.loc = s.L.id; this.since = 0; this.mark = null; this.clock = 0; this.queue = []; this.cd = {}; this.delay = DELAY[s.L.id] ?? 0; }
-  hello() { const s = this.s; this.send({ t: 'hi', v: 1, loc: s.L.id, dif: s.dif, mode: s.mode, delay: this.delay, note: DELAY_NOTE[s.L.id] ?? '', rol: this.rol, you: this.who, crew: s.crew.map((c) => ({ name: c.name, color: c.color, taken: !!c.human && c.name !== this.who, betrayed: !!c.betrayed })) }); }
+  hello() { const s = this.s; this.send({ t: 'hi', v: 1, loc: s.L.id, lay: s.lay ?? null, dif: s.dif, mode: s.mode, delay: this.delay, note: DELAY_NOTE[s.L.id] ?? '', rol: this.rol, you: this.who, crew: s.crew.map((c) => ({ name: c.name, color: c.color, taken: !!c.human && c.name !== this.who, betrayed: !!c.betrayed })) }); }
   /** El invitado deja de ser tripulante (se fue o volvió a Control): su personaje vuelve al piloto automático. */
   quita() { if (this.rol === 'crew' && this.s) C.setHuman(this.s, null); this.who = null; this.rol = 'control'; }
   onmsg(m, s) {

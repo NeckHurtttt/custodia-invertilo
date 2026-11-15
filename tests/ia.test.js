@@ -34,7 +34,7 @@ test('UNA NOCHE escala por tiempo activo; las partidas antiguas se pueden cargar
 });
 function train(s, visible = true) {
   for (let i = 0; i < 12; i++) {
-    s.t += 1; s.p.x = i % 2 ? 3.5 : 4.5;
+    const [ix, iy] = G.inicio(s); s.t += 1; s.p.x = i % 2 ? ix : ix + 1; s.p.y = iy; // en el dormitorio de ESTE mapa
     AI.observe(s, 1, visible);
   }
 }
@@ -64,7 +64,7 @@ test('memoria persistente, olvido, reinicio entre partidas e IA apagada', () => 
 test('patrullas investigan rutas conocidas en los tres destinos y respetan emergencias y gracia', () => {
   for (const loc of ['estacion', 'luna', 'marte']) for (const safe of [false, true]) {
     const s = G.newGame(loc, 12, 'normal'); s.day = 10; train(s);
-    s.p.hidden = { x: 3.5, y: 3.5 }; s.events = []; s.vil.events = [];
+    const [ix, iy] = G.inicio(s); s.p.hidden = { x: ix, y: iy }; s.events = []; s.vil.events = [];
     s.grace = safe ? 60 : 0;
     G.update(s, 0.1);
     const searches = s.drones.filter(d => d.aiSearch > 0).length;

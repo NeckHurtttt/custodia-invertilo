@@ -18,6 +18,7 @@ const PRECACHE = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'src/ambientes.js',
+  'src/disposicion.js',
   'src/arte.js',
   'src/avisos.js',
   'src/certificado.js',
