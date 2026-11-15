@@ -54,18 +54,20 @@ for (const loc of Object.keys(LOCS)) {
 }
 
 test('afuera sin traje te asfixias; con traje aguantas', () => {
-  const s = fresh('luna'); s.drones = []; Object.assign(s.p, { x: 48.5, y: 10.5 });
+  const afuera = (s) => { const r = s.L.rooms.find((x) => x.outside); return { x: r.x + Math.floor(r.w / 2) + 0.5, y: 10.5 }; }; // la superficie (su lado depende de la forma del mapa)
+  const s = fresh('luna'); s.drones = []; Object.assign(s.p, afuera(s));
   for (let i = 0; i < 20; i++) G.update(s, 0.1); assert.ok(s.p.o2 < 80);
-  const t = fresh('luna'); t.drones = []; t.p.inv.push('traje'); Object.assign(t.p, { x: 48.5, y: 10.5 });
+  const t = fresh('luna'); t.drones = []; t.p.inv.push('traje'); Object.assign(t.p, afuera(t));
   for (let i = 0; i < 20; i++) G.update(t, 0.1); assert.ok(t.p.o2 > 95);
 });
 
 test('la tormenta solar no hace daño dentro del refugio', () => {
   const s = fresh('luna'); s.drones = []; s.min = 900;
-  Object.assign(s.p, { x: 29.5, y: 13.5 });
-  const h = G.spawnHazard(s, 'radiacion'); h.phase = 'barre'; h.x = 35;
+  const sala = (id) => s.L.rooms.find((r) => r.id === id); const ref = sala('refugio'), nodo = sala('nodo'); // por sala: el mapa puede estar espejado
+  Object.assign(s.p, { x: ref.x + 2.5, y: 13.5 });
+  const h = G.spawnHazard(s, 'radiacion'); h.phase = 'barre'; h.x = s.p.x + 5.5;
   const s0 = s.p.salud; for (let i = 0; i < 10; i++) G.update(s, 0.1); assert.ok(s.p.salud >= s0 - 0.5);
-  Object.assign(s.p, { x: 18.5, y: 13.5 }); h.x = 25;
+  Object.assign(s.p, { x: nodo.x + 4.5, y: 13.5 }); h.x = s.p.x + 6.5;
   for (let i = 0; i < 10; i++) G.update(s, 0.1); assert.ok(s.p.salud < s0 - 3);
 });
 

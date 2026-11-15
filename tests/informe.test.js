@@ -6,7 +6,7 @@ import { informe, estadoNivel, MAX_CAUSAS } from '../src/informe.js';
 import { setLang } from '../src/i18n.js';
 
 /** Avanza el reloj hasta el día pedido sin dejar que el jugador muera (solo interesa la bitácora). */
-const hasta = (s, day, min = 5) => { let n = 0; while (!s.over && (s.day < day || s.min < min) && n++ < 400000) { s.p.salud = 100; s.p.energia = 100; s.alert = 0; s.grace = 9999; G.update(s, 0.5); } };
+const hasta = (s, day, min = 5) => { let n = 0; while (!s.over && (s.day < day || s.min < min) && n++ < 400000) { s.p.salud = 100; s.p.energia = 100; s.alert = 0; s.grace = 9999; s.integ = Math.max(s.integ, 40); G.update(s, 0.5); } }; // ni el jugador ni la base se pierden
 
 test('bitácora: anota un renglón por día cerrado y el día en curso, con niveles, dosis y revisiones', () => {
   const s = G.newGame('estacion', 11, 'cadete'); s.hazards = []; s.events = [];

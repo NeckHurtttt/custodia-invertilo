@@ -4,6 +4,7 @@ import { NOTES, TRUE_END, rescateAviso } from './story.js';
 export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
 import { LOCS, ROOM_EN } from './locs.js';
+import { variante, candidatas, FIJO } from './disposicion.js';
 import { T } from './i18n.js';
 import { voz } from './personajes.js';
 // Inglés: nombre del vigilante y rótulos del destino (para los avisos en inglés)
@@ -121,12 +122,37 @@ export function follow(s, b, goal, speed, dt, who = 'd') {
 }
 
 // ---------- partida nueva ----------
+/**
+ * Mapa de la partida (disposicion.js): opts.lay = una disposición exacta (cooperativo, partidas guardadas); opts.variar = una variante
+ * sacada de la semilla (salas cambiadas, espejo, salas opcionales), la primera que pase mapaValido(); si no, la forma propia del destino.
+ */
+export function armaMapa(loc, seed, opts = {}) {
+  const L0 = LOCS[loc];
+  if (opts.lay) return variante(L0, opts.lay);
+  if (opts.variar) for (const lay of candidatas(L0, seed)) { const L = variante(L0, lay); if (mapaValido(L)) return L; }
+  return variante(L0, FIJO[loc]);
+}
+const N4V = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+/** ¿Se puede jugar este mapa? Objetos sobre el piso, sin tapar escotillas ni rejillas, todo el piso alcanzable desde el inicio y cada objeto usable. */
+export function mapaValido(L) {
+  const m = buildMap(L); const { W, H } = L; const g = (x, y) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : m.grid[y * W + x]);
+  const sol = new Uint8Array(W * H); for (const o of L.objects) sol[o.y * W + o.x] = 1;
+  for (const o of L.objects) {
+    if (g(o.x, o.y) !== 1 || N4V.some(([dx, dy]) => g(o.x + dx, o.y + dy) === 2) || L.grates.some(([x, y]) => x === o.x && y === o.y)) return false;
+  }
+  const [ix, iy] = (L.inicio ?? [3.5, 3.5]).map(Math.floor); if (!g(ix, iy) || sol[iy * W + ix]) return false;
+  const visto = new Uint8Array(W * H); const q = [[ix, iy]]; visto[iy * W + ix] = 1;
+  while (q.length) { const [x, y] = q.pop(); for (const [dx, dy] of N4V) { const nx = x + dx, ny = y + dy; if (!g(nx, ny) || sol[ny * W + nx] || visto[ny * W + nx]) continue; visto[ny * W + nx] = 1; q.push([nx, ny]); } }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g(x, y) && !sol[y * W + x] && !visto[y * W + x]) return false;
+  if (L.objects.some((o) => !N4V.some(([dx, dy]) => visto[(o.y + dy) * W + o.x + dx] && g(o.x + dx, o.y + dy)))) return false;
+  return L.beds.every(([x, y]) => g(x, y)) && L.routes.every((rt) => rt.every(([x, y]) => g(x, y)));
+}
 export function newGame(loc = 'estacion', seed = Date.now() & 0x7fffffff, difKey = 'normal', opts = {}) {
-  const L = LOCS[loc];
+  const L = armaMapa(loc, seed, opts);
   const s = {
     loc, L, seed, dif: DIFS[difKey] ? difKey : 'normal', grace: 0, day: 1, mode: opts.mode === 'noche' ? 'noche' : 'campana', perk: PERKS[opts.perk] ? opts.perk : 'novato', daily: !!opts.daily,
-    seen: opts.seen ?? [], notes: [], route: null, t: 0, min: 340, map: buildMap(L),
-    p: { x: 3.5, y: 3.5, dir: 0, inDuct: false, hidden: null, crouch: false, noisy: false, dusty: 0, sleep: false, salud: 100, energia: 90, fuerza: 5, conoc: 5, o2: 100, inv: ['cinta', 'tornillos'], hit: 0, walk: 0 },
+    seen: opts.seen ?? [], notes: [], route: null, t: 0, min: 340, map: buildMap(L), lay: L.lay ?? null,
+    p: { x: (L.inicio ?? [3.5])[0], y: (L.inicio ?? [0, 3.5])[1], dir: 0, inDuct: false, hidden: null, crouch: false, noisy: false, dusty: 0, sleep: false, salud: 100, energia: 90, fuerza: 5, conoc: 5, o2: 100, inv: ['cinta', 'tornillos'], hit: 0, walk: 0 },
     stash: [], alert: 0, integ: 100, iaOn: true, frags: [false, false, false], grates: L.grates.map(() => false),
     objects: L.objects.map((o) => ({ ...o, loot: [], used: false })),
     vil: null, shake: 0, sfx: [], floor: [],
@@ -162,8 +188,11 @@ function setupNight(s) {
 }
 export const NIGHT_SPEED = 0.3125; // en UNA NOCHE el reloj va más lento: 9 h ≈ 7 min
 /** Después de cargar una partida guardada: vuelve a armar lo que no se guarda. */
+/** Punto de inicio (en el dormitorio) de este mapa. */
+export const inicio = (s) => s.L.inicio ?? [3.5, 3.5];
 export function revive(o) {
-  o.L = LOCS[o.loc]; const map = buildMap(o.L);
+  // partidas guardadas antes de las variantes (sin `lay`) usan el mapa original; las nuevas, su disposición exacta
+  o.L = o.lay === undefined ? LOCS[o.loc] : o.lay ? variante(LOCS[o.loc], o.lay) : LOCS[o.loc]; const map = buildMap(o.L);
   (o.doorsOpen ?? []).forEach((v, i) => { if (map.doors[i]) map.doors[i].open = v; }); delete o.doorsOpen;
   o.map = map; markSolid(o); o.pending = null; o.action = null; o.floor ??= []; o.mode ??= 'campana'; o.sys ??= null; o.perk ??= 'novato'; o.seen ??= []; o.notes ??= []; o.t ??= 0;
   for (const c of o.crew) { c.trust ??= 0; c.tellCd ??= 0; }
@@ -232,7 +261,7 @@ export function raise(s, n, why) {
 export function lockdown(s, who) {
   const lost = s.p.inv.filter(isContraband);
   s.p.inv = s.p.inv.filter((i) => !isContraband(i));
-  Object.assign(s.p, { x: 3.5, y: 3.5, inDuct: false, hidden: null }); s.p.energia = Math.max(0, s.p.energia - 20);
+  Object.assign(s.p, { x: inicio(s)[0], y: inicio(s)[1], inDuct: false, hidden: null }); s.p.energia = Math.max(0, s.p.energia - 20);
   s.alert = 40; s.stats.caught++; s.grace = dif(s).grace; V.calmAll(s);
   flash(s, T(`${who ? who + ' te atrapó. ' : ''}¡BLOQUEO! ${s.L.ai} te encerró en el dormitorio${lost.length ? ' y confiscó: ' + lost.map((i) => itemName(s, i)).join(', ') : ''}. Lo del escondite está a salvo.`, `${who ? who + ' caught you. ' : ''}LOCKDOWN! ${s.L.ai} locked you in the dormitory${lost.length ? ' and confiscated: ' + lost.map((i) => itemName(s, i)).join(', ') : ''}. What is in your hiding place is safe.`), 'bad');
 }
@@ -569,7 +598,7 @@ export function crewGive(s, name) {
 /** Copia en `s` el estado que mandó el anfitrión (cooperativo, lado del compañero): todo menos el mapa fijo y el nivel. */
 export function applyState(s, str) {
   const o = JSON.parse(str);
-  if (o.loc !== s.loc) return revive(o); // otro destino: se arma de nuevo
+  if (o.loc !== s.loc || JSON.stringify(o.lay ?? null) !== JSON.stringify(s.lay ?? null)) return revive(o); // otro destino u otra disposición: se arma de nuevo
   (o.doorsOpen ?? []).forEach((v, i) => { if (s.map.doors[i]) s.map.doors[i].open = v; }); (o.doorsLock ?? []).forEach((v, i) => { if (s.map.doors[i]) s.map.doors[i].lock = v; });
   delete o.doorsOpen; delete o.doorsLock; delete o.pending; delete o.action;
   for (const h of o.hazards ?? []) h.def = HAZARDS[h.kind];
@@ -779,7 +808,9 @@ export function nearby(s) {
   for (const c of s.crew) { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < 1.1) out.push({ kind: 'crew', c, d: d - 0.3 }); }
   out.push(...V.nearbyVillains(s));
   s.floor.forEach((f) => { const d = Math.hypot(f.x - p.x, f.y - p.y); if (d < 1) out.push({ kind: 'suelo', f, d: d - 0.6 }); });
-  s.objects.forEach((o) => { const d = Math.hypot(o.x + 0.5 - p.x, o.y + 0.5 - p.y); if (d < 1.5) out.push({ kind: 'obj', o, d }); });
+  // un panel de mantenimiento que todavía falta revisar gana los empates (si quedas entre el panel y la radio, E revisa el panel)
+  const faltan = s.sys ? S.pending(s) : [];
+  s.objects.forEach((o) => { const d = Math.hypot(o.x + 0.5 - p.x, o.y + 0.5 - p.y); if (d < 1.5) out.push({ kind: 'obj', o, d: o.t === 'mant' && faltan.includes(o.sys) ? d - 0.2 : d }); });
   s.L.grates.forEach(([x, y], i) => { const d = Math.hypot(x + 0.5 - p.x, y + 0.5 - p.y); if (d < 0.9) out.push({ kind: 'rejilla', i, d: d + 0.05 }); });
   for (const door of s.map.doors) { const d = Math.min(...door.tiles.map(([x, y]) => Math.hypot(x + 0.5 - p.x, y + 0.5 - p.y))); if (d < 1.4) out.push({ kind: 'puerta', door, d: d + 0.3 }); }
   return out.sort((a, b) => a.d - b.d);

@@ -5,6 +5,7 @@ import { NOTES, rescateLinea, NAVE } from './story.js';
 import { LOCS, ROOM_EN } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
+import * as Amb from './ambientes.js';
 import { fetchFlares, donkiEstado, sourceText, missionFlares, SHELTER } from './clima.js';
 import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang, IDIOMAS } from './i18n.js';
@@ -70,17 +71,18 @@ document.addEventListener('click', (e) => { if (e.target.closest?.('button') && 
 
 // ---------- paletas por destino ----------
 const THEMES = {
-  estacion: { void: '#02040a', floor: '#1d2733', floor2: '#232f3d', line: '#2c3a4a', wall: '#56677a', wallTop: '#8296ab', wallDark: '#2a3440', corr: '#1c2530', danger: '#2a1418', out: '#000' },
-  luna: { void: '#1b1e27', floor: '#262a33', floor2: '#2d313b', line: '#393e4a', wall: '#5d6573', wallTop: '#8c95a5', wallDark: '#2f3540', corr: '#222630', danger: '#2c1719', out: '#4a4f5c' },
-  marte: { void: '#33190f', floor: '#2f261f', floor2: '#362c24', line: '#43362b', wall: '#7a6152', wallTop: '#a68b78', wallDark: '#42322a', corr: '#2a231d', danger: '#3a1a16', out: '#6e3d2a' },
+  // Estación: módulos blanco-grisáceos (tipo ISS). Luna: paneles beige aislados. Marte: metal oxidado. Así cada destino se reconoce de un vistazo.
+  estacion: { void: '#02040a', floor: '#1d2733', floor2: '#232f3d', line: '#2c3a4a', wall: '#7d8a9b', wallTop: '#c1cad6', wallDark: '#38424f', corr: '#1e2833', danger: '#2a1418', out: '#000' },
+  luna: { void: '#1b1e27', floor: '#2c2b28', floor2: '#33322e', line: '#43413b', wall: '#8a8476', wallTop: '#c4bdab', wallDark: '#46423a', corr: '#2a2926', danger: '#2c1719', out: '#4a4f5c' },
+  marte: { void: '#33190f', floor: '#2f221b', floor2: '#382820', line: '#4a3226', wall: '#7c4a36', wallTop: '#ad7258', wallDark: '#45281c', corr: '#2c1f18', danger: '#3a1a16', out: '#6e3d2a' },
 };
 
 // ---------- capa fija del mundo (piso, paredes, objetos) ----------
-let base = null; let baseLoc = null;
+let base = null; let baseLoc = null; // baseLoc = el mapa (s.L) con el que se horneó la capa fija
 function hashRand(i) { let x = Math.sin(i * 127.1) * 43758.5453; return x - Math.floor(x); }
 function drawBase() {
   const L = s.L; const T = THEMES[L.theme];
-  base = document.createElement('canvas'); base.width = L.W * TS; base.height = L.H * TS; baseLoc = s.loc;
+  base = document.createElement('canvas'); base.width = L.W * TS; base.height = L.H * TS; baseLoc = s.L;
   const b = base.getContext('2d'); b.imageSmoothingEnabled = false;
   const g = s.map.grid; const W = L.W, H = L.H;
   const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : g[y * W + x]);
@@ -105,6 +107,7 @@ function drawBase() {
       continue;
     }
     A.floorTile(b, s, T, x, y, r, hashRand, at);
+    Amb.detallePiso(b, L.theme, px, py, hashRand(x * 13 + y * 7 + 5), !at(x, y - 1)); // pasamanos, regolito o polvo rojo según el destino
   }
   A.lightPools(b, s);
   // cráteres y rocas en el exterior
@@ -177,6 +180,7 @@ function drawObjOut(b, o, theme) {
   b.drawImage(t, x, y);
 }
 function drawObj(b, o, theme) {
+  if (Amb.objeto(b, o, theme)) return; // cada destino tiene su propia versión del objeto (ambientes.js)
   const x = o.x * TS, y = o.y * TS;
   switch (o.t) {
     case 'cama': R(b, '#3a4350', x, y + 2, 16, 12); R(b, '#c9d3dd', x + 1, y + 3, 14, 10); R(b, '#fff', x + 2, y + 4, 4, 4); R(b, o.mine ? '#2bb8c4' : '#b0505a', x + 6, y + 4, 9, 8); break;
@@ -284,7 +288,7 @@ function guardaHud(sx0, sy0) {
 }
 function drawFrame(t) {
   const pdt = Math.min(0.05, Math.max(0, (t - drawLast) / 1000)); drawLast = t;
-  if (baseLoc !== s.loc || !base) drawBase();
+  if (baseLoc !== s.L || !base) drawBase();
   const L = s.L; const p = s.p;
   // cámara centrada en el jugador
   const ww = L.W * TS, wh = L.H * TS;
@@ -899,7 +903,7 @@ function titleScreen() {
   $('t-datos').onclick = () => datos(titleScreen);
   V.querySelectorAll('[data-lang]').forEach((b) => (b.onclick = () => cambiaIdioma(b.dataset.lang, titleScreen)));
   pintaOffline();
-  const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { ...opts, flares: liveFlares }); base = null; close(); intro(); };
+  const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { variar: true, ...opts, flares: liveFlares }); base = null; close(); intro(); };
   $('t-clase').onclick = claseScreen; $('t-docente').onclick = docenteScreen;
   $('t-tuto').onclick = () => { setOpt(Tu.CLAVE, '0'); nueva(sel, { mode: 'campana', perk, reflex: false, seen: Meta.seenNotes(sel) }); }; // el entrenamiento siempre es una campaña tranquila
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
@@ -908,7 +912,7 @@ function titleScreen() {
   V.querySelectorAll('[data-reflejos]').forEach((b) => (b.onclick = () => { setOpt('reflejos', reflejos ? '0' : '1'); titleScreen(); }));
   V.querySelectorAll('[data-perk]').forEach((b) => (b.onclick = () => { setOpt('perk', b.dataset.perk); titleScreen(); }));
   V.querySelectorAll('[data-comprar]').forEach((b) => (b.onclick = () => { const id = b.dataset.comprar; if (Meta.buy(id)) { M.ui('ok'); if (id.startsWith('dif:')) setDif(id.slice(4)); else setOpt('perk', id); } else { M.ui('error'); b.textContent = T('FALTAN PUNTOS', 'NOT ENOUGH POINTS'); setTimeout(titleScreen, 700); return; } titleScreen(); }));
-  $('t-reto').onclick = () => { M.start(); s = G.newGame(dd.loc, dd.seed, dd.dif, { mode: dd.mode, perk: dd.perk, daily: true, flare: dd.flare, flareMin: dd.flareMin, seen: Meta.seenNotes(dd.loc) }); base = null; close(); intro(); };
+  $('t-reto').onclick = () => { M.start(); s = G.newGame(dd.loc, dd.seed, dd.dif, { variar: true, mode: dd.mode, perk: dd.perk, daily: true, flare: dd.flare, flareMin: dd.flareMin, seen: Meta.seenNotes(dd.loc) }); base = null; close(); intro(); };
   $('t-medallas').onclick = medalsScreen; $('t-archivo').onclick = () => archiveScreen(null);
   V.querySelectorAll('[data-dif]').forEach((b) => (b.onclick = () => { setDif(b.dataset.dif); titleScreen(); }));
   V.querySelectorAll('[data-cont]').forEach((b) => (b.onclick = () => { M.start(); s = load(b.dataset.cont); base = null; close(); }));
@@ -1091,7 +1095,7 @@ let coop = null; // { session, link, kind } cuando esta computadora es el astron
 function coopStop() { if (coop) { coop.link.close(); coop = null; } if (crew) crewSalirSilencio(); coopUI?.destroyGuest(); }
 const coopUI = coopScreens({ $, open, close, beep, setMenu: (v) => { menu = v; }, titleScreen, getDif, startCrew,
   startHost(locId, link, kind) {
-    M.start(); clearSave(locId); s = G.newGame(locId, undefined, getDif(), { flares: liveFlares, mode: 'campana', perk: getOpt('perk', 'novato'), reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(locId) });
+    M.start(); clearSave(locId); s = G.newGame(locId, undefined, getDif(), { variar: true, flares: liveFlares, mode: 'campana', perk: getOpt('perk', 'novato'), reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(locId) });
     base = null; coop = { link, kind, session: new HostSession(link, s) }; close(); intro();
   } });
 
@@ -1497,7 +1501,7 @@ function endScreen() {
     ${!o.won ? `<p style="color:var(--dim)">${T(`Siguiente desbloqueo: ${nextUnlock(r.total)}`, `Next unlock: ${nextUnlock(r.total)}`)}</p>` : ''}
     <div class="fila">${getOpt('clase', '') && getOpt('nombre', '') ? `<button id="copia-clase" class="sec">📋 ${T('COPIAR PARA MI DOCENTE', 'COPY FOR MY TEACHER')}</button>` : ''}${o.won && s.sys ? `<button id="certif" class="sec">🎓 ${T('CERTIFICADO', 'CERTIFICATE')}</button>` : ''}${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')} <kbd>R</kbd></button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
   if (s.daily) $('compartir').onclick = () => { navigator.clipboard?.writeText(share).then(() => ($('compartir').textContent = '✓ COPIADO'), () => prompt('Copia tu resultado:', share)); };
-  else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
+  else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { variar: true, flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
   $('menu').onclick = titleScreen;
   if ($('certif')) $('certif').onclick = () => certificado(o, R_);
   if ($('copia-clase')) $('copia-clase').onclick = () => { const l = lineaClase(o); navigator.clipboard?.writeText(l).then(() => { $('copia-clase').textContent = T('✓ COPIADO', '✓ COPIED'); M.ui('ok'); }, () => prompt(T('Copia esta línea y mándasela a tu docente:', 'Copy this line and send it to your teacher:'), l)); };
@@ -1868,7 +1872,7 @@ document.fonts?.load('16px VT323').finally(() => {
   if (q.has('cadete') || q.has('jurado')) setDif('cadete');
   titleScreen(); requestAnimationFrame(frame); arranque(); registraOffline();
   if (q.has('jurado')) {
-    M.start(); s = G.newGame('estacion', undefined, 'cadete', { flares: liveFlares, mode: 'campana' }); base = null; close();
+    M.start(); s = G.newGame('estacion', undefined, 'cadete', { variar: true, flares: liveFlares, mode: 'campana' }); base = null; close();
     s.day = 2; s.min = 14 * 60 + 52; s.p.sleep = false; G.say(s, T('Modo jurado: día 2, 14:52. En unos segundos llega la primera tormenta solar real (NASA DONKI). ¿Refugio o sigues?', 'Judge mode: day 2, 14:52. In a few seconds the first real solar storm (NASA DONKI) arrives. Shelter or keep going?'), 'info');
     intro();
   }

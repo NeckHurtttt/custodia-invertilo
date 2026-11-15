@@ -61,7 +61,7 @@ function toward(s, g, avoid = ['exterior']) {
 for (const loc of locs) {
   const agg = { caught: 0, alertMax: 0, lock: 0, dead: 0, lost: 0, integ: 0, salud: 0, days: 0 };
   for (let k = 0; k < N; k++) {
-    const s = G.newGame(loc, 1000 + k, dif, { reflex: !!process.env.REFLEX }); let mx = 0, lk = 0, prevC = 0;
+    const s = G.newGame(loc, 1000 + k, dif, { reflex: !!process.env.REFLEX, variar: !!process.env.VARIAR }); let mx = 0, lk = 0, prevC = 0;
     for (let t = 0; t < 20 * 60 * 60 && !s.over; t++) {
       if (process.env.CALM) { s.hazards.length = 0; s.events.length = 0; s.alert = 0; if (process.env.CALM === '2') s.drones = []; for (const d of s.map.doors) if (d.lock === 'energia' || d.lock === 'cuarentena') d.lock = null; if (s.vil) { s.vil.walkers = []; s.vil.mission = null; } } // CALM=1: sin peligros ni villanos, para medir solo los sistemas
       if (s.pending) { if (s.pending.kind === 'respira') G.resolveBreath(s, Math.random() < 0.7); else if (['protocolo', 'cables'].includes(s.pending.kind)) G.resolveProtocol(s, true); /* mantenimiento, armario de Cadete o cables: el bot resuelve el minijuego; si no, E vuelve a abrirlo y se queda pegado */ else s.pending = null; }

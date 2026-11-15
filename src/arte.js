@@ -12,7 +12,7 @@ export const ROOM_TINT = { dorm: '#24314a', comedor: '#352b20', gym: '#23302a', 
 /** Color de las luces del techo por tipo de sala. */
 const LIGHT = { dorm: [120, 160, 245], comedor: [250, 195, 125], gym: [130, 225, 175], lab: [150, 220, 245], mando: [130, 170, 250], taller: [160, 190, 225], inver: [170, 230, 140], ia: [255, 80, 90], bodega: [225, 215, 150], esclusa: [240, 215, 130], capsula: [175, 190, 250], generador: [250, 215, 120], refugio: [185, 150, 245], enfer: [190, 240, 230], obs: [120, 150, 245], recreo: [245, 170, 190], antena: [150, 215, 245] };
 /** Velo suave por destino sobre pisos y pasillos: la Luna se ve azul-gris y Marte rojiza, sin cambiar el color propio de cada sala. */
-const WASH = { estacion: null, luna: 'rgba(120,140,190,.13)', marte: 'rgba(170,95,60,.12)' };
+const WASH = { estacion: 'rgba(150,175,210,.05)', luna: 'rgba(175,168,150,.20)', marte: 'rgba(190,90,50,.22)' }; // Estación fría y limpia, Luna gris polvo, Marte rojiza
 /** Luces guía de los pasillos (borde tenue pegado a la pared) por destino: ayudan a seguir el camino sin cansar. */
 const GUIDE = { estacion: '110,170,230', luna: '140,170,225', marte: '235,175,115' };
 
@@ -121,11 +121,17 @@ export function wallTile(b, s, T, x, y, h, at) {
   rect(b, 'rgba(255,255,255,.08)', px + 8, py + 3, 1, TS - 7);
   if (!faceDown) { rect(b, 'rgba(0,0,0,.18)', px, py + 3, TS, TS - 3); return; }
   rect(b, 'rgba(0,0,0,.3)', px, py + TS - 4, TS, 4); // base oscura
-  rect(b, '#9aa6b8', px + 2, py + 5, 1, 1); rect(b, '#9aa6b8', px + 13, py + 5, 1, 1); // remaches
+  const th0 = s.L.theme; // remaches (Estación), franja de manta térmica dorada (Luna) o vetas de óxido (Marte)
+  if (th0 === 'luna') { rect(b, 'rgba(224,168,58,.35)', px, py + 11, TS, 1); rect(b, '#c9c2b0', px + 2, py + 5, 1, 1); }
+  else if (th0 === 'marte') { rect(b, 'rgba(60,25,15,.35)', px + 3 + (hh(9) * 8 | 0), py + 4, 1, 6); rect(b, '#c48a6a', px + 2, py + 5, 1, 1); rect(b, '#c48a6a', px + 13, py + 5, 1, 1); }
+  else { rect(b, '#9aa6b8', px + 2, py + 5, 1, 1); rect(b, '#9aa6b8', px + 13, py + 5, 1, 1); }
   const v = hh(1);
-  if (v < 0.07) { // ventana al espacio
-    rect(b, '#0b1220', px + 3, py + 4, 10, 6); rect(b, '#5a6a80', px + 2, py + 3, 12, 1); rect(b, '#5a6a80', px + 2, py + 10, 12, 1);
-    for (let i = 0; i < 4; i++) rect(b, 'rgba(220,235,255,.65)', px + 4 + (hh(i + 2) * 8 | 0), py + 5 + (hh(i + 6) * 4 | 0), 1, 1);
+  if (v < 0.07) { // ventana: estrellas en la Estación, horizonte gris bajo cielo negro en la Luna, cielo naranja en Marte
+    const th = s.L.theme;
+    rect(b, th === 'marte' ? '#c8743e' : '#0b1220', px + 3, py + 4, 10, 6); rect(b, T.wallTop, px + 2, py + 3, 12, 1); rect(b, T.wallTop, px + 2, py + 10, 12, 1);
+    if (th === 'luna') { rect(b, '#8e8b84', px + 3, py + 8, 10, 2); rect(b, '#b4b0a6', px + 5, py + 7, 4, 1); }
+    else if (th === 'marte') { rect(b, '#e8a070', px + 3, py + 4, 10, 2); rect(b, '#7a3a22', px + 3, py + 8, 10, 2); rect(b, '#5a2a18', px + 9, py + 7, 3, 1); }
+    else for (let i = 0; i < 4; i++) rect(b, 'rgba(220,235,255,.65)', px + 4 + (hh(i + 2) * 8 | 0), py + 5 + (hh(i + 6) * 4 | 0), 1, 1);
     rect(b, 'rgba(255,255,255,.12)', px + 3, py + 4, 4, 1);
   } else if (v < 0.14) { // pantalla de datos
     rect(b, '#10161f', px + 3, py + 4, 10, 6); rect(b, hh(3) > 0.5 ? '#5fb6ff' : '#4dff88', px + 4, py + 5, 6, 1); rect(b, 'rgba(255,255,255,.5)', px + 4, py + 7, 3, 1); rect(b, hh(4) > 0.6 ? '#ffc23d' : '#5fb6ff', px + 4, py + 9, 5, 1);
