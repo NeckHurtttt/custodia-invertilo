@@ -570,3 +570,13 @@ body.derrota .dia-nuevo { display: none; }
 }
 @media (max-width: 600px) { .hud-centro, .hud-der { top: calc(58px + 13.6em); } .hud-der { max-height: max(100px, calc(50vh - 260px)); } }
 @media (max-height: 520px) and (min-width: 601px) { .hud-izq { width: 19em; } }
+
+/* Retratos de la tripulación (el dibujo del mapa, de frente y ampliado sin suavizar) */
+.retrato, .retrato-mini { image-rendering: pixelated; image-rendering: crisp-edges; }
+.ficha .retrato { float: left; width: 54px; height: 78px; margin: 0 .7rem .2rem 0; background: rgba(255,255,255,.04); border-radius: 6px; }
+.ficha { overflow: hidden; }
+.hud-crew .retrato-mini { width: 18px; height: 26px; vertical-align: middle; margin-right: 2px; }
+.hud-crew .crew li { display: flex; align-items: center; gap: 2px; }
+.ficha::before, .pest li.ficha::before { content: none !important; }
+@media (max-height: 640px) and (min-width: 601px) { .desc-nivel { display: none; } }
+@media (max-height: 700px) { .pant-titulo .accion { padding-bottom: .8rem; } }

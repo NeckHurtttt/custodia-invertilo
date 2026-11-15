@@ -649,9 +649,17 @@ function hud() {
   { const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
   toasts(); paneles();
 }
+/** Retrato de un compañero (el mismo dibujo del mapa, de frente): una imagen chica por personaje y ánimo, guardada para no dibujarla cada vez. */
+const retratos = new Map();
+function retrato(nombre, color, emo = 'normal', clase = 'retrato') {
+  const k = nombre + '|' + color + '|' + emo; let u = retratos.get(k);
+  if (!u) { const c = document.createElement('canvas'); c.width = 18; c.height = 26; Cu.dibujaCuerpo(c.getContext('2d'), { x: 9, y: 17, f: 'd', step: 0, key: nombre, shirt: color, emo, anim: false }); u = c.toDataURL(); retratos.set(k, u); }
+  return `<img class="${clase}" src="${u}" alt="" width="18" height="26">`;
+}
+const emoDe = (c) => (c.betrayed ? 'enojo' : c.trust >= 2 ? 'feliz' : 'normal');
 /** Ficha de cada compañero (pausa → TRIPULACIÓN): oficio, forma de ser, su frase y cómo está contigo. */
-const crewFichas = () => s.crew.map((c) => { const f = ficha(c.name); const estado = c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? T('pide', 'asks for') + ` ${icon(c.want)} ${ITEMS[c.want].name}` : T('contento', 'happy'); return `<li class="ficha"><b style="color:${c.color}">■ ${c.name}</b>${f ? ` · ${f.rol} · <i>${f.rasgo}</i><br><small>“${f.frase}”</small>` : ''}<br>${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))} ${estado}</li>`; }).join('');
-const crewHTML = () => s.crew.map((c) => `<li><b style="color:${c.color}">■</b> <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> ${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}: ${c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? `${T('pide', 'asks for')} <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)} ${ITEMS[c.want].name}</span>` : T('contento', 'happy')}</li>`).join('');
+const crewFichas = () => s.crew.map((c) => { const f = ficha(c.name); const estado = c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? T('pide', 'asks for') + ` ${icon(c.want)} ${ITEMS[c.want].name}` : T('contento', 'happy'); return `<li class="ficha">${retrato(c.name, c.color, emoDe(c))}<b style="color:${c.color}">${c.name}</b>${f ? ` · ${f.rol} · <i>${f.rasgo}</i><br><small>“${f.frase}”</small>` : ''}<br>${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))} ${estado}</li>`; }).join('');
+const crewHTML = () => s.crew.map((c) => `<li>${retrato(c.name, c.color, emoDe(c), 'retrato-mini')} <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> ${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}: ${c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? `${T('pide', 'asks for')} <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)} ${ITEMS[c.want].name}</span>` : T('contento', 'happy')}</li>`).join('');
 
 const planHTML = (L = s.L) => G.PLAN_IDS.map((id) => `<li class="${G.has(s, id) ? 'ok' : ''}" title="${L.plan[id].hint}">${L.plan[id].name}</li>`).join('') + `<li class="${s.iaOn ? '' : 'ok'}" title="${T('Opcional: núcleo de la IA con tarjeta y 50 de conocimiento.', 'Optional: the AI core, with a card and 50 knowledge.')}">${T('(Opcional) Apagar a ', '(Optional) Shut down ')}${L.ai}</li>` + G.routes(s).filter((r) => r.id !== 'plan').map((r) => `<li class="ruta ${r.ok ? 'ok' : ''}" title="${r.desc}">${T('Ruta ', 'Route ')}${r.name}${r.ok ? ' ✓' : ''}</li>`).join('');
 function amenazasHTML() {
