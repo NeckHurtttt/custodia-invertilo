@@ -285,9 +285,9 @@ try {
     ok('reflejos: si ignoras la emergencia, la partida termina con una explicación');
   }
 
-  // 9. Responsive: tablet chica (1024×600) y teléfono en vertical (375×812, táctil). Cada vista: título con JUGAR a la vista, HUD dentro de la ventana,
+  // 9. Responsive: tablet chica (1024×600) y teléfono acostado (812×375, táctil; en vertical el juego pide girarlo). Cada vista: título con JUGAR a la vista, HUD dentro de la ventana,
   //    nada tapa al jugador (que va SIEMPRE en el centro de la pantalla), botones táctiles ≥ 44 px, la pausa se ve completa. Capturas 7-*.png.
-  for (const [ancho, alto, movil, nombre] of [[1024, 600, false, 'tablet'], [375, 812, true, 'movil']]) {
+  for (const [ancho, alto, movil, nombre] of [[1024, 600, false, 'tablet'], [812, 375, true, 'movil']]) {
     const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) });
     const pg = await c.newPage();
     pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
@@ -316,9 +316,9 @@ try {
     assert.deepEqual(r.fuera, [], `${nombre}: el HUD debe quedar dentro de la ventana: ${r.fuera}`);
     assert.ok(r.scroll <= 1, `${nombre}: sin scroll horizontal`);
     if (movil) { assert.ok(r.tactil, 'en el teléfono se ven los controles táctiles'); assert.deepEqual(r.chicos, [], `${nombre}: objetivos táctiles de al menos 44 px: ${JSON.stringify(r.chicos)}`); }
-    if (movil) { // joystick flotante: deslizar el dedo por el mapa mueve al personaje; sin cruz de flechas; los botones dicen qué hacen
-      const mov = await pg.evaluate(async () => { const cv = document.getElementById('lienzo'); lfr.s.p.sleep = false; lfr.s.grace = 9999; const ev = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, { pointerId: 5, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, isPrimary: true })); const x0 = lfr.s.p.x, y0 = lfr.s.p.y; ev('pointerdown', 200, 500); ev('pointermove', 200, 560); const vis = !document.getElementById('joy').hidden; await new Promise((r) => setTimeout(r, 900)); const y1 = lfr.s.p.y; ev('pointerup', 200, 560); const oculto = document.getElementById('joy').hidden; await new Promise((r) => setTimeout(r, 150)); const y2 = lfr.s.p.y; await new Promise((r) => setTimeout(r, 300)); return { vis, oculto, avanzo: y1 - y0, parado: Math.abs(lfr.s.p.y - y2) < 0.01, cruz: getComputedStyle(document.querySelector('.cruz')).display, usar: document.getElementById('t-e').textContent, agachar: document.getElementById('t-sh').textContent }; });
-      assert.ok(mov.vis && mov.oculto, 'el círculo del joystick aparece al tocar y se va al soltar'); assert.ok(mov.avanzo > 0.3, `deslizar el dedo hacia abajo mueve al personaje hacia abajo (${mov.avanzo})`); assert.ok(mov.parado, 'al soltar el dedo el personaje se detiene'); assert.equal(mov.cruz, 'none', 'la cruz de flechas no se ve por defecto'); assert.ok(/USAR/.test(mov.usar) && /AGACHAR/.test(mov.agachar), `los botones dicen qué hacen: ${mov.usar} / ${mov.agachar}`);
+    if (movil) { // joystick FIJO abajo a la izquierda: siempre visible; la perilla no sale del círculo; mueve y al soltar se detiene
+      const mov = await pg.evaluate(async () => { const cv = document.getElementById('lienzo'); lfr.s.p.sleep = false; lfr.s.grace = 9999; const j = document.getElementById('joy'); const jr = j.getBoundingClientRect(); const cx = jr.left + jr.width / 2, cy = jr.top + jr.height / 2; const ev = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, { pointerId: 5, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, isPrimary: true })); const vis = getComputedStyle(j).display !== 'none' && jr.width > 40; const x0 = lfr.s.p.x, y0 = lfr.s.p.y; ev('pointerdown', cx, cy); ev('pointermove', cx, cy + 250); const k = j.firstChild.getBoundingClientRect(); const dentro = Math.hypot(k.left + k.width / 2 - cx, k.top + k.height / 2 - cy) <= jr.width / 2 + 1; const activo = j.classList.contains('activo'); await new Promise((r) => setTimeout(r, 900)); const y1 = lfr.s.p.y; ev('pointerup', cx, cy + 250); const suelto = !j.classList.contains('activo'); await new Promise((r) => setTimeout(r, 150)); const y2 = lfr.s.p.y; await new Promise((r) => setTimeout(r, 300)); return { vis, dentro, activo, suelto, avanzo: y1 - y0, parado: Math.abs(lfr.s.p.y - y2) < 0.01, cruz: getComputedStyle(document.querySelector('.cruz')).display, usar: document.getElementById('t-e').textContent, agachar: document.getElementById('t-sh').textContent }; });
+      assert.ok(mov.vis && mov.activo && mov.suelto, 'el joystick fijo se ve siempre, se ilumina al usarlo y se apaga al soltar'); assert.ok(mov.dentro, 'la perilla no sale del círculo aunque el dedo se aleje'); assert.ok(mov.avanzo > 0.3, `deslizar el dedo hacia abajo mueve al personaje hacia abajo (${mov.avanzo})`); assert.ok(mov.parado, 'al soltar el dedo el personaje se detiene'); assert.equal(mov.cruz, 'none', 'la cruz de flechas no se ve por defecto'); assert.ok(/USAR/.test(mov.usar) && /AGACHAR/.test(mov.agachar), `los botones dicen qué hacen: ${mov.usar} / ${mov.agachar}`);
     }
     { // guardia del HUD: si un panel cae encima del personaje, la cámara se corre y vuelve a verse (compu y celular)
       const g = await pg.evaluate(async () => { const p = lfr.s.p; const pos = () => ({ sx: (p.x * 16 - lfr.cam.x) * lfr.zoom, sy: ((p.y - 0.3) * 16 - lfr.cam.y) * lfr.zoom }); const a = pos(); const st = document.createElement('style'); st.textContent = `#c-vit{position:fixed!important;left:${a.sx - 60}px!important;top:${a.sy - 40}px!important;width:140px!important;height:90px!important;z-index:3}`; document.head.appendChild(st); await new Promise((r) => setTimeout(r, 2200)); const d = pos(); const r = document.getElementById('c-vit').getBoundingClientRect(); st.remove(); return { libre: d.sx < r.left || d.sx > r.right || d.sy < r.top - 20 || d.sy > r.bottom, d, r: [r.left, r.top, r.right, r.bottom] }; });
@@ -330,7 +330,7 @@ try {
     const sw = await pg.evaluate(() => [...document.querySelectorAll('#ventana .sw')].map((e) => e.getBoundingClientRect().height)); assert.ok(sw.length >= 4 && sw.every((h) => h >= 43.5), `${nombre}: 4 (o 5, con la voz) interruptores de pausa con altura táctil (${sw})`);
     await pg.click('#seguir'); await c.close();
   }
-  ok('responsive (1024×600 y 375×812 táctil): JUGAR visible, HUD dentro de la ventana, nada tapa al jugador, botones táctiles ≥ 44 px, pausa completa');
+  ok('responsive (1024×600 y 812×375 táctil): JUGAR visible, HUD dentro de la ventana, nada tapa al jugador, botones táctiles ≥ 44 px, pausa completa');
 
   // 10. Inglés para el jurado: ?lang=en, selector ES/EN en el título (se guarda), DATOS NASA, intro, mantenimiento, tormenta y final en inglés.
   {
@@ -455,7 +455,7 @@ try {
     });
     await pg.goto(`${url}?noboot`); await pg.waitForSelector('#t-jugar'); assert.equal(await pg.locator('.btn-leer').count(), 0, 'el título no lleva botón de leer');
     await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); assert.equal(await pg.locator('.btn-leer').count(), 1, 'la intro trae el botón LEER');
-    await pg.click('.btn-leer'); const l1 = await pg.evaluate(() => window.__voz.at(-1)); assert.ok(l1 && /La Tierra perdió la señal/.test(l1.text), `lee la intro (dijo: ${JSON.stringify(l1)})`);
+    await pg.click('.btn-leer'); const l1 = await pg.evaluate(() => window.__voz.at(-1)); assert.ok(l1 && /Mantén viva la base/.test(l1.text), `lee la intro (dijo: ${JSON.stringify(l1)})`);
     assert.equal(l1.lang, 'es-ES'); assert.equal(l1.voz, 'Voz es'); assert.ok(!/EMPEZAR|CONTROLES|<|undefined/.test(l1.text), `no lee botones ni etiquetas: ${l1.text.slice(0, 120)}`);
     assert.match(await pg.textContent('.btn-leer'), /PARAR/); await pg.click('.btn-leer'); assert.match(await pg.textContent('.btn-leer'), /LEER/); assert.ok(await pg.evaluate(() => window.__vozCancel >= 1), 'PARAR cancela la voz');
     // ajuste: leer solo (ventanas importantes y avisos)
@@ -466,7 +466,7 @@ try {
     assert.ok(hablados.some((t) => /Alerta de prueba/.test(t)), 'los avisos importantes se leen solos'); assert.ok(!hablados.some((t) => /relleno/.test(t)), 'los avisos menores no');
     // en inglés la voz y el botón cambian
     await pg.evaluate(() => { localStorage.setItem('lfr.lang', 'en'); }); await pg.goto(`${url}?noboot&lang=en`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok');
-    await pg.waitForFunction(() => window.__voz.some((x) => x.lang === 'en-US' && /Earth lost the signal/.test(x.text)), null, { timeout: 3000 }); // con el ajuste activo la intro se lee sola
+    await pg.waitForFunction(() => window.__voz.some((x) => x.lang === 'en-US' && /Keep the base alive/.test(x.text)), null, { timeout: 3000 }); // con el ajuste activo la intro se lee sola
     assert.match(await pg.textContent('.btn-leer'), /STOP|READ/); await c.close();
   }
   ok('leer en voz alta: botón LEER/PARAR en las ventanas (no en el título), lee sin botones ni etiquetas con la voz del idioma, el ajuste lee solo la intro y los avisos importantes, y en inglés usa la voz en-US');
@@ -522,7 +522,8 @@ try {
     assert.ok(/ENTRENAMIENTO COMPLETO/.test(fines) && /FINALES SECRETOS/.test(fines) && (fines.match(/\?\?\?/g) ?? []).length >= 3, `${nombre}: la ventana final muestra los finales: ${fines.slice(0, 120)}`);
     await pg.keyboard.press('Escape'); assert.equal(await pg.evaluate(() => !document.getElementById('modal').hidden), true, `${nombre}: Esc no la cierra`);
     await pg.screenshot({ path: join(salida, `tutorial-${movil ? 'celular' : 'compu'}-finales.png`) });
-    await pg.click('#tuto-fin'); await pg.waitForSelector('#tuto', { state: 'hidden', timeout: 4000 });
+    await pg.click('#tuto-fin'); await pg.waitForFunction(() => localStorage.getItem('lfr.tuto') === '1' && document.getElementById('modal').hidden, null, { timeout: 4000 });
+    assert.ok(await pg.evaluate(() => lfr.s.log.some((l) => /Bienvenido/.test(l.text))), `${nombre}: da la bienvenida a la misión`);
     assert.equal(await pg.evaluate(() => localStorage.getItem('lfr.tuto')), '1', `${nombre}: queda guardado`);
     await pg.goto(`${url}?tuto&noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok'); await pg.waitForTimeout(600);
     assert.equal(await pg.evaluate(() => document.getElementById('tuto').hidden), true, `${nombre}: no vuelve a salir solo`);
@@ -531,7 +532,7 @@ try {
   ok('entrenamiento obligatorio (compu y celular): 9 pasos sin SALTAR, se completa con las acciones reales (también esconderse y el mapa), termina con los finales y no vuelve solo');
 
   // 13. Certificado de Cadete al ganar (compu y celular): nombre, vista previa, descarga con nombre de archivo seguro y la tecla R no reinicia al escribir.
-  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'certificado compu'], [375, 812, true, 'certificado celular']]) {
+  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'certificado compu'], [812, 375, true, 'certificado celular']]) {
     const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, acceptDownloads: true, ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) }); const pg = await c.newPage();
     pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
     await pg.goto(`${url}?noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok'); await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden);
@@ -551,7 +552,7 @@ try {
   ok('certificado de cadete (compu y celular): se dibuja con el nombre, se descarga con nombre seguro, cabe en la pantalla, la R no reinicia y no repite puntos');
 
   // 14. Modo clase y panel docente (compu y celular): el alumno copia su línea y el docente la pega y ve el resumen.
-  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'docente compu'], [375, 812, true, 'docente celular']]) {
+  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'docente compu'], [812, 375, true, 'docente celular']]) {
     const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, permissions: ['clipboard-read', 'clipboard-write'], ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) }); const pg = await c.newPage();
     pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
     await pg.goto(`${url}?noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-mas summary'); await pg.click('#t-clase'); await pg.waitForSelector('#cl-nombre');

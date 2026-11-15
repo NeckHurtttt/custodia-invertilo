@@ -121,7 +121,7 @@ try {
   await a4.keyboard.press('Escape'); await t4.waitForFunction(() => /pausó/.test(document.getElementById('inv-aviso')?.textContent ?? ''), null, { timeout: 5000 }); await a4.click('#seguir'); ok('si el anfitrión pausa, el invitado ve el aviso');
   // ahora el segundo jugador es una persona en CELULAR: la misma sala, con el dedo
   await t4.context().close(); await a4.waitForFunction(() => lfr.s.crew.every((c) => !c.human), null, { timeout: 10000 }); // el primero se va: su compañero vuelve al piloto automático
-  const ct = await nav.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }); const t5 = await ct.newPage();
+  const ct = await nav.newContext({ viewport: { width: 812, height: 375 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }); const t5 = await ct.newPage();
   t5.on('pageerror', (e) => problemas.push(`celular: error de JavaScript: ${e.message}`));
   await t5.goto(`${url}?sala=${sala4}`); await t5.waitForSelector('.elige button:not([disabled])', { timeout: 10000 });
   await t5.click('.elige button[data-n="Kenji"]'); await a4.waitForFunction(() => lfr.s.crew[1].human === true && lfr.s.crew[0].human === false, null, { timeout: 6000 }); ok('el segundo jugador entra desde un celular con el enlace ?sala= y elige a Kenji (María vuelve al piloto automático)');
@@ -131,7 +131,11 @@ try {
   await t5.evaluate(async () => { const cv = document.getElementById('lienzo'); const ev = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, { pointerId: 9, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, isPrimary: true })); ev('pointerdown', 200, 500); ev('pointermove', 200, 560); await new Promise((r) => setTimeout(r, 1300)); ev('pointerup', 200, 560); });
   await espera(400); const y1 = await a4.evaluate(() => lfr.s.crew[1].y); assert.ok(Math.abs(y1 - y0) > 0.5 || true, 'el dedo mueve a Kenji'); ok(`el dedo en el celular mueve a Kenji en la computadora del anfitrión (${y0.toFixed(2)} → ${y1.toFixed(2)})`);
   assert.ok(await t5.evaluate(() => getComputedStyle(document.getElementById('t-e')).display !== 'none' && getComputedStyle(document.getElementById('t-sh')).display === 'none' && !document.getElementById('tactil').hidden), 'en el celular el invitado ve USAR y no los botones del astronauta');
-  assert.ok(await t5.evaluate(() => { const f = document.getElementById('t-f'); const q = f.getBoundingClientRect(); return getComputedStyle(f).display !== 'none' && /DISTRAER/.test(f.textContent) && q.width >= 43.5 && q.height >= 43.5 && getComputedStyle(document.querySelector('.hud-inv')).display !== 'none'; }), 'en el celular el invitado ve DISTRAER (≥ 44 px) y su mochila');
+  // en el teléfono los botones viven en la rueda: mantener USAR 2 s la abre y DISTRAER está ahí (≥ 44 px); la mochila se ve
+  await t5.evaluate(() => { const b = document.getElementById('t-e'); const r = b.getBoundingClientRect(); b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 31, pointerType: 'touch', clientX: r.x + 20, clientY: r.y + 20 })); });
+  await t5.waitForSelector('#rueda:not([hidden]) .r-op', { timeout: 4000 });
+  assert.ok(await t5.evaluate(() => { const o = [...document.querySelectorAll('#rueda .r-op')].find((x) => /DISTRAER/.test(x.textContent)); const q = o?.getBoundingClientRect(); const ok = !!o && q.width >= 43.5 && q.height >= 43.5 && getComputedStyle(document.querySelector('.hud-inv')).display !== 'none'; const b = document.getElementById('t-e'); b.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 31, pointerType: 'touch' })); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return ok; }), 'en el celular el invitado tiene DISTRAER (≥ 44 px) en la rueda de USAR y ve su mochila');
+  await t5.waitForFunction(() => document.getElementById('rueda').hidden, null, { timeout: 2000 });
   await t5.screenshot({ path: join(salida, 'coop-tripulante-celular.png') }); await ct.close();
   // ---------- 2) código manual (WebRTC) ----------
   const a2 = await nueva('astronauta2'); const c2 = await nueva('control2');
