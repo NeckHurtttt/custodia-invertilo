@@ -828,3 +828,9 @@ body.telefono .avisos li span { white-space: nowrap; overflow: hidden; text-over
 body.telefono #emerg { font-size: .95em; padding: .2em .4em; }
 body.telefono .hud-izq .vr.neutro, body.telefono .hud-izq .vr[data-f="integ"] { display: none !important; }
 body.telefono #emerg small, body.telefono #emerg .fuente, body.telefono #emerg p:not(:first-child) { display: none; }
+/* Fin del entrenamiento: lista de finales (los secretos, atenuados con «???») */
+.fines-tuto { list-style: none; margin: .3rem 0 .6rem; padding: 0; display: grid; gap: .35rem; }
+.fin-tuto { display: flex; gap: .6rem; align-items: flex-start; padding: .35rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: rgba(21,27,43,.6); }
+.fin-tuto .fi { font-size: 1.4rem; line-height: 1; flex: none; }
+.fin-tuto small { color: var(--dim); font-size: .95em; }
+.fin-tuto.secreto { border-style: dashed; border-color: #6a4f9a; } .fin-tuto.secreto b { color: #c9a8ff; letter-spacing: .2em; }
