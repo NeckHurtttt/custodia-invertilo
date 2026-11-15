@@ -650,7 +650,7 @@ function diaNuevo() {
   el.hidden = false; clearTimeout(diaT); diaT = setTimeout(() => { el.hidden = true; }, 4500);
 }
 function vigilaDia() {
-  if (diaDe !== s && esTactil() && !vista.cruz && getOpt('joyhint', '0') !== '1') { setOpt('joyhint', '1'); G.say(s, T('Para moverte: toca el mapa con el dedo y deslízalo hacia donde quieras ir.', 'To move: touch the map with your finger and slide it where you want to go.'), 'info'); }
+  if (diaDe !== s && esTactil() && !vista.cruz && getOpt('joyhint', '0') !== '1') { setOpt('joyhint', '1'); G.say(s, T('Para moverte: usa el joystick de abajo a la izquierda (o desliza el dedo en la mitad izquierda de la pantalla).', 'To move: use the joystick at the bottom left (or slide your finger on the left half of the screen).'), 'info'); }
   if (diaDe !== s) { diaDe = s; diaVisto = s.day; const el = $('dia-nuevo'); if (el) el.hidden = true; return; }
   if (s.day === diaVisto) return;
   const subio = s.day > diaVisto; diaVisto = s.day;
@@ -1608,20 +1608,23 @@ function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; documen
 sincTactil(); addEventListener('resize', sincTactil); sincBotones();
 const dirs = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 /**
- * Joystick flotante: pon el dedo en cualquier parte del mapa y desliza; el círculo aparece donde empezaste y el personaje camina hacia donde
- * llevas el dedo. Si te pasas del círculo, este te sigue (así cambiar de dirección es rápido). Al soltar, se detiene. Solo toques (no mouse);
- * con la «cruz de flechas» activada no se usa. Los botones (E, F, atajos…) no lo activan.
+ * Joystick FIJO y visible (pantallas táctiles): base abajo a la izquierda, siempre a la vista durante la partida.
+ * Restricción: la perilla nunca sale del círculo (se queda en el borde aunque el dedo se vaya más lejos) y la base no se mueve.
+ * Se toma tocando en cualquier parte de la mitad izquierda de la pantalla; la dirección es siempre desde el centro de la base.
+ * Con la «cruz de flechas» activada no se usa. Los botones (USAR, ☰…) no lo activan.
  */
-const joy = { id: null, x: 0, y: 0 }; const JOY_R = 46, JOY_MUERTO = 9;
-const joyEl = document.createElement('div'); joyEl.id = 'joy'; joyEl.hidden = true; joyEl.innerHTML = '<i></i>'; document.body.appendChild(joyEl);
+const joy = { id: null }; const JOY_R = 52, JOY_MUERTO = 10;
+const joyEl = document.createElement('div'); joyEl.id = 'joy'; joyEl.innerHTML = '<i></i>'; document.body.appendChild(joyEl);
+/** Centro de la base en pantalla (lo pone el CSS: abajo a la izquierda). */
+const joyCentro = () => { const r = joyEl.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
 function joyMueve(e) {
-  let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const len = Math.hypot(dx, dy);
-  if (len > JOY_R) { joy.x += (dx / len) * (len - JOY_R); joy.y += (dy / len) * (len - JOY_R); dx = e.clientX - joy.x; dy = e.clientY - joy.y; } // el círculo sigue al dedo
+  const c = joyCentro(); let dx = e.clientX - c.x, dy = e.clientY - c.y; const len = Math.hypot(dx, dy);
+  if (len > JOY_R) { dx = (dx / len) * JOY_R; dy = (dy / len) * JOY_R; } // restricción: la perilla se queda dentro del círculo
   const l = Math.hypot(dx, dy);
   if (l < JOY_MUERTO) { touch.dx = 0; touch.dy = 0; } else { touch.dx = dx / l; touch.dy = dy / l; }
-  joyEl.style.left = joy.x + 'px'; joyEl.style.top = joy.y + 'px'; joyEl.firstChild.style.transform = `translate(${dx}px, ${dy}px)`;
+  joyEl.firstChild.style.transform = `translate(${dx}px, ${dy}px)`; joyEl.classList.add('activo');
 }
-function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch.dx = 0; touch.dy = 0; joyEl.hidden = true; }
+function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch.dx = 0; touch.dy = 0; joyEl.firstChild.style.transform = ''; joyEl.classList.remove('activo'); }
 {
   const pant = document.querySelector('.pantalla');
   pant.addEventListener('pointerdown', (e) => {
@@ -1631,7 +1634,8 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
       if (mx >= cv.width - g.w - g.borde - 6 && my >= g.oy - 6 && my <= g.oy + g.h + 6) { alternaMapa(true); return; }
     }
     if (e.pointerType === 'mouse' || joy.id !== null || menu || !s || vista.cruz || e.target.closest('button, input, textarea, a')) return;
-    joy.id = e.pointerId; joy.x = e.clientX; joy.y = e.clientY; joyEl.hidden = false; try { pant.setPointerCapture(e.pointerId); } catch { /* sin captura */ } joyMueve(e);
+    if (e.clientX > innerWidth * 0.5) return; // solo la mitad izquierda maneja el joystick
+    joy.id = e.pointerId; try { pant.setPointerCapture(e.pointerId); } catch { /* sin captura */ } joyMueve(e);
   });
   pant.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) joyMueve(e); });
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pant.addEventListener(ev, joySuelta);
