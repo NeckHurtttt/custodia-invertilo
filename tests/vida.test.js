@@ -4,7 +4,7 @@ import * as G from '../src/core.js';
 import * as Sys from '../src/sistemas.js';
 import { LOCS } from '../src/locs.js';
 import { PERSONAS, TIPOS, linea, voz, ficha } from '../src/personajes.js';
-import { arranqueDebe, arranqueLineas, CONSEJOS, consejo } from '../src/inicio.js';
+import { arranqueDebe, arranqueLineas, CONSEJOS, consejo, comandoDatos, SECCIONES_DATOS, nombreSeccion } from '../src/inicio.js';
 import { setLang } from '../src/i18n.js';
 
 const enIngles = (fn) => { setLang('en'); try { return fn(); } finally { setLang('es'); } };
@@ -71,4 +71,17 @@ test('inicio: los consejos «¿Sabías que…?» son datos reales con su fuente,
   for (const [i, c] of es.entries()) { assert.match(c, /\(.+\)\s*$|\.$/, `consejo ${i} sin fuente`); assert.notEqual(c, en[i]); assert.ok(c.length < 190, `consejo ${i} muy largo`); }
   assert.ok(es.filter((c) => /NTRS|NASA|Curiosity|Chang|GeoHealth/.test(c)).length >= 9, 'casi todos citan una fuente');
   assert.equal(consejo(0), es[0]); assert.equal(consejo(es.length), es[0], 'da la vuelta'); assert.equal(consejo(-1), es.at(-1));
+});
+
+test('terminal DATOS NASA: entiende comandos en español e inglés, con tildes, mayúsculas, verbos de relleno y números', () => {
+  assert.deepEqual(SECCIONES_DATOS, ['restriccion', 'clima', 'radiacion', 'salud', 'protocolos', 'escala']);
+  const sec = (x) => comandoDatos(x).id;
+  for (const [txt, id] of [['clima', 'clima'], ['CLIMA', 'clima'], ['  ver radiación ', 'radiacion'], ['storms', 'clima'], ['weather', 'clima'], ['OSDR', 'salud'], ['health', 'salud'], ['open protocols', 'protocolos'], ['Emergencia', 'protocolos'], ['scale', 'escala'], ['cat', 'restriccion'], ['1', 'restriccion'], ['3', 'radiacion'], ['6', 'escala'], ['donki', 'clima'], ['llave', 'clima']]) assert.equal(sec(txt), id, `"${txt}" debe abrir ${id}`);
+  for (const x of ['ayuda', 'HELP', 'ls', '?', 'comandos']) assert.equal(comandoDatos(x).tipo, 'ayuda', x);
+  for (const x of ['salir', 'exit', 'volver', 'Q']) assert.equal(comandoDatos(x).tipo, 'salir', x);
+  assert.deepEqual(comandoDatos(''), { tipo: 'nada' }); assert.deepEqual(comandoDatos('   '), { tipo: 'nada' });
+  for (const x of ['xyz', '7', '0', 'rm -rf /']) assert.equal(comandoDatos(x).tipo, 'desconocido', x);
+  assert.ok(comandoDatos('a'.repeat(200)).texto.length <= 40, 'el texto del error se recorta');
+  assert.deepEqual(SECCIONES_DATOS.map(nombreSeccion), ['restriccion', 'clima', 'radiacion', 'salud', 'protocolos', 'escala']);
+  assert.deepEqual(enIngles(() => SECCIONES_DATOS.map(nombreSeccion)), ['constraint', 'weather', 'radiation', 'health', 'protocols', 'scale']);
 });

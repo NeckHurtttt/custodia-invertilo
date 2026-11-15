@@ -9,7 +9,7 @@ import { fetchFlares, donkiEstado, sourceText, missionFlares, SHELTER } from './
 import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang } from './i18n.js';
 import { ficha } from './personajes.js';
-import { arranqueDebe, arranqueLineas, consejo } from './inicio.js';
+import { arranqueDebe, arranqueLineas, consejo, comandoDatos, SECCIONES_DATOS, nombreSeccion } from './inicio.js';
 // Idioma (ES por defecto; EN con ?lang=en, ?en o el selector del título). Solo presentación.
 try { setLang(pickLang(location.search, localStorage.getItem('lfr.lang'))); document.documentElement.lang = getLang(); } catch { /* sin almacenamiento */ }
 const nm = (o) => T(o.name, o.nameEn); const ds = (o) => T(o.desc, o.descEn); const rn = (n) => T(n, ROOM_EN[n] ?? n);
@@ -829,33 +829,75 @@ const pedirDonki = () => fetchFlares({ key: nasaKey() }).then((l) => {
 if (!liveFlares) pedirDonki();
 
 // Pantalla DATOS NASA: qué es real, de dónde sale y qué es escala de juego.
-function datos(back) {
+/** Ir a una sección de la terminal DATOS NASA (la pone datos()). */
+let datosIr = null; let datosSec = 'restriccion';
+function datos(back, sec0 = 'restriccion') {
   menu = 'datos'; const fl = missionFlares(liveFlares); const enVivo = fl.some((f) => f.source === 'donki');
+  const estado = enVivo ? T('EN VIVO', 'LIVE') : donkiEstado.error === 'limite' ? T('ARCHIVO · llave agotada', 'ARCHIVE · key used up') : T('ARCHIVO · sin conexión', 'ARCHIVE · offline');
   open(`<h2>${ic('rad', 'g')} ${T('DATOS NASA', 'NASA DATA')}</h2>
-    <p class="grande-txt"><b>${T('La restricción real que enseña el juego:', 'The real constraint the game teaches:')}</b> ${restriccion()}</p>
-    <h3>☀️ ${T('Clima espacial', 'Space weather')}: NASA DONKI ${enVivo ? T('(EN VIVO, último mes)', '(LIVE, last month)') : donkiEstado.error === 'limite' ? T('(la llave se agotó por ahora: llamaradas reales archivadas)', '(the key ran out for now: real archived flares)') : T('(sin conexión: llamaradas reales archivadas)', '(offline: real archived flares)')}</h3>
-    <div class="llave">${T(`<label for="llave-nasa">Llave de api.nasa.gov</label>`, `<label for="llave-nasa">api.nasa.gov key</label>`)}
-      <input id="llave-nasa" type="text" autocomplete="off" spellcheck="false" placeholder="${T('pega tu llave (gratis en api.nasa.gov)', 'paste your key (free at api.nasa.gov)')}" value="${nasaKey() === 'DEMO_KEY' ? '' : nasaKey()}">
-      <button id="llave-ok" class="sec">${T(`USAR LLAVE`, `USE KEY`)}</button>
-      <small id="llave-est">${nasaKey() === 'DEMO_KEY' ? T('Usando la llave de prueba DEMO_KEY: se agota rápido y entonces salen llamaradas archivadas. Saca una gratis en <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.', 'Using the DEMO_KEY test key: it runs out quickly and then archived flares are used. Get a free one at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.') : T('Usando tu llave propia (guardada solo en este navegador).', 'Using your own key (saved only in this browser).')}</small></div>
-    <ul class="datos-lista">${fl.map((f, i) => `<li>${T(`Tormenta ${i + 1} · día ${[2, 5, 8][i]}: clase <b>${f.cls}</b>`, `Storm ${i + 1} · day ${[2, 5, 8][i]}: class <b>${f.cls}</b>`)} · ${f.date} · ${f.source === 'donki' ? T('DONKI en vivo', 'DONKI live') : T('archivo DONKI', 'DONKI archive')}</li>`).join('')}</ul>
-    <p><small>${T('Refugios', 'Shelters')}: ${Object.entries(SHELTER).map(([k, v]) => `<b>${nm(LOCS[k])}</b>: ${rn(LOCS[k].rooms.find((r) => r.id === v.room)?.name)}. ${v.why}`).join(' ')}</small></p>
-    ${T(`<h3>☢ Radiación medida de verdad</h3>`, `<h3>☢ Radiation measured for real</h3>`)}
-    <ul class="datos-lista">${dosisReales().map((d) => `<li><b>${d.donde}:</b> ${d.valor} <small>(${d.fuente})</small></li>`).join('')}</ul>
-    ${T(`<h3>🧬 Salud de astronautas: estudios del repositorio OSDR de NASA</h3>`, `<h3>🧬 Astronaut health: studies from NASA's OSDR repository</h3>`)}
-    <ul class="datos-lista">${osdr().map((o) => `<li><a href="${osdUrl(o.id)}" target="_blank" rel="noopener">${o.id}</a>: ${o.texto}</li>`).join('')}</ul>
-    ${T(`<h3>🚨 Protocolos de emergencia</h3>`, `<h3>🚨 Emergency protocols</h3>`)}
-    <ul class="datos-lista">${Object.entries(PROTO_FUENTE).filter(([, f]) => f.nivel !== 'ficcion').map(([k, f]) => `<li><b>${T(PROTOCOLS[k].title, PROTOCOLS[k].titleEn)}</b> — ${T(PROTO_NIVEL[f.nivel], PROTO_NIVEL_EN[f.nivel])}. <small>${T(f.fuente, f.fuenteEn)}</small></li>`).join('')}</ul>
-    ${T(`<p><small>Los demás protocolos del juego están marcados como ficción dentro del minijuego.</small></p>`, `<p><small>The other protocols in the game are marked as fiction inside the minigame.</small></p>`)}
-    ${T(`<h3>🎮 Escala de juego (no es dato real)</h3>`, `<h3>🎮 Game scale (not real data)</h3>`)}
-    <ul class="datos-lista">${escala().map((t) => `<li>${t}</li>`).join('')}</ul>
+    <div class="term">
+      <div class="term-cab"><span>${T('TERMINAL NASA · ACCESO: CADETE', 'NASA TERMINAL · ACCESS: CADET')}</span><span class="term-est ${enVivo ? 'vivo' : ''}">● ${estado}</span></div>
+      <nav class="term-cmds" aria-label="${T('Secciones', 'Sections')}">${SECCIONES_DATOS.map((id, i) => `<button type="button" data-sec="${id}" aria-pressed="false">[${i + 1}] ${nombreSeccion(id)}</button>`).join('')}</nav>
+      <p class="term-ps" id="term-ps" aria-live="polite"></p>
+      <div class="term-out" id="term-out">
+        <section class="dt-sec" data-sec="restriccion" hidden>
+          <p class="grande-txt"><b>${T('La restricción real que enseña el juego:', 'The real constraint the game teaches:')}</b> ${restriccion()}</p>
+          <p class="term-nota">${T('Escribe un comando (clima, radiacion, salud, protocolos, escala) o pulsa un botón. Cada dato trae su fuente.', 'Type a command (weather, radiation, health, protocols, scale) or press a button. Every fact comes with its source.')}</p>
+        </section>
+        <section class="dt-sec" data-sec="clima" hidden>
+          <h3>☀️ ${T('Clima espacial', 'Space weather')}: NASA DONKI ${enVivo ? T('(EN VIVO, último mes)', '(LIVE, last month)') : donkiEstado.error === 'limite' ? T('(la llave se agotó por ahora: llamaradas reales archivadas)', '(the key ran out for now: real archived flares)') : T('(sin conexión: llamaradas reales archivadas)', '(offline: real archived flares)')}</h3>
+          <div class="llave">${T(`<label for="llave-nasa">Llave de api.nasa.gov</label>`, `<label for="llave-nasa">api.nasa.gov key</label>`)}
+            <input id="llave-nasa" type="text" autocomplete="off" spellcheck="false" placeholder="${T('pega tu llave (gratis en api.nasa.gov)', 'paste your key (free at api.nasa.gov)')}" value="${nasaKey() === 'DEMO_KEY' ? '' : nasaKey()}">
+            <button id="llave-ok" class="sec">${T(`USAR LLAVE`, `USE KEY`)}</button>
+            <small id="llave-est">${nasaKey() === 'DEMO_KEY' ? T('Usando la llave de prueba DEMO_KEY: se agota rápido y entonces salen llamaradas archivadas. Saca una gratis en <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.', 'Using the DEMO_KEY test key: it runs out quickly and then archived flares are used. Get a free one at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.') : T('Usando tu llave propia (guardada solo en este navegador).', 'Using your own key (saved only in this browser).')}</small></div>
+          <ul class="datos-lista">${fl.map((f, i) => `<li>${T(`Tormenta ${i + 1} · día ${[2, 5, 8][i]}: clase <b>${f.cls}</b>`, `Storm ${i + 1} · day ${[2, 5, 8][i]}: class <b>${f.cls}</b>`)} · ${f.date} · ${f.source === 'donki' ? T('DONKI en vivo', 'DONKI live') : T('archivo DONKI', 'DONKI archive')}</li>`).join('')}</ul>
+          <p><small>${T('Refugios', 'Shelters')}: ${Object.entries(SHELTER).map(([k, v]) => `<b>${nm(LOCS[k])}</b>: ${rn(LOCS[k].rooms.find((r) => r.id === v.room)?.name)}. ${v.why}`).join(' ')}</small></p>
+        </section>
+        <section class="dt-sec" data-sec="radiacion" hidden>
+          ${T(`<h3>☢ Radiación medida de verdad</h3>`, `<h3>☢ Radiation measured for real</h3>`)}
+          <ul class="datos-lista">${dosisReales().map((d) => `<li><b>${d.donde}:</b> ${d.valor} <small>(${d.fuente})</small></li>`).join('')}</ul>
+        </section>
+        <section class="dt-sec" data-sec="salud" hidden>
+          ${T(`<h3>🧬 Salud de astronautas: estudios del repositorio OSDR de NASA</h3>`, `<h3>🧬 Astronaut health: studies from NASA's OSDR repository</h3>`)}
+          <ul class="datos-lista">${osdr().map((o) => `<li><a href="${osdUrl(o.id)}" target="_blank" rel="noopener">${o.id}</a>: ${o.texto}</li>`).join('')}</ul>
+        </section>
+        <section class="dt-sec" data-sec="protocolos" hidden>
+          ${T(`<h3>🚨 Protocolos de emergencia</h3>`, `<h3>🚨 Emergency protocols</h3>`)}
+          <ul class="datos-lista">${Object.entries(PROTO_FUENTE).filter(([, f]) => f.nivel !== 'ficcion').map(([k, f]) => `<li><b>${T(PROTOCOLS[k].title, PROTOCOLS[k].titleEn)}</b> — ${T(PROTO_NIVEL[f.nivel], PROTO_NIVEL_EN[f.nivel])}. <small>${T(f.fuente, f.fuenteEn)}</small></li>`).join('')}</ul>
+          ${T(`<p><small>Los demás protocolos del juego están marcados como ficción dentro del minijuego.</small></p>`, `<p><small>The other protocols in the game are marked as fiction inside the minigame.</small></p>`)}
+        </section>
+        <section class="dt-sec" data-sec="escala" hidden>
+          ${T(`<h3>🎮 Escala de juego (no es dato real)</h3>`, `<h3>🎮 Game scale (not real data)</h3>`)}
+          <ul class="datos-lista">${escala().map((t) => `<li>${t}</li>`).join('')}</ul>
+        </section>
+      </div>
+      <form class="term-in" id="term-form" autocomplete="off"><label for="term-cmd">custodia@nasa:~$</label><input id="term-cmd" type="text" spellcheck="false" autocapitalize="off" placeholder="${T('escribe un comando… (ayuda)', 'type a command… (help)')}" maxlength="30"><button type="submit" class="sec">${T('ENTER', 'ENTER')}</button></form>
+      <p class="term-msg" id="term-msg" aria-live="polite"></p>
+    </div>
     <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} ${T('VOLVER', 'BACK')}</button></div>`, 'pant-datos');
-  $('ok').onclick = () => (back ? back() : close());
+  const ir = (id, eco) => {
+    const sec = $('term-out').querySelector(`[data-sec="${id}"]`); if (!sec) return;
+    $('term-out').querySelectorAll('.dt-sec').forEach((x) => { x.hidden = x !== sec; });
+    $('ventana').querySelectorAll('.term-cmds button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.sec === id)));
+    $('term-ps').innerHTML = `custodia@nasa:~$ ${eco ?? `ver ${nombreSeccion(id)}`}<span class="cursor">█</span>`; $('term-msg').textContent = '';
+    $('term-out').classList.remove('nueva'); void $('term-out').offsetWidth; $('term-out').classList.add('nueva'); // cada comando "imprime" sus líneas una tras otra (apagado en modo suave)
+    $('ventana').scrollTop = 0; datosSec = id;
+  };
+  datosIr = (i) => ir(SECCIONES_DATOS[i]);
+  $('ventana').querySelectorAll('.term-cmds button').forEach((b) => { b.onclick = () => { M.ui('click'); ir(b.dataset.sec); }; });
+  $('term-form').onsubmit = (e) => {
+    e.preventDefault(); const txt = $('term-cmd').value; $('term-cmd').value = ''; const c = comandoDatos(txt);
+    if (c.tipo === 'sec') { M.ui('ok'); ir(c.id, txt.trim()); }
+    else if (c.tipo === 'salir') { $('ok').click(); }
+    else if (c.tipo === 'ayuda') { M.ui('info'); $('term-ps').innerHTML = `custodia@nasa:~$ ${T('ayuda', 'help')}<span class="cursor">█</span>`; $('term-msg').textContent = T('Comandos: ', 'Commands: ') + SECCIONES_DATOS.map((id, i) => `${i + 1}=${nombreSeccion(id)}`).join(' · ') + T(' · salir', ' · exit'); }
+    else if (c.tipo === 'desconocido') { M.ui('error'); $('term-msg').textContent = T(`comando no reconocido: "${c.texto}". Escribe ayuda.`, `command not recognized: "${c.texto}". Type help.`); }
+  };
+  ir(sec0); $('ok').onclick = () => (back ? back() : close());
   $('llave-ok').onclick = () => {
     const k = $('llave-nasa').value.trim();
     try { if (k) localStorage.setItem('lfr.nasaKey', k); else localStorage.removeItem('lfr.nasaKey'); localStorage.removeItem('lfr.flares'); } catch { /* sin almacenamiento */ }
     $('llave-est').textContent = T('Consultando NASA DONKI…', 'Asking NASA DONKI…'); M.ui('click');
-    pedirDonki().then((ok) => { if (ok) datos(back); else $('llave-est').textContent = donkiEstado.error === 'limite' ? T('NASA dice que esta llave ya gastó su cupo (la de prueba, DEMO_KEY, da unas 30 consultas por hora por red). Pega tu llave gratis de api.nasa.gov o espera un rato. Mientras, se usan las llamaradas archivadas.', 'NASA says this key has used up its quota (the DEMO_KEY test key allows about 30 requests per hour per network). Paste your free api.nasa.gov key or wait a while. Meanwhile the archived flares are used.') : T('NASA no respondió (llave inválida o sin internet). Se siguen usando las llamaradas archivadas.', 'NASA did not answer (invalid key or no internet). The archived flares are still used.'); });
+    pedirDonki().then((ok) => { if (ok) datos(back, 'clima'); else $('llave-est').textContent = donkiEstado.error === 'limite' ? T('NASA dice que esta llave ya gastó su cupo (la de prueba, DEMO_KEY, da unas 30 consultas por hora por red). Pega tu llave gratis de api.nasa.gov o espera un rato. Mientras, se usan las llamaradas archivadas.', 'NASA says this key has used up its quota (the DEMO_KEY test key allows about 30 requests per hour per network). Paste your free api.nasa.gov key or wait a while. Meanwhile the archived flares are used.') : T('NASA no respondió (llave inválida o sin internet). Se siguen usando las llamaradas archivadas.', 'NASA did not answer (invalid key or no internet). The archived flares are still used.'); });
   };
 }
 
@@ -1110,6 +1152,7 @@ addEventListener('keydown', (e) => {
   if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
   if (menu === 'fin' && (k === 'r' || (k === 'enter' && !e.target.closest?.('button, summary, input, textarea')))) { ($('otra') ?? $('menu'))?.click(); return; } // reintento inmediato con una tecla
+  if (menu === 'datos' && /^[1-6]$/.test(k) && !e.target.closest?.('input, textarea')) { datosIr?.(+k - 1); return; } // atajos 1–6 en la terminal de DATOS NASA
   if (k === 'enter' && menu === 'titulo' && !e.target.closest?.('button, summary, input, textarea')) { $('t-jugar')?.click(); return; } // Enter = JUGAR en el título
   if (['e', 'q', 'c', 'p', 'f', 't', 'g', 'b', 'i', 'm', 'v', '1', '2', '3', '4', 'escape'].includes(k)) act(k);
 });

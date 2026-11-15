@@ -444,3 +444,38 @@ body.cadete:not(.ver-plan) .vr[data-f="fuerza"], body.cadete:not(.ver-plan) .vr[
 body.derrota #lienzo { filter: grayscale(1) brightness(.55); }
 body.derrota .fin.pierde { border-color: #ff6b6b; }
 .ficha { margin-bottom: .45rem; } .ficha small { color: #9fb3c8; } .nom { border-bottom: 1px dotted #6a7f96; cursor: help; }
+
+/* ---------- terminal DATOS NASA ---------- */
+.pant-datos .ventana { background: #03090d; border: 1px solid #1f6b57; box-shadow: 0 0 0 1px #07140f inset, 0 0 22px rgba(60,255,160,.08); position: relative; }
+.pant-datos .ventana::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 1px, transparent 1px 3px); }
+.suave .pant-datos .ventana::after { display: none; }
+.term { font-family: 'VT323', monospace; color: #9ff7cf; }
+.term-cab { display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap; padding: .25rem .5rem; border: 1px solid #1f6b57; background: #04120e; font-size: .95rem; letter-spacing: .08em; }
+.term-est { color: #ffc23d; } .term-est.vivo { color: #6dff9b; }
+.term-cmds { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0; }
+.term-cmds button { background: transparent; border: 1px solid #1f6b57; color: #7ee9bd; font-family: inherit; font-size: 1rem; padding: .25rem .6rem; min-height: 40px; cursor: pointer; }
+.term-cmds button[aria-pressed="true"] { background: #0c2a21; color: #fff; border-color: #6dff9b; }
+.term-ps { margin: .2rem 0 .4rem; color: #6dff9b; min-height: 1.4em; }
+.term-out { min-height: 9rem; }
+.term-out h3 { color: #ffd23d; }
+.term-out .datos-lista li, .term-out p { color: #cdeee0; }
+.term-out.nueva .dt-sec:not([hidden]) > * { animation: dt-linea .35s ease-out both; }
+.term-out.nueva .dt-sec:not([hidden]) > *:nth-child(2) { animation-delay: .08s; } .term-out.nueva .dt-sec:not([hidden]) > *:nth-child(3) { animation-delay: .16s; } .term-out.nueva .dt-sec:not([hidden]) > *:nth-child(4) { animation-delay: .24s; }
+.term-out.nueva .dt-sec:not([hidden]) .datos-lista li { animation: dt-linea .3s ease-out both; }
+.term-out.nueva .dt-sec:not([hidden]) .datos-lista li:nth-child(2) { animation-delay: .07s; } .term-out.nueva .dt-sec:not([hidden]) .datos-lista li:nth-child(3) { animation-delay: .14s; } .term-out.nueva .dt-sec:not([hidden]) .datos-lista li:nth-child(4) { animation-delay: .21s; } .term-out.nueva .dt-sec:not([hidden]) .datos-lista li:nth-child(5) { animation-delay: .28s; }
+@keyframes dt-linea { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.term-nota { color: #7aa9c9 !important; font-size: .95rem; }
+.term-in { display: flex; gap: .4rem; align-items: center; margin-top: .6rem; border-top: 1px dashed #1f6b57; padding-top: .5rem; }
+.term-in label { color: #6dff9b; white-space: nowrap; }
+.term-in input { flex: 1; min-width: 0; background: transparent; border: none; border-bottom: 1px solid #1f6b57; color: #fff; font-family: inherit; font-size: 1.05rem; padding: .25rem .3rem; }
+.term-in input:focus { outline: 2px solid #6dff9b; outline-offset: 2px; }
+.term-msg { min-height: 1.3em; margin: .3rem 0 0; color: #ffd23d; font-size: .95rem; }
+.pant-datos .llave input { background: #02070a; color: #fff; border: 1px solid #1f6b57; }
+
+/* ---------- piel de terminal para Control de Misión ---------- */
+#mcc { position: relative; font-family: 'VT323', monospace; }
+#mcc::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 5; background: repeating-linear-gradient(0deg, rgba(0,0,0,.10) 0 1px, transparent 1px 3px); }
+.suave #mcc::after { display: none; }
+.mcc-top b { letter-spacing: .12em; text-shadow: 0 0 8px rgba(95,246,255,.35); }
+#m-estado::before { content: '> '; opacity: .6; }
+.pant-datos .term { padding-bottom: 3.6rem; }

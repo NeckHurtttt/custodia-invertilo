@@ -335,7 +335,17 @@ try {
     const dat = await pg.textContent('#ventana');
     for (const frag of ['NASA DATA', 'The real constraint the game teaches', 'Radiation measured for real', 'Space weather', 'NASA DONKI', '600 mSv', 'OSD-340', 'Game scale (not real data)', 'api.nasa.gov key']) assert.ok(dat.includes(frag), `DATOS NASA en inglés debe decir "${frag}"`);
     assert.ok(!/La restricción real|Radiación medida/.test(dat), 'DATOS NASA no queda en español');
-    await pg.screenshot({ path: join(salida, '8-ingles-datos.png') }); await pg.click('#ok'); await pg.waitForSelector('#t-jugar');
+    await pg.screenshot({ path: join(salida, '8-ingles-datos.png') });
+    // terminal: botones, comandos escritos, atajos 1–6 y mensaje de error
+    const vis = () => pg.evaluate(() => [...document.querySelectorAll('.dt-sec')].filter((x) => !x.hidden).map((x) => x.dataset.sec));
+    assert.deepEqual(await vis(), ['restriccion'], 'al abrir se ve solo la restricción real'); assert.match(await pg.textContent('.term-cab'), /NASA TERMINAL/);
+    await pg.click('[data-sec="salud"]'); assert.deepEqual(await vis(), ['salud']); assert.match(await pg.textContent('.dt-sec[data-sec="salud"]:not([hidden])'), /OSD-342/); assert.ok((await pg.textContent('#term-ps')).includes('custodia@nasa:~$ ver health'));
+    await pg.fill('#term-cmd', 'weather'); await pg.keyboard.press('Enter'); assert.deepEqual(await vis(), ['clima']); assert.match(await pg.textContent('.dt-sec[data-sec="clima"]:not([hidden])'), /DONKI/);
+    await pg.screenshot({ path: join(salida, '8-ingles-datos-clima.png') });
+    await pg.fill('#term-cmd', 'zzz'); await pg.keyboard.press('Enter'); assert.match(await pg.textContent('#term-msg'), /command not recognized: "zzz"/); assert.deepEqual(await vis(), ['clima'], 'un comando raro no cambia la sección');
+    await pg.fill('#term-cmd', 'help'); await pg.keyboard.press('Enter'); assert.match(await pg.textContent('#term-msg'), /Commands: 1=constraint/);
+    await pg.click('#ventana h2'); await pg.keyboard.press('3'); assert.deepEqual(await vis(), ['radiacion'], 'la tecla 3 abre radiación'); assert.match(await pg.textContent('.dt-sec[data-sec="radiacion"]:not([hidden])'), /600 mSv/);
+    await pg.click('#ok'); await pg.waitForSelector('#t-jugar');
     // intro y partida
     await pg.click('#t-jugar'); await pg.waitForSelector('#ok');
     const intro = await pg.textContent('#ventana');

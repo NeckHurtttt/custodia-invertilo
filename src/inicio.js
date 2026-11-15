@@ -46,3 +46,35 @@ export const CONSEJOS = () => [
 ];
 /** El consejo número `i` (da la vuelta al llegar al final). */
 export const consejo = (i = 0) => { const l = CONSEJOS(); return l[((i % l.length) + l.length) % l.length]; };
+
+// ---------- Terminal DATOS NASA: comandos que se escriben o se tocan ----------
+export const SECCIONES_DATOS = ['restriccion', 'clima', 'radiacion', 'salud', 'protocolos', 'escala'];
+const ALIAS = {
+  restriccion: ['restriccion', 'restriction', 'constraint', 'inicio', 'home', 'cat'],
+  clima: ['clima', 'weather', 'donki', 'sol', 'sun', 'tormenta', 'tormentas', 'storm', 'storms', 'llamarada', 'llamaradas', 'flare', 'flares', 'llave', 'key'],
+  radiacion: ['radiacion', 'radiation', 'dosis', 'dose', 'doses', 'msv'],
+  salud: ['salud', 'health', 'osdr', 'ratones', 'mice'],
+  protocolos: ['protocolos', 'protocolo', 'protocols', 'protocol', 'emergencia', 'emergencias', 'emergency', 'fuego', 'fire'],
+  escala: ['escala', 'scale', 'juego', 'game'],
+  ayuda: ['ayuda', 'help', '?', 'ls', 'comandos', 'commands', 'man'],
+  salir: ['salir', 'exit', 'quit', 'volver', 'back', 'q'],
+};
+/** Quita mayúsculas, tildes y verbos de relleno («ver clima», «open storms» → «clima», «storms»). */
+const limpia = (x) => String(x ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/^(ver|abrir|abre|open|show|cat|ls|go|ir)\s+/, '');
+/**
+ * Entiende lo que escribe el jugador en la terminal de DATOS NASA. Devuelve:
+ *  { tipo: 'sec', id } (una de SECCIONES_DATOS) · { tipo: 'ayuda' } · { tipo: 'salir' } · { tipo: 'nada' } · { tipo: 'desconocido', texto }.
+ * También acepta el número de la sección (1–6).
+ */
+export function comandoDatos(texto) {
+  const crudo = String(texto ?? '').trim(); if (!crudo) return { tipo: 'nada' };
+  const t = limpia(crudo); const raw = crudo.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  if (raw === 'ls') return { tipo: 'ayuda' };
+  if (/^[1-6]$/.test(t)) return { tipo: 'sec', id: SECCIONES_DATOS[+t - 1] };
+  for (const [id, lista] of Object.entries(ALIAS)) if (lista.includes(t) || lista.includes(raw)) return id === 'ayuda' ? { tipo: 'ayuda' } : id === 'salir' ? { tipo: 'salir' } : { tipo: 'sec', id };
+  return { tipo: 'desconocido', texto: crudo.slice(0, 40) };
+}
+/** Nombre corto del comando de cada sección (para los botones y la ayuda). */
+export const nombreSeccion = (id) => ({
+  restriccion: T('restriccion', 'constraint'), clima: T('clima', 'weather'), radiacion: T('radiacion', 'radiation'), salud: T('salud', 'health'), protocolos: T('protocolos', 'protocols'), escala: T('escala', 'scale'),
+}[id]);
