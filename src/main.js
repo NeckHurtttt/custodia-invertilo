@@ -19,7 +19,7 @@ const idiomaHTML = () => `<div class="idioma" role="group" aria-label="Language 
 const HUD_TXT = [['#c-vit h3', 'TÚ', 'YOU'], ['#ov-sis h3', 'SISTEMAS DE LA BASE', 'BASE SYSTEMS'], ['.hud-crew h3', 'TRIPULACIÓN', 'CREW'], ['.hud-inv h3.cap', 'MOCHILA', 'BACKPACK'], ['#btn-mochila', 'Mochila', 'Backpack'], ['#btn-fabricar', 'Fabricar', 'Craft'], ['#btn-usar', 'Inhibir', 'Inhibit'],
   ['[data-panel="mant"]', 'Mantenim.', 'Upkeep'], ['[data-panel="plan"]', 'Plan', 'Plan'], ['[data-panel="amen"]', 'Amenazas', 'Threats'], ['[data-panel="reg"]', 'Avisos', 'Alerts'], ['#btn-nombres', 'Nombres', 'Names'], ['#btn-menu .txt', 'PAUSA', 'PAUSE']];
 const aplicaIdioma = () => { for (const [sel, es, en] of HUD_TXT) { const el = document.querySelector(sel); if (!el) continue; for (const n of el.childNodes) if (n.nodeType === 3 && [es, en].includes(n.nodeValue.trim())) n.nodeValue = n.nodeValue.replace(/\S(.*\S)?/, T(es, en)); } };
-const cambiaIdioma = (l, volver) => { setLang(l); try { localStorage.setItem('lfr.lang', l); } catch { /* nada */ } document.documentElement.lang = l; aplicaIdioma(); Voz.parar(); volver(); };
+const cambiaIdioma = (l, volver) => { setLang(l); try { localStorage.setItem('lfr.lang', l); } catch { /* nada */ } document.documentElement.lang = l; aplicaIdioma(); textosTactil(); Voz.parar(); volver(); };
 aplicaIdioma();
 import { VILLAINS } from './villains.js';
 import * as M from './music.js';
@@ -133,7 +133,7 @@ const OBJ_COLOR = { cajon: '#ffd23d', registro: '#ff6b6b', capcom: '#5ff6ff', es
 /** Cuántos letreros se pintaron en este cuadro (lo lee la prueba e2e para vigilar que no se acumulen). */
 let nEtq = 0;
 /** [N] Nombres: apagado por defecto. Apagado = solo el nombre del objeto sobre el que actuarías con E y el de la sala donde estás. */
-const vista = { nombres: getOpt('nombres', '0') === '1' };
+const vista = { nombres: getOpt('nombres', '0') === '1', cruz: getOpt('cruz', '0') === '1' };
 function alternaNombres() { vista.nombres = !vista.nombres; setOpt('nombres', vista.nombres ? '1' : '0'); hud(); }
 /** Letrero del objeto sobre el que usarás con E (con marco). Con [N] activado también los cercanos, chicos y más tenues. */
 function objetoEtiquetas(t) {
@@ -582,6 +582,7 @@ function diaNuevo() {
   el.hidden = false; clearTimeout(diaT); diaT = setTimeout(() => { el.hidden = true; }, 6500);
 }
 function vigilaDia() {
+  if (diaDe !== s && esTactil() && !vista.cruz && getOpt('joyhint', '0') !== '1') { setOpt('joyhint', '1'); G.say(s, T('Para moverte: toca el mapa con el dedo y deslízalo hacia donde quieras ir.', 'To move: touch the map with your finger and slide it where you want to go.'), 'info'); }
   if (diaDe !== s) { diaDe = s; diaVisto = s.day; const el = $('dia-nuevo'); if (el) el.hidden = true; return; }
   if (s.day === diaVisto) return;
   const subio = s.day > diaVisto; diaVisto = s.day;
@@ -750,6 +751,7 @@ const AJ = {
   sfx: { id: 'sw-sfx', ico: 'sfx', get txt() { return T('EFECTOS DE SONIDO', 'SOUND EFFECTS'); }, get pista() { return T('Pasos, alarmas y avisos', 'Steps, alarms and alerts'); }, get: () => M.sfxOn(), set: () => M.toggleSfx() },
   suave: { id: 'sw-suave', ico: 'suave', get txt() { return T('EFECTOS VISUALES SUAVES', 'SOFT VISUAL EFFECTS'); }, get pista() { return T('Sin sacudidas ni destellos', 'No shaking or flashes'); }, get: () => FX.suave(), set: () => FX.toggleFx() },
   voz: { id: 'sw-voz', ico: 'sfx', get txt() { return T('LEER EN VOZ ALTA', 'READ ALOUD'); }, get pista() { return T('Lee las ventanas y los avisos importantes', 'Reads windows and important alerts'); }, get: () => vozAuto(), set: () => { alternaVoz(); } },
+  cruz: { id: 'sw-cruz', ico: 'jugar', get txt() { return T('CRUZ DE FLECHAS', 'ARROW PAD'); }, get pista() { return T('Si NO, te mueves deslizando el dedo por el mapa', 'If NO, you move by sliding your finger on the map'); }, get: () => vista.cruz, set: () => { vista.cruz = !vista.cruz; setOpt('cruz', vista.cruz ? '1' : '0'); sincTactil(); } },
   nombres: { id: 'sw-nombres', ico: 'nombres', get txt() { return T('NOMBRES DE OBJETOS', 'OBJECT NAMES'); }, get pista() { return T('Tecla N', 'Key N'); }, get: () => vista.nombres, set: () => alternaNombres() },
 };
 const ajustesHTML = (claves) => claves.map((k) => interruptor(AJ[k].id, AJ[k].ico, AJ[k].txt, AJ[k].get(), AJ[k].pista)).join('');
@@ -1218,15 +1220,43 @@ addEventListener('blur', () => keys.clear());
 $('btn-nombres').onclick = () => { if (s && !menu) alternaNombres(); }; $('btn-fabricar').onclick = () => act('c'); $('btn-full').onclick = toggleFull; document.querySelectorAll('#teclas [data-panel]').forEach((b) => { b.onclick = () => { if (s && !menu) togglePanel(b.dataset.panel); }; }); $('btn-mochila').onclick = () => act('i'); $('btn-menu').onclick = () => { if (!menu) act('p'); else if (menu === 'pausa') close(); }; $('btn-musica').onclick = () => { M.toggle(); sincBotones(); }; $('btn-usar').onclick = () => act('q'); $('btn-ayuda').onclick = () => { if (!menu) help(null); };
 // controles táctiles: en pantallas táctiles o angostas (teléfono); body.tactil-on deja sitio a los atajos
 const esTactil = () => matchMedia('(pointer: coarse)').matches || UI.esAngosta(innerWidth);
-function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); }
+function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('cruz-on', on && vista.cruz); }
 sincTactil(); addEventListener('resize', sincTactil); sincBotones();
 const dirs = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
+/**
+ * Joystick flotante: pon el dedo en cualquier parte del mapa y desliza; el círculo aparece donde empezaste y el personaje camina hacia donde
+ * llevas el dedo. Si te pasas del círculo, este te sigue (así cambiar de dirección es rápido). Al soltar, se detiene. Solo toques (no mouse);
+ * con la «cruz de flechas» activada no se usa. Los botones (E, F, atajos…) no lo activan.
+ */
+const joy = { id: null, x: 0, y: 0 }; const JOY_R = 46, JOY_MUERTO = 9;
+const joyEl = document.createElement('div'); joyEl.id = 'joy'; joyEl.hidden = true; joyEl.innerHTML = '<i></i>'; document.body.appendChild(joyEl);
+function joyMueve(e) {
+  let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const len = Math.hypot(dx, dy);
+  if (len > JOY_R) { joy.x += (dx / len) * (len - JOY_R); joy.y += (dy / len) * (len - JOY_R); dx = e.clientX - joy.x; dy = e.clientY - joy.y; } // el círculo sigue al dedo
+  const l = Math.hypot(dx, dy);
+  if (l < JOY_MUERTO) { touch.dx = 0; touch.dy = 0; } else { touch.dx = dx / l; touch.dy = dy / l; }
+  joyEl.style.left = joy.x + 'px'; joyEl.style.top = joy.y + 'px'; joyEl.firstChild.style.transform = `translate(${dx}px, ${dy}px)`;
+}
+function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch.dx = 0; touch.dy = 0; joyEl.hidden = true; }
+{
+  const pant = document.querySelector('.pantalla');
+  pant.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' || joy.id !== null || menu || !s || vista.cruz || e.target.closest('button, input, textarea, a')) return;
+    joy.id = e.pointerId; joy.x = e.clientX; joy.y = e.clientY; joyEl.hidden = false; try { pant.setPointerCapture(e.pointerId); } catch { /* sin captura */ } joyMueve(e);
+  });
+  pant.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) joyMueve(e); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pant.addEventListener(ev, joySuelta);
+}
+/** Los botones de acción dicen QUÉ hacen (no solo la letra del teclado). */
+const TACTIL_TXT = { 't-e': ['E', 'USAR', 'USE'], 't-f': ['F', 'ESCONDER', 'HIDE'], 't-t': ['T', 'LANZAR', 'THROW'], 't-sh': ['⇩', 'AGACHAR', 'CROUCH'], 't-q': ['Q', 'INHIBIR', 'JAM'], 't-i': ['I', 'MOCHILA', 'BAG'] };
+function textosTactil() { for (const [id, [k, es, en]] of Object.entries(TACTIL_TXT)) { const b = $(id); if (b) b.innerHTML = `<b>${k}</b><small>${T(es, en)}</small>`; } }
+textosTactil();
 document.querySelectorAll('.cruz button').forEach((b) => {
   const on = (e) => { e.preventDefault(); [touch.dx, touch.dy] = dirs[b.dataset.d]; };
   const off = (e) => { e.preventDefault(); touch.dx = 0; touch.dy = 0; };
   b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
 });
-$('t-e').onclick = () => act('e'); $('t-f').onclick = () => act('f'); $('t-t').onclick = () => act('t'); $('t-i').onclick = () => act('i'); $('t-sh').onclick = () => { touch.crouch = !touch.crouch; $('t-sh').classList.toggle('sel', touch.crouch); }; $('t-q').onclick = () => act('q');
+$('t-e').onclick = () => act('e'); $('t-f').onclick = () => act('f'); $('t-t').onclick = () => act('t'); $('t-i').onclick = () => act('i'); $('t-sh').onclick = () => { touch.crouch = !touch.crouch; $('t-sh').classList.toggle('sel', touch.crouch); if (s && !menu) G.flash(s, touch.crouch ? T('Agachado: haces menos ruido y te ven menos, pero caminas más lento. Vuelve a tocar para pararte.', 'Crouching: you make less noise and are seen less, but you walk slower. Tap again to stand up.') : T('Te pusiste de pie.', 'You stood up.'), 'info'); }; $('t-q').onclick = () => act('q');
 
 function input() {
   let dx = touch.dx, dy = touch.dy;
@@ -1304,7 +1334,7 @@ addEventListener('appinstalled', () => { instalarEv = null; pintaOffline(); });
 // Botón 🔊 LEER en cada ventana; el ajuste «LEER EN VOZ ALTA» lee solo la intro, la tormenta y el final, y los avisos importantes.
 const vozAuto = () => { try { return localStorage.getItem('lfr.voz') === '1'; } catch { return false; } };
 const alternaVoz = () => { const v = !vozAuto(); try { localStorage.setItem('lfr.voz', v ? '1' : '0'); } catch { /* nada */ } if (!v) Voz.parar(); return v; };
-const conVoz = (lista) => (Voz.disponible() ? [...lista, 'voz'] : lista);
+const conVoz = (lista) => { const l = esTactil() ? [...lista, 'cruz'] : lista; return Voz.disponible() ? [...l, 'voz'] : l; };
 const MENUS_SIN_VOZ = ['titulo', 'protocolo', 'codigo', 'cables', 'respira']; // el título son botones y el resto son minijuegos: no se leen
 /** Texto de la ventana abierta, sin botones ni cosas ocultas (por ejemplo, las secciones cerradas de DATOS NASA). */
 function textoVentana() {

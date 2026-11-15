@@ -548,3 +548,25 @@ body.derrota .dia-nuevo { display: none; }
 }
 /* tablet chica (alto 521–640 px): el título deja más aire para que JUGAR siempre quepa, aunque el consejo ocupe dos líneas */
 @media (max-height: 640px) and (min-width: 601px) { .inicio { gap: .4rem; } .logo-grande { font-size: 2.3rem; } .inicio .puntos { display: none; } }
+
+/* Joystick flotante (aparece donde pones el dedo) y botones de acción con su palabra */
+.pantalla { touch-action: none; }
+#joy { position: fixed; z-index: 6; width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%; border: 2px solid rgba(95,246,255,.55); background: rgba(95,246,255,.08); pointer-events: none; }
+#joy[hidden] { display: none; }
+#joy i { position: absolute; left: 50%; top: 50%; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%; background: rgba(95,246,255,.4); border: 2px solid #5ff6ff; }
+.tactil .cruz { display: none; } body.cruz-on .tactil .cruz { display: grid; }
+.tactil .acciones button { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; gap: 2px; }
+.tactil .acciones button b { font-weight: normal; font-size: 1.35rem; }
+.tactil .acciones button small { font-size: .62rem; letter-spacing: .03em; color: var(--dim); }
+.tactil .acciones button.principal small, .tactil .acciones button.sel small { color: var(--amber); }
+/* Teléfono: las fichas del HUD dicen su nombre y vuelven los títulos de grupo (antes solo había ícono y número, y no se entendía qué era cada una) */
+.tactil { justify-content: flex-end; } body.cruz-on .tactil { justify-content: space-between; }
+@media (max-width: 600px), (max-height: 520px) {
+  .hud-izq h3 { display: flex; font-size: .78em; margin: 0 0 .15em; }
+  .hud-izq .sub-sis { display: none; }
+  .vr { grid-template-areas: "ic val" "nom nom" "ba ba"; }
+  .vr .nom { display: block; grid-area: nom; font-size: .68em; color: var(--dim); letter-spacing: .02em; line-height: 1.05; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vr .bv { margin-top: .05em; }
+}
+@media (max-width: 600px) { .hud-centro, .hud-der { top: calc(58px + 13.6em); } .hud-der { max-height: max(100px, calc(50vh - 260px)); } }
+@media (max-height: 520px) and (min-width: 601px) { .hud-izq { width: 19em; } }
