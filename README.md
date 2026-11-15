@@ -3,6 +3,7 @@
 > **NASA Space Apps 2026 · desafío _Build a Junior Astronaut Mission Trainer_** · equipo **#LosTiraVida** (Santa Cruz, Bolivia)
 
 **Jugar (modo Cadete, 7-12 años):** https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete
+**Sin internet / Offline:** after the first visit the game works without a connection and can be installed (📲 INSTALAR on the title screen or the browser's install button). / Después de la primera visita funciona sin conexión y se puede instalar.
 **Play in English:** https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete&lang=en (also the ES/EN switch on the title screen; the choice is remembered)
 · sin descarga ni cuenta, en el navegador de la compu, tablet o celular.
 

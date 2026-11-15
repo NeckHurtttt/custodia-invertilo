@@ -406,6 +406,25 @@ try {
   }
   ok('arranque dramático: pantalla negra → una tecla enciende → se escribe la historia (señal perdida, la IA, rescate en 10 días) → se salta con otra tecla → título; en «reducir movimiento» sale completo y sin sacudida');
 
+  // 10c. Sin internet: el service worker guarda el juego; con la red cortada la página recarga, se puede jugar y DATOS NASA usa las llamaradas archivadas.
+  {
+    const c = await navegador.newContext({ viewport: { width: 1280, height: 760 }, serviceWorkers: 'allow' }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`sin internet: error de JavaScript: ${e.message}`));
+    pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource|ERR_INTERNET_DISCONNECTED/.test(m.text() + m.location().url)) problemas.push(`sin internet: consola: ${m.text()}`); });
+    await pg.goto(`${url}?sw`); await pg.waitForSelector('#t-jugar', { timeout: 10000 });
+    await pg.waitForFunction(() => /Listo para jugar sin internet/.test(document.getElementById('t-offline')?.textContent ?? ''), null, { timeout: 20000 });
+    const guardados = await pg.evaluate(async () => (await (await caches.open('custodia-v1')).keys()).length); assert.ok(guardados >= 30, `el service worker guardó ${guardados} archivos (esperaba ≥ 30)`);
+    await c.setOffline(true); await pg.reload(); await pg.waitForSelector('#t-jugar', { timeout: 10000 });
+    assert.ok((await pg.textContent('#ventana')).includes('CUSTODIA'), 'sin internet carga el título');
+    await pg.click('#t-datos'); await pg.waitForSelector('.term'); await pg.fill('#term-cmd', 'clima'); await pg.keyboard.press('Enter');
+    assert.match(await pg.textContent('.term-est'), /ARCHIVO/, 'sin internet DATOS NASA usa las llamaradas archivadas'); await pg.click('#ok'); await pg.waitForSelector('#t-jugar');
+    await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok'); await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden, null, { timeout: 8000 });
+    const dia = await pg.evaluate(() => { const { s, G } = lfr; s.grace = 9999; for (let i = 0; i < 400; i++) G.update(s, 0.05, { dx: 0, dy: 0 }); return s.min; });
+    assert.ok(dia > 340, 'sin internet el juego avanza'); await pg.screenshot({ path: join(salida, '10-sin-internet.png') });
+    await c.setOffline(false); await c.close();
+  }
+  ok('sin internet: el service worker guarda el juego (≥ 30 archivos), con la red cortada la página recarga, se puede jugar y DATOS NASA usa las llamaradas archivadas');
+
   // 11. Reto del día con la llamarada real del día: la intro la anuncia, llega a la hora marcada y el resumen cuenta qué pasó.
   {
     const c = await navegador.newContext({ viewport: { width: 1280, height: 760 } }); const pg = await c.newPage();

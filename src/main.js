@@ -770,6 +770,7 @@ function titleScreen() {
       <div class="bloque-op">${ajustesHTML(['musica', 'sfx', 'suave'])}</div>
     </details>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
+    <p class="offline" id="t-offline" hidden></p>
     <p class="pie">${T(`UN JUEGO DE #LosTiraVida · NASA Space Apps 2026 · desafío Junior Astronaut Mission Trainer`, `A GAME BY #LosTiraVida · NASA Space Apps 2026 · Junior Astronaut Mission Trainer challenge`)}</p>
   </div>`, 'pant-titulo');
   const V = $('ventana');
@@ -778,6 +779,7 @@ function titleScreen() {
   $('t-coop').onclick = () => coopUI.roles();
   $('t-datos').onclick = () => datos(titleScreen);
   V.querySelectorAll('[data-lang]').forEach((b) => (b.onclick = () => cambiaIdioma(b.dataset.lang, titleScreen)));
+  pintaOffline();
   const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { ...opts, flares: liveFlares }); base = null; close(); intro(); };
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
   V.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { setOpt('dest', b.dataset.loc); titleScreen(); }));
@@ -1241,6 +1243,24 @@ function frame(t) {
 }
 addEventListener('beforeunload', save);
 let consejoN = Math.floor(Math.random() * 11);
+// ---------- sin internet (aplicación instalable) ----------
+// sw.js guarda el juego después de la primera visita; aquí se registra, se avisa «listo sin internet» y se ofrece INSTALAR.
+// En localhost y en las pruebas no se registra (para no ver archivos viejos mientras se programa); `?sw` lo fuerza.
+let offlineListo = false; let instalarEv = null;
+function pintaOffline() {
+  const el = document.getElementById('t-offline'); if (!el) return;
+  el.hidden = !(offlineListo || instalarEv);
+  el.innerHTML = (offlineListo ? T('✔ Listo para jugar sin internet', '✔ Ready to play offline') : '') + (instalarEv ? ` <button type="button" id="t-instalar" class="mini">📲 ${T('INSTALAR', 'INSTALL')}</button>` : '');
+  const b = document.getElementById('t-instalar'); if (b) b.onclick = () => { instalarEv?.prompt?.(); instalarEv = null; pintaOffline(); };
+}
+function registraOffline() {
+  if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+  const local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+  if ((local || navigator.webdriver) && !new URLSearchParams(location.search).has('sw')) return;
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(() => { offlineListo = true; pintaOffline(); }).catch(() => { /* sin service worker: el juego funciona igual, con internet */ });
+}
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); instalarEv = e; pintaOffline(); });
+addEventListener('appinstalled', () => { instalarEv = null; pintaOffline(); });
 /**
  * Arranque dramático «CUSTODIA OS» (una vez por sesión; ?boot lo fuerza, ?noboot o ?jurado lo quitan; nunca en pruebas automáticas).
  * Pantalla negra → una tecla enciende (y desbloquea el audio) → texto que se escribe, una sacudida breve en «SEÑAL PERDIDA» y la IA que habla →
@@ -1286,7 +1306,7 @@ document.fonts?.load('16px VT323').finally(() => {
   // de la primera tormenta solar real, para ver la mecánica central en menos de un minuto.
   const q = new URLSearchParams(location.search);
   if (q.has('cadete') || q.has('jurado')) setDif('cadete');
-  titleScreen(); requestAnimationFrame(frame); arranque();
+  titleScreen(); requestAnimationFrame(frame); arranque(); registraOffline();
   if (q.has('jurado')) {
     M.start(); s = G.newGame('estacion', undefined, 'cadete', { flares: liveFlares, mode: 'campana' }); base = null; close();
     s.day = 2; s.min = 14 * 60 + 52; s.p.sleep = false; G.say(s, 'Modo jurado: día 2, 14:52. En unos segundos llega la primera tormenta solar real (NASA DONKI). ¿Refugio o sigues?', 'info');

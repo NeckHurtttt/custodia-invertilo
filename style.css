@@ -488,3 +488,7 @@ body.derrota .fin.pierde { border-color: #ff6b6b; }
 .quiz-op button.ok { border-color: #4dff88; background: rgba(77,255,136,.12); }
 .quiz-op button.mal { border-color: #ff6b6b; background: rgba(255,107,107,.12); }
 .quiz-v.si { color: #6dff9b; } .quiz-v.no { color: #ffb23d; }
+
+/* ---------- sin internet ---------- */
+.offline { margin: .3rem auto; text-align: center; font-size: .95rem; color: #6dff9b; }
+.offline .mini { margin-left: .4rem; }
