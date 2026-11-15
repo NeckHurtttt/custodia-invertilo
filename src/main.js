@@ -576,7 +576,8 @@ function diaNuevo() {
   el.innerHTML = `<p class="dn-dia">${T('DÍA', 'DAY')} ${s.day} <small>${T('de', 'of')} ${G.DAYS}</small></p>
     <div class="dn-pista" role="img" aria-label="${T(`La nave de rescate lleva ${pct} % del camino`, `The rescue ship has covered ${pct} % of the way`)}"><span class="dn-ext">🌍</span><div class="dn-linea"><i style="width:${pct}%"></i><b style="left:${pct}%">▶</b></div><span class="dn-ext">${ic(s.loc)}</span></div>
     <p class="dn-falta">${faltan > 1 ? T(`La nave de rescate llega en ${faltan} días`, `The rescue ship arrives in ${faltan} days`) : T('La nave de rescate llega mañana', 'The rescue ship arrives tomorrow')}</p>
-    ${msg ? `<p class="dn-msg">📡 ${NAVE}: «${msg}»</p>` : ''}`;
+    ${msg ? `<p class="dn-msg">📡 ${NAVE}: «${msg}»</p>` : ''}
+    ${Sys.eventoHoy(s).map((e) => `<p class="dn-evento ${e.tipo}"><b>${e.tipo === 'bueno' ? '🎲' : e.tipo === 'reto' ? '📡' : '⚠'} ${T('HOY', 'TODAY')}: ${e.name}</b><br>${e.text}</p>`).join('')}`;
   el.hidden = false; clearTimeout(diaT); diaT = setTimeout(() => { el.hidden = true; }, 6500);
 }
 function vigilaDia() {
@@ -694,7 +695,7 @@ function amenazasHTML() {
 const logHTML = (n) => s.log.slice(-n).reverse().map((l) => `<li class="${l.kind}">${l.kind === 'day' ? '' : G.clock(l.min) + ' '}${l.text}</li>`).join('');
 function mantHTML() {
   const sv = Sys.view(s); if (!sv) return `<li>${T('Este destino no tiene sistemas que mantener.', 'This destination has no systems to maintain.')}</li>`;
-  return sv.events.map((e) => `<li class="evento">⚠ ${e.name}: ${e.text}</li>`).join('') + `<li class="enc">${T('REVISIONES DE HOY · 08:00–12:00', 'TODAY\'S CHECKS · 08:00–12:00')}</li>` + sv.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}" title="${k.name}">${k.name} <small>→ ${k.room}</small></li>`).join('') + `<li class="nota">${sv.note}</li>`;
+  return sv.events.map((e) => `<li class="evento ${e.tipo ?? 'malo'}">${e.tipo === 'bueno' ? '🎲' : e.tipo === 'reto' ? '📡' : '⚠'} ${e.name}: ${e.text}</li>`).join('') + `<li class="enc">${T('REVISIONES DE HOY · 08:00–12:00', 'TODAY\'S CHECKS · 08:00–12:00')}</li>` + sv.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}" title="${k.name}">${k.name} <small>→ ${k.room}</small></li>`).join('') + `<li class="nota">${sv.note}</li>`;
 }
 
 // ---------- paneles con tecla y avisos flotantes ----------

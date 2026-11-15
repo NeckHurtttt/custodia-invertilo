@@ -235,3 +235,32 @@ for (const [k, t] of Object.entries(EN_PTITLE)) if (PROTOCOLS[k]) PROTOCOLS[k].t
 
 /** Retraso de la señal con la Tierra que se simula (segundos reales). Realidad: ISS casi instantáneo; Luna ≈ 1,3 s luz por tramo; Marte entre 3 y 22 MINUTOS luz según la posición de los planetas (distancias Tierra–Marte, NASA). Aquí Marte se acorta para que se pueda jugar. */
 export const SIGNAL_DELAY = { estacion: 0, luna: 2, marte: 6 };
+
+// ---------- Variantes del mantenimiento (otros pasos para la misma revisión; el día 1 siempre sale la A; ver variedad.js) ----------
+// [pasos en español, pasos en inglés]. Siguen siendo pasos de juego (nivel «ficcion»), igual que la versión A.
+const MANT_VARIANTES = {
+  vida: {
+    _b: [['Escuchar si el ventilador suena raro', 'Limpiar la rejilla del aire', 'Anotar que el aire fluye bien'], ['Listen for any strange fan noise', 'Clean the air grille', 'Write down that the air flows well']],
+    _c: [['Revisar la alarma de CO₂', 'Purgar el depurador con cuidado', 'Probar la alarma otra vez'], ['Check the CO₂ alarm', 'Purge the scrubber carefully', 'Test the alarm again']],
+  },
+  energia: {
+    _b: [['Revisar los cables de las baterías', 'Limpiar el polvo de los paneles', 'Probar que las luces no parpadean'], ['Check the battery cables', 'Wipe the dust off the panels', 'Test that the lights do not flicker']],
+    _c: [['Medir el voltaje de la red', 'Apagar lo que no se usa', 'Anotar el consumo del día'], ['Measure the grid voltage', 'Switch off what is not in use', 'Write down the day\'s power use']],
+  },
+  rad: {
+    _b: [['Ponerte el dosímetro en el pecho', 'Cerrar las compuertas del blindaje', 'Leer y anotar la dosis'], ['Clip the dosimeter on your chest', 'Close the shielding hatches', 'Read and log the dose']],
+    _c: [['Mirar el aviso del clima espacial', 'Mover el equipo al cuarto más blindado', 'Confirmar que la alarma de tormenta está activa'], ['Look at the space weather notice', 'Move the equipment to the most shielded room', 'Confirm the storm alarm is on']],
+  },
+  comida: {
+    _b: [['Medir la humedad del cultivo', 'Regar solo lo que lo necesita', 'Anotar cuánto creció cada planta'], ['Measure the crop moisture', 'Water only what needs it', 'Write down how much each plant grew']],
+    _c: [['Buscar hojas con manchas', 'Quitar las plantas enfermas', 'Lavarte las manos antes de comer'], ['Look for spotted leaves', 'Remove the sick plants', 'Wash your hands before eating']],
+  },
+};
+for (const [sys, vs] of Object.entries(MANT_VARIANTES)) {
+  const base = PROTOCOLS['mant_' + sys];
+  for (const [suf, [es, en]] of Object.entries(vs)) {
+    const id = 'mant_' + sys + suf;
+    PROTOCOLS[id] = { ...base, steps: es, stepsEn: en };
+    PROTO_FUENTE[id] = { ...PROTO_FUENTE['mant_' + sys] };
+  }
+}

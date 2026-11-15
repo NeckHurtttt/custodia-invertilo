@@ -5,6 +5,7 @@
 import * as C from './core.js';
 import { T } from './i18n.js';
 import { voz } from './personajes.js';
+import { idMant, eventoDelDia, eventoPorId } from './variedad.js';
 import { missionFlares, STORM_DAYS, STORM_MIN, STORM_SECONDS, warnSeconds, SHELTER, stormDose, SHELTER_FACTOR, SHELTER_ENERGY, classText, sourceText } from './clima.js';
 
 /** Los 4 sistemas. decay = puntos que baja por día sin mantenimiento (Normal ×0.7). */
@@ -64,14 +65,15 @@ export function init(s, opts = {}) {
     reflex: !!opts.reflex && !opts.daily,
     st: { done: 0, skipped: 0, perfect: 0, saved: 0, refugio: 0, expuesto: 0 },
     flares: missionFlares(opts.flares), storm: null, storms: 0,
+    sem: s.seed, evento: null, prio: null, // sem: base estable de la variedad (revisiones y eventos del día; ver variedad.js)
     hist: [], hoy: nuevoHoy(), // bitácora: un renglón por día cerrado + lo que va del día (para el informe causal del final)
   };
 }
 
 // ---------- bitácora de la misión (solo anota; no cambia ninguna regla) ----------
-const nuevoHoy = () => ({ skip: [], storm: null, low: 0 });
+const nuevoHoy = () => ({ skip: [], storm: null, low: 0, evento: null });
 const hoyDe = (y) => (y.hoy ??= nuevoHoy());
-const renglon = (y, day) => ({ day, lvl: Object.fromEntries(SYS_IDS.map((id) => [id, Math.round(y.lvl[id])])), dose: Math.round(y.dose * 100) / 100, skip: [...hoyDe(y).skip], storm: hoyDe(y).storm, low: Math.round(hoyDe(y).low) });
+const renglon = (y, day) => ({ day, lvl: Object.fromEntries(SYS_IDS.map((id) => [id, Math.round(y.lvl[id])])), dose: Math.round(y.dose * 100) / 100, skip: [...hoyDe(y).skip], storm: hoyDe(y).storm, low: Math.round(hoyDe(y).low), evento: hoyDe(y).evento ?? null });
 /** Un renglón por día: los cerrados y, al final, el día en curso. Cada uno: { day, lvl, dose, skip, storm, low }. */
 export const historial = (s) => (s.sys ? [...(s.sys.hist ?? []), renglon(s.sys, Math.max((s.sys.hist ?? []).length + 1, Math.min(s.day, C.DAYS)))] : []);
 
@@ -88,6 +90,9 @@ export function newDay(s) {
     if (s.day === e.from) C.say(s, `${s.L.ai}: ${e.msg}`, 'bad');
     else if (s.day === e.to + 1) C.say(s, `${e.end}`, 'ok');
   }
+  y.evento = null; y.prio = null;
+  const ev = eventoDelDia(y.sem ?? 0, s.day);
+  if (ev) { const args = ev.aplica(s, y, C.dif(s).dmg, (id) => SYS[id].name); y.evento = { id: ev.id, args }; hoyDe(y).evento = ev.id; C.say(s, `${ev.tipo === 'malo' ? '⚠' : ev.tipo === 'reto' ? '📡' : '🎲'} ${T('Hoy', 'Today')}: ${T(ev.name[0], ev.name[1])}. ${ev.texto(args, (id) => SYS[id].name)}`, ev.tipo === 'malo' ? 'warn' : 'info', true); }
   const miss = SYS_IDS.filter((id) => y.lvl[id] < 50).map((id) => SYS[id].name.toLowerCase());
   if (miss.length) C.say(s, T(`${s.L.ai}: sistemas débiles hoy → ${miss.join(', ')}. Hoy toca mantenimiento 08:00–12:00.`, `${s.L.ai}: weak systems today → ${miss.join(', ')}. Today is maintenance time 08:00–12:00.`), 'ia');
 }
@@ -104,7 +109,7 @@ export function blockEnd(s, prevId) {
   const d = C.dif(s).dmg; const left = pending(s);
   if (!left.length) { y.st.perfect++; s.alert = Math.max(0, s.alert - 5); C.say(s, T(`${s.L.ai}: mantenimiento completo. Bien hecho, cadete. (−5 de alerta)`, `${s.L.ai}: maintenance complete. Well done, cadet. (−5 alert)`), 'ok'); return; }
   for (const id of left) {
-    y.lvl[id] = clamp(y.lvl[id] - 10 * d); y.st.skipped++; s.integ -= 2; hoyDe(y).skip.push(id);
+    y.lvl[id] = clamp(y.lvl[id] - 10 * d * (y.prio === id ? 2 : 1)); y.st.skipped++; s.integ -= 2; hoyDe(y).skip.push(id);
     C.raise(s, 6, T(`Mantenimiento omitido: ${taskName(s, id).toLowerCase()}.`, `Maintenance skipped: ${taskName(s, id).toLowerCase()}.`));
     C.say(s, T(`${SYS[id].name} se degradó por no hacer el mantenimiento (${Math.round(y.lvl[id])} %).`, `${SYS[id].name} degraded because maintenance was not done (${Math.round(y.lvl[id])} %).`), 'warn', true); // el aviso de CUSTODIA de arriba ya lo cuenta: no se repite en pantalla
   }
@@ -122,7 +127,7 @@ export function useStation(s, o) {
   if (C.block(s).id !== 'trabajo') return C.flash(s, T('El mantenimiento se hace en el turno de trabajo (08:00–12:00).', `Maintenance is done during the work shift (08:00–12:00).`), 'info');
   if (y.done[o.sys]) return C.flash(s, T(`${SYS[o.sys].name}: ya lo revisaste hoy.`, `${SYS[o.sys].name}: you already checked it today.`), 'info');
   if (s.p.energia < 6) return C.flash(s, T('Estás demasiado cansado para trabajar. Come o descansa.', `You are too tired to work. Eat or rest.`), 'warn');
-  s.pending = { kind: 'protocolo', id: `mant_${o.sys}`, mant: o }; // mini-protocolo de 3 pasos en orden (minijuego de main.js)
+  s.pending = { kind: 'protocolo', id: idMant(y.sem ?? 0, s.day, o.sys), mant: o }; // mini-protocolo de 3 pasos en orden (minijuego de main.js)
 }
 
 /** Resultado del mini-protocolo de mantenimiento. Éxito: la revisión cuenta igual que antes. Fallo o cancelar: sin castigo, el panel sigue pendiente. */
@@ -136,7 +141,7 @@ export function finish(s, a) {
   const y = s.sys; if (!y) return;
   if (a.kind === 'mant') {
     const id = a.o.sys; y.done[id] = true; y.st.done++;
-    y.lvl[id] = clamp(y.lvl[id] + SYS[id].restore * restoreMul(s, id)); s.p.energia = Math.max(0, s.p.energia - 2);
+    y.lvl[id] = clamp(y.lvl[id] + SYS[id].restore * restoreMul(s, id) + (y.prio === id ? 8 : 0)); s.p.energia = Math.max(0, s.p.energia - 2);
     C.say(s, `✔ ${taskName(s, id)}. ${SYS[id].name}: ${Math.round(y.lvl[id])} %.`, 'ok');
     if (pending(s).length === 0) C.say(s, T('Las 4 revisiones de hoy están listas.', `Today's 4 checks are done.`), 'ok');
     maybeEmergency(s, id);
@@ -274,13 +279,19 @@ function endStorm(s) {
   for (const c of s.crew) if (!c.betrayed) { c.say = voz(s, c, 'alivio'); c.sayFor = 5; }
 }
 
+/** El evento de hoy listo para mostrar: [{ name, text, tipo, ic }] (vacío si no hay). */
+export function eventoHoy(s) {
+  const y = s.sys; const e = y?.evento ? eventoPorId(y.evento.id) : null; if (!e) return [];
+  return [{ name: T(e.name[0], e.name[1]), text: e.texto(y.evento.args, (id) => SYS[id].name), tipo: e.tipo, ic: e.ic }];
+}
+
 /** Datos listos para dibujar el panel. */
 export function view(s) {
   const y = s.sys; if (!y) return null;
   const e = y.emerg; const ed = e ? EMERGS[e.kind] : null;
   return {
     meters: SYS_IDS.map((id) => ({ id, name: SYS[id].name, v: y.lvl[id], low: y.lvl[id] < 30 })),
-    dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? nasaNote(), events: mods(s).map((e) => ({ name: e.name, text: e.hud })),
+    dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? nasaNote(), events: [...mods(s).map((e) => ({ name: e.name, text: e.hud })), ...eventoHoy(s)],
     tasks: SYS_IDS.map((id) => ({ id, name: taskName(s, id), short: taskShort(s, id), room: stationRoom(s, id), done: !!y.done[id] })),
     reflex: y.reflex, last: y.lastStorm ?? null,
     // lo que ve Control de Misión del Sol: cuántas tormentas van, cuándo llega la próxima y qué llamarada real la causa

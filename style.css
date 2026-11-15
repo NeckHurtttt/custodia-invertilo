@@ -593,3 +593,10 @@ body.cruz-on .hud-crew { display: none; }
   .bit-tabla table { font-size: .82em; } .bit-tabla th, .bit-tabla td { padding: .08rem .22rem; }
   .bit-tabla { -webkit-overflow-scrolling: touch; }
 }
+
+/* Evento del día (cartel del día nuevo y panel de mantenimiento): color según sea bueno, malo o un reto; siempre con ícono y texto */
+.dn-evento { margin-top: .35rem; padding: .3rem .5rem; border-radius: 6px; border: 1px solid var(--line); text-align: left; font-size: 1.02rem; line-height: 1.2; }
+.dn-evento.bueno { border-color: var(--ok); color: #c9f5d9; } .dn-evento.malo { border-color: var(--warn); color: #ffe0a3; } .dn-evento.reto { border-color: var(--cyan); color: #c8f7ff; }
+.dia-nuevo { max-height: 70vh; overflow: hidden; }
+.sistemas .evento.bueno { color: var(--ok); } .sistemas .evento.reto { color: var(--cyan); }
+@media (max-width: 600px), (max-height: 520px) { .dia-nuevo { top: 16%; } .dn-evento { font-size: .95rem; } }
