@@ -1,6 +1,6 @@
 # CUSTODIA · NASA Space Apps 2026 submission
 
-Challenge: **Build a Junior Astronaut Mission Trainer** · Team: **#EraConTuto** (Santa Cruz, Bolivia)
+Challenge: **Space Mission Design Game** · Team: **#EraConTuto** (Santa Cruz, Bolivia)
 Team members: **[NAME 1], [NAME 2], [NAME 3], …** ← _TO COMPLETE: ask Sergio for the names and roles._
 
 > Working notes (delete before submitting):
@@ -69,7 +69,7 @@ Claude (Anthropic) helped write code, tests and texts together with the team, an
 2. **(5–12 s)** Morning maintenance: the four bars (life support, power, radiation, food) and the player fixing a panel.
 3. **(12–21 s)** Real solar storm alert with countdown from NASA DONKI. The player chooses: shelter or keep working.
 4. **(21–27 s)** Card "The real constraint": shelter dose vs. outside dose vs. NASA's 600 mSv limit.
-5. **(27–30 s)** Rescue ship arrives, stars. Text: "CUSTODIA · #EraConTuto · Junior Astronaut Mission Trainer" + link/QR.
+5. **(27–30 s)** Rescue ship arrives, stars. Text: "CUSTODIA · #EraConTuto · Space Mission Design Game" + link/QR.
 
 ## 7 slides
 1. **CUSTODIA:** keep the base alive until rescue (title, one screenshot).

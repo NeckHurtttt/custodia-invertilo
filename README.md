@@ -12,9 +12,13 @@
 
 **3 destinos** · **10 días hasta el rescate** · **4 sistemas conectados** · **1 base que depende de ti**
 
-Proyecto de hackathon · NASA Space Apps 2026 · **#EraConTuto** · Santa Cruz, Bolivia
+NASA Space Apps 2026 · desafío **Space Mission Design Game** · equipo **#EraConTuto** · Santa Cruz, Bolivia
 
-[La misión](#la-misión) · [Cómo jugar](#cómo-jugar) · [La IA](#una-ia-que-aprende-tus-rutinas) · [Ciencia](#del-sol-real-a-tu-partida) · [Desarrollo](#ejecutar-en-local) · [English](#english-summary)
+[![Repositorio](https://img.shields.io/badge/CÓDIGO-invertilo%2Fcustodia-8fb4ff?style=for-the-badge&labelColor=101c2e&logo=github)](https://github.com/invertilo/custodia)
+![Pruebas](https://img.shields.io/badge/PRUEBAS-236_en_verde-4fe08a?style=for-the-badge&labelColor=101c2e)
+![Idiomas](https://img.shields.io/badge/IDIOMAS-ES_·_EN_·_עב-ffc23d?style=for-the-badge&labelColor=101c2e)
+
+[La misión](#la-misión) · [Cómo jugar](#cómo-jugar) · [Para aprender](#pensado-para-aprender) · [Idiomas](#idiomas-y-voces) · [La IA](#una-ia-que-aprende-tus-rutinas) · [Ciencia](#del-sol-real-a-tu-partida) · [Desarrollo](#ejecutar-en-local) · [Equipo](#equipo) · [English](#english-summary)
 
 </div>
 
@@ -84,6 +88,29 @@ Hay campaña, modo **UNA NOCHE**, reto diario y emergencias de **REFLEJOS** opci
 | Mantenimiento, plan, amenazas y registro | `1` · `2` · `3` · `4` |
 | Pausa / menú | `P` / `Esc` |
 | Música / nombres del mapa / pantalla completa | `M` / `N` / `V` |
+
+## Pensado para aprender
+
+CUSTODIA no explica la radiación: hace que el jugador decida, y después le muestra qué pasó.
+
+| Ayuda | Para qué sirve |
+| :--- | :--- |
+| **Entrenamiento guiado** | Tutorial de 7 pasos con una flecha que señala cada panel; se puede saltar y repetir desde el inicio. |
+| **Leer en voz alta** | Lee las ventanas y los avisos importantes para quien todavía lee poco. |
+| **Pregunta de cierre** | Una pregunta al terminar la misión, para comprobar qué idea quedó. |
+| **Certificado de Cadete** | Al ganar, un certificado con el nombre del jugador para descargar o compartir. |
+| **Modo clase y panel docente** | Cada alumno copia su resultado; el docente pega las líneas y obtiene un resumen por clase, con exportación a CSV. |
+| **Sin internet** | Después de la primera visita el juego funciona sin conexión y se puede instalar en compu, tablet o celular. |
+
+## Idiomas y voces
+
+| Idioma | Texto | Voces |
+| :--- | :---: | :---: |
+| **Español** | Completo | Voz de la IA en el arranque y lectura en voz alta |
+| **English** | Completo | AI voice on the boot screen and read-aloud |
+| **עברית (hebreo)** | Pantallas principales; el resto sale en inglés | Sin voces, solo texto |
+
+El idioma se elige con los botones **ES · EN · עב** del inicio o con `?lang=en` / `?lang=he` en la dirección. Las voces grabadas de la IA están en [`audio/voz/`](audio/voz/) y las traducciones al hebreo en [`src/he.js`](src/he.js).
 
 ## Una IA que aprende tus rutinas
 
@@ -159,8 +186,8 @@ Funciona desde un sitio estático como GitHub Pages: el Astronauta genera una in
 Necesitas **Git y una versión moderna de Node.js**. El juego y el servidor local no requieren instalar dependencias ni compilar.
 
 ```bash
-git clone https://github.com/NeckHurtttt/proyecto-Hackaton-2.0.git
-cd proyecto-Hackaton-2.0
+git clone https://github.com/invertilo/custodia.git
+cd custodia
 node tools/serve.mjs 8000
 ```
 
@@ -177,7 +204,7 @@ node tools/sim.mjs luna 4 cadete 11
 node tools/sim.mjs marte 4 cadete 11
 ```
 
-Hay **151 pruebas** en la revisión de IA progresiva. Las simulaciones ayudan a detectar problemas de equilibrio; sus bots no sustituyen pruebas con jugadores. Los resultados y limitaciones están en el [análisis técnico](docs/analisis/ia-progresiva.md).
+Hay **236 pruebas** de lógica y servidor. Las simulaciones ayudan a detectar problemas de equilibrio; sus bots no sustituyen pruebas con jugadores. Los resultados y limitaciones están en el [análisis técnico](docs/analisis/ia-progresiva.md).
 
 <details>
 <summary><strong>Pruebas en navegador con Playwright</strong></summary>
@@ -205,6 +232,9 @@ Las capturas se guardan en `e2e-out/`. Puedes indicar un navegador instalado med
 | [`src/clima.js`](src/clima.js) · [`src/datos.js`](src/datos.js) | Clima espacial, datos y referencias. |
 | [`src/main.js`](src/main.js) · [`src/arte.js`](src/arte.js) | Interfaz, controles y dibujo en Canvas. |
 | [`src/coop.js`](src/coop.js) · [`src/link.js`](src/link.js) | Reglas cooperativas y comunicación. |
+| [`src/tutorial.js`](src/tutorial.js) · [`src/quiz.js`](src/quiz.js) · [`src/certificado.js`](src/certificado.js) · [`src/docente.js`](src/docente.js) | Entrenamiento guiado, pregunta de cierre, certificado y panel docente. |
+| [`src/i18n.js`](src/i18n.js) · [`src/he.js`](src/he.js) · [`src/voz.js`](src/voz.js) · [`src/inicio.js`](src/inicio.js) | Idiomas, lectura en voz alta y pantalla de arranque. |
+| [`sw.js`](sw.js) · [`manifest.webmanifest`](manifest.webmanifest) | Modo sin internet e instalación. |
 | [`tests/`](tests/) · [`tools/`](tools/) | Pruebas, servidor y simuladores. |
 
 La lógica funciona sin pantalla, usa azar con semilla y puede serializarse. El juego está hecho con **HTML, CSS y JavaScript**, sin un motor externo. Antes de contribuir, consulta [`CONTEXTO.md`](CONTEXTO.md) y las [reglas del proyecto](CLAUDE.md); `referencias/` contiene copias de consulta.
@@ -215,13 +245,25 @@ La lógica funciona sin pantalla, usa azar con semilla y puede serializarse. El 
 
 Solar events from NASA DONKI inspire the mission's storms. Players choose between sheltering and continuing their tasks, balancing exposure, time and energy. Cadet mode supports younger players; higher difficulties introduce stronger surveillance and an AI that remembers observed routes. Two players can cooperate as Astronaut and Mission Control, with simulated communication delays.
 
-The project addresses **Build a Junior Astronaut Mission Trainer**. Scientific sources, simplified mechanics and fictional elements are identified separately. [Play in Cadet mode](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete) · [Try the solar storm demo](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado).
+The project addresses **Space Mission Design Game**. Scientific sources, simplified mechanics and fictional elements are identified separately. [Play in Cadet mode](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete) · [Try the solar storm demo](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado).
 
-## Hecho por #EraConTuto
+## Equipo
 
-Desde **Santa Cruz, Bolivia**, para explorar cómo aprender ciencia espacial tomando decisiones.
+**#EraConTuto** · Santa Cruz, Bolivia. Hecho para explorar cómo aprender ciencia espacial tomando decisiones.
 
-- **CUSTODIA** nació con el nombre *LIFELINE: Rutina*; hoy el proyecto se llama Custodia y el equipo, #EraConTuto. Esta versión une el repositorio del equipo con el de Leo (`Hackaton-2.0-en-compu-de-Leo`). La adaptación parte de la versión de Leo, conservada en la etiqueta `base-leo`.
+<table>
+<tr>
+<td align="center"><a href="https://github.com/invertilo"><img src="https://github.com/invertilo.png?size=160" width="110" alt="Foto de Vinicius"><br><b>Vinicius</b><br><sub>@invertilo</sub></a></td>
+<td align="center"><a href="https://github.com/alejondr3"><img src="https://github.com/alejondr3.png?size=160" width="110" alt="Foto de Alejandro Mendoza"><br><b>Alejandro Mendoza</b><br><sub>@alejondr3</sub></a></td>
+<td align="center"><a href="https://github.com/leoaguilerasc-design"><img src="https://github.com/leoaguilerasc-design.png?size=160" width="110" alt="Foto de Leonardo Aguilera"><br><b>Leonardo Aguilera</b><br><sub>@leoaguilerasc-design</sub></a></td>
+<td align="center"><a href="https://github.com/NeckHurtttt"><img src="https://github.com/NeckHurtttt.png?size=160" width="110" alt="Foto de Sergio Santiago Rioja Coca"><br><b>Sergio Santiago Rioja Coca</b><br><sub>@NeckHurtttt</sub></a></td>
+</tr>
+</table>
+
+## Créditos
+
+- **Repositorio:** [github.com/invertilo/custodia](https://github.com/invertilo/custodia). Une el trabajo de `NeckHurtttt/proyecto-Hackaton-2.0` y de `leoaguilerasc-design/Hackaton-2.0-en-compu-de-Leo`, con el historial de ambos.
+- **CUSTODIA** nació con el nombre *LIFELINE: Rutina*; la versión de Leo se conserva en la etiqueta `base-leo`.
 - Tipografía **VT323**, distribuida bajo [SIL Open Font License](fonts/OFL-VT323.txt).
 - **Asistencia de IA:** Claude (Anthropic) y Codex (OpenAI) han apoyado tareas de programación, análisis y documentación. Las decisiones de diseño y la validación con jugadores corresponden al equipo; las fuentes científicas se citan por separado.
 

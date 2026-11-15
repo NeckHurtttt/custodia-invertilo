@@ -1,6 +1,12 @@
 {
   "name": "custodia",
   "version": "0.1.0",
+  "description": "CUSTODIA: mantén viva la base. Juego de NASA Space Apps 2026 (Space Mission Design Game).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/invertilo/custodia.git"
+  },
+  "homepage": "https://github.com/invertilo/custodia#readme",
   "private": true,
   "type": "module",
   "scripts": {

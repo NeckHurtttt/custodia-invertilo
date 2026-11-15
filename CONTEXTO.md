@@ -1,7 +1,7 @@
 # CONTEXTO · Proyecto Hackaton 2.0 (para retomar en otra compu)
 
 Último estado: **14/11/2026**, NASA Space Apps 2026 (Santa Cruz, Bolivia), equipo **#EraConTuto**.
-Desafío: **Build a Junior Astronaut Mission Trainer** (chicos de 7 a 12 años manejan una base en la Luna o Marte, equilibrando soporte vital, escudo contra la radiación, energía, comida y retraso de la comunicación, con datos reales de NASA).
+Desafío: **Space Mission Design Game** (chicos de 7 a 12 años manejan una base en la Luna o Marte, equilibrando soporte vital, escudo contra la radiación, energía, comida y retraso de la comunicación, con datos reales de NASA).
 
 ## 0. Instrucciones para el Claude que retome
 

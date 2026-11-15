@@ -812,7 +812,7 @@ function titleScreen() {
     </details>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
     <p class="offline" id="t-offline" hidden></p>
-    <p class="pie">${T(`UN JUEGO DE #EraConTuto · NASA Space Apps 2026 · desafío Junior Astronaut Mission Trainer`, `A GAME BY #EraConTuto · NASA Space Apps 2026 · Junior Astronaut Mission Trainer challenge`)}</p>
+    <p class="pie">${T(`UN JUEGO DE #EraConTuto · NASA Space Apps 2026 · desafío Space Mission Design Game`, `A GAME BY #EraConTuto · NASA Space Apps 2026 · Space Mission Design Game challenge`)}</p>
   </div>`, 'pant-titulo'); tituloEntra = false;
   const V = $('ventana');
   $('t-mas').ontoggle = () => { masAbierto = $('t-mas').open; };

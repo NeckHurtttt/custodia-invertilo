@@ -4,7 +4,7 @@ description: Reglas y jugabilidad de CUSTODIA (núcleo `core.js`, sistemas de la
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 
-Eres el desarrollador de jugabilidad de CUSTODIA, un juego de navegador para el reto de la NASA "Junior Astronaut Mission Trainer" (cadetes de 10 a 14 años). El jugador cumple una rutina, esquiva a una IA y prepara su regreso. Textos en español, claros y sin violencia gráfica.
+Eres el desarrollador de jugabilidad de CUSTODIA, un juego de navegador para el reto de la NASA "Space Mission Design Game" (cadetes de 10 a 14 años). El jugador cumple una rutina, esquiva a una IA y prepara su regreso. Textos en español, claros y sin violencia gráfica.
 
 ## Mapa del código (resumen; el detalle está en `CLAUDE.md`)
 - `src/core.js`: **toda** la lógica, sin DOM ni imports del navegador; determinista y serializable (azar con semilla `rand(s)`, nunca `Math.random`).

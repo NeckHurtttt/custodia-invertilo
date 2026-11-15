@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Antes de trabajar, lee `CONTEXTO.md`**: qué se hizo, cómo correrlo, qué falta y dónde están los proyectos de referencia (`referencias/`).
 
-Juego de navegador para el reto de la NASA "Junior Astronaut Mission Trainer": el jugador es un astronauta que **mantiene viva la base hasta que llega el rescate** (día 10), con una IA que falla, tormentas solares reales (NASA DONKI) y protocolos de la ISS. El escape es una ruta extra. Público objetivo: **7 a 12 años** (modo **Cadete**, por defecto). Idioma de los textos: español.
+Juego de navegador para el reto de la NASA "Space Mission Design Game": el jugador es un astronauta que **mantiene viva la base hasta que llega el rescate** (día 10), con una IA que falla, tormentas solares reales (NASA DONKI) y protocolos de la ISS. El escape es una ruta extra. Público objetivo: **7 a 12 años** (modo **Cadete**, por defecto). Idioma de los textos: español.
 - Módulos nuevos del hackathon: `src/clima.js` (DONKI, tormentas, refugios), `src/datos.js` (datos reales y fuentes); tormentas en `src/sistemas.js`; `rescue()` y reglas de Cadete (`crewFix`, `kit`, `doseK`, `stormK` en `DIFS`) en `src/core.js` / `src/common.js`. `npm test` solo corre `tests/` (no las referencias).
 
 ## Cómo está organizado
@@ -80,10 +80,10 @@ Delega según el tipo de cambio; cada agente tiene sus reglas y qué verificar a
 Si un cambio cruza fronteras (p. ej. un evento con luz y sonido), `gameplay-dev` añade el dato/clave en el núcleo y los otros dos lo presentan.
 
 ## Git
-- Repositorio propio del hackathon: `proyecto-Hackaton-2.0` (separado del repo del equipo y de la copia de Leo).
+- Repositorio del equipo: `invertilo/custodia` (`origin`, https://github.com/invertilo/custodia). Une el antiguo `NeckHurtttt/proyecto-Hackaton-2.0` y la copia de Leo, con el historial de ambos.
 - La etiqueta `base-leo` marca la versión de Leo tal como llegó: es la referencia para comparar (`git diff base-leo`).
 - Se trabaja en `main`; cada paso del plan va en su propio commit con sus pruebas pasando.
-- Remotos: `origin` = `leoaguilerasc-design/Hackaton-2.0-en-compu-de-Leo` (copia propia de Leo, aquí SÍ se hace push); `upstream` = `NeckHurtttt/proyecto-Hackaton-2.0` (el de Sergio: Leo no tiene permiso de escritura, su push está desactivado; solo `git fetch upstream` para traer lo suyo). Nunca subir al repo del equipo ni a `NeckHurtttt/Custodia`.
+- Remoto único: `origin` = `invertilo/custodia`. Los repos anteriores (`NeckHurtttt/proyecto-Hackaton-2.0` y `leoaguilerasc-design/Hackaton-2.0-en-compu-de-Leo`) quedan solo como historia.
 
 ## Mapa de la Estación
 Tiene 44×35 casillas: fila norte (dormitorios, laboratorio, invernadero, esclusa), centro (comedor, nodo, núcleo de CUSTODIA, cápsula), taller/bodega y una fila sur nueva (Enfermería, Observatorio, Sala de recreo, Módulo de antena). Al añadir salas: corredores en `locs.js`, objetos sobre piso y ruta de patrulla alcanzable (los tests lo comprueban).
