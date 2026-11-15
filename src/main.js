@@ -32,6 +32,7 @@ import { admite, TTL } from './avisos.js';
 import * as UI from './ui.js';
 import { informe, estadoNivel } from './informe.js';
 import { idMant } from './variedad.js';
+import * as Tu from './tutorial.js';
 import * as Cu from './cuerpos.js';
 const { ic } = UI;
 
@@ -366,6 +367,7 @@ function drawFrame(t) {
   else astro(cx, p.x, p.y + (p.crouch ? 0.12 : 0), p.dir, p.walk * (p.crouch ? 0.5 : 1), crew ? crew.color : '#3d7bff', keys.size > 0 || touch.dx || touch.dy, p.inDuct ? 0.5 : blink ? 0.35 : p.crouch ? 0.8 : 1, crew ? crew.who : 'Comandante', G.isOutside(s) && G.has(s, 'traje'), p.hit > 0 ? 'miedo' : s.final ? 'miedo' : 'normal', true);
   if (p.sleep) { cx.fillStyle = '#5ff6ff'; cx.font = '10px VT323'; cx.fillText('z', p.x * TS + 7, p.y * TS - 14 - (t / 300 % 4)); }
 
+  tutoAro(t);
   A.senales(cx, s, t, vis); // «?» que se llena, «!», rastro y aviso de embestida (lo que dejó enemy-ai: sus, qT, alarmT, tele)
   // pisadas: una por cada ~0,55 casilla recorrida (nada si va agachado, en un conducto o escondido)
   if (!menu && !p.sleep && !p.hidden && !p.inDuct && !p.crouch) {
@@ -403,7 +405,7 @@ function drawFrame(t) {
   cx.setTransform(1, 0, 0, 1, 0, 0);
   const shl = s.hazards.find((h) => h.def.type === 'shelter'); // basura orbital en menos de 10 s y fuera del refugio: tinte ámbar
   A.overlays(cx, s, t, pdt, cv.width, cv.height, shl && shl.t <= 10 && !shl.def.safe.includes(G.playerRoom(s)) ? 0.8 : 0);
-  arrowToGoal(t);
+  arrowToGoal(t); tutoFlecha(t);
   minimap();
   // carteles del mundo: se apilan justo sobre la mochila (abajo al centro), nunca bajo la barra de arriba. Pulso lento (≤1 Hz) en vez de alternar colores.
   cx.textAlign = 'center'; cartelY = (invTop || cv.height - 80) - 20; const hz = FX.suave() ? 0 : 0.8;
@@ -801,6 +803,7 @@ function titleScreen() {
     <details class="mas" id="t-mas" ${masAbierto ? 'open' : ''}><summary>${T(`MÁS OPCIONES · modo de juego, personaje, sonido y vista`, `MORE OPTIONS · game mode, character, sound and view`)}</summary>
       <div class="bloque-op">${T(`<span class="lbl">MODO</span>`, `<span class="lbl">MODE</span>`)}<div class="seg">${[['campana', T('CAMPAÑA · 10 días', 'CAMPAIGN · 10 days')], ['noche', T('UNA NOCHE · 7 min', 'ONE NIGHT · 7 min')]].map(([k, n]) => `<button data-modo="${k}" class="${k === mode ? 'on' : ''}">${n}</button>`).join('')}</div></div>
       <div class="bloque-op">${T(`<span class="lbl">PERSONAJE</span>`, `<span class="lbl">CHARACTER</span>`)}<div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${ds(d)}">${nm(d).toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${ds(d)}">${ic('info')} ${nm(d).toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${ds(PERKS[perk])}</small></div>
+      <div class="bloque-op"><span class="lbl">${T('APRENDER', 'LEARN')}</span><button id="t-tuto">🎓 ${T('ENTRENAMIENTO GUIADO', 'GUIDED TRAINING')}</button></div>
       <div class="bloque-op">${ajustesHTML(conVoz(['musica', 'sfx', 'suave']))}</div>
     </details>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
@@ -815,6 +818,7 @@ function titleScreen() {
   V.querySelectorAll('[data-lang]').forEach((b) => (b.onclick = () => cambiaIdioma(b.dataset.lang, titleScreen)));
   pintaOffline();
   const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { ...opts, flares: liveFlares }); base = null; close(); intro(); };
+  $('t-tuto').onclick = () => { setOpt(Tu.CLAVE, '0'); nueva(sel, { mode: 'campana', perk, reflex: false, seen: Meta.seenNotes(sel) }); }; // el entrenamiento siempre es una campaña tranquila
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
   V.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { setOpt('dest', b.dataset.loc); titleScreen(); }));
   V.querySelectorAll('[data-modo]').forEach((b) => (b.onclick = () => { setOpt('modo', b.dataset.modo); titleScreen(); }));
@@ -827,6 +831,38 @@ function titleScreen() {
   V.querySelectorAll('[data-cont]').forEach((b) => (b.onclick = () => { M.start(); s = load(b.dataset.cont); base = null; close(); }));
   $('t-ayuda').onclick = () => help(titleScreen);
 }
+
+// ---------- tutorial guiado (lógica en tutorial.js) ----------
+let tu = null, tuDe = null;
+/** Las pruebas automáticas (navigator.webdriver) no ven el tutorial salvo que se pida con ?tuto. */
+const tutoPermitido = () => !navigator.webdriver || new URLSearchParams(location.search).has('tuto');
+function estacionVida() { return s?.sys ? Sys.station(s, 'vida') : null; }
+function tutoFrame(dt) {
+  if (!s || menu || crew || s.over) return;
+  if (tuDe !== s) { tuDe = s; tu = tutoPermitido() && !coop && getOpt(Tu.CLAVE, '0') !== '1' && Tu.aplica(s) ? Tu.nuevo(s) : null; pintaTuto(); }
+  if (!tu) return;
+  const r = Tu.tick(tu, s, dt, { crouch: !!s.p.crouch, estacion: estacionVida() });
+  if (r.salta != null) { s.min = Math.max(s.min, r.salta); G.flash(s, T('⏩ El reloj avanzó a las 08:00 para que practiques.', '⏩ The clock moved to 08:00 so you can practice.'), 'info'); }
+  if (r.cambio) { M.ui('ok'); pintaTuto(); }
+  if (r.fin) tutoFin(true);
+}
+function tutoFin(guardar) { tu = null; if (guardar) setOpt(Tu.CLAVE, '1'); pintaTuto(); }
+function pintaTuto() {
+  const el = $('tuto'); if (!el) return; document.body.classList.toggle('tuto-on', !!tu); // con el tutorial a la vista se esconde «AHORA» para dejar sitio (no estorba en celular)
+  if (!tu) { el.hidden = true; el.innerHTML = ''; return; }
+  const e = estacionVida(); const x = Tu.texto(tu, esTactil(), e ? G.roomName(s, G.roomIdAt(s, e.x + 0.5, e.y + 0.5)) : '');
+  if (!x) { tutoFin(true); return; }
+  el.hidden = false;
+  el.innerHTML = `<small>🎓 ${T('ENTRENAMIENTO', 'TRAINING')} · ${x.n}</small><b>${x.titulo}</b><p>${x.texto}</p><div class="tuto-bt">${Tu.pideOk(tu) ? `<button id="tuto-ok" class="grande">${ic('ok')} ${tu.i === Tu.PASOS.length - 1 ? T('A JUGAR', 'LET\'S PLAY') : T('ENTENDIDO', 'GOT IT')}</button>` : ''}<button id="tuto-salta" class="sec">${T('SALTAR', 'SKIP')}</button></div>`;
+  const ok = $('tuto-ok'); if (ok) ok.onclick = () => { Tu.entendido(tu); M.ui('click'); };
+  $('tuto-salta').onclick = () => { M.ui('cerrar'); tutoFin(true); };
+}
+/** Aro dorado alrededor del panel (en el mundo) y flecha al borde si está fuera de la pantalla. */
+function tutoAro(t) {
+  if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (!o) return;
+  const k = 0.5 + 0.5 * Math.sin(t / 600); cx.strokeStyle = `rgba(255,194,61,${0.55 + 0.45 * k})`; cx.lineWidth = 2; cx.beginPath(); cx.arc(o.x * TS, o.y * TS, 10 + k * 3, 0, 7); cx.stroke();
+}
+function tutoFlecha(t) { if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (o) arrowTo(o.x, o.y, '#ffc23d', T('PANEL', 'PANEL'), t); }
 
 // ---------- cooperativo: TRIPULANTE (la otra persona maneja a un compañero en el mismo mapa) ----------
 // El anfitrión (astronauta) manda el estado ~15 veces por segundo; aquí se copia en `s` (sin simular) y se dibuja desde el compañero elegido.
@@ -1425,6 +1461,7 @@ function frame(t) {
       else if (ev.hit) { A.burst(p.x, p.y, '255,175,95', 8); A.ring(p.x, p.y, '255,150,70', 22); }
       if (ev.saved) { A.burst(p.x, p.y, '90,255,170', 18); A.burst(p.x, p.y, '95,246,255', 8); A.ring(p.x, p.y, '90,255,170', 38); }
       else if (ev.solved) { A.burst(p.x, p.y, '120,255,160', 10); A.ring(p.x, p.y, '90,255,170', 26); } }
+    tutoFrame(dt);
     if (coop) coop.session.tick(s, dt, !!menu);
     if (!menu && s.pending?.kind === 'respira') breathGame();
     try { audioFrame(t, dt, inp, ev); } catch { /* el sonido nunca debe romper el juego */ }

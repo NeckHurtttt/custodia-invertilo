@@ -612,3 +612,16 @@ body.invitado #t-f, body.invitado #t-t, body.invitado #t-sh, body.invitado #t-q,
 .elige button small { color: var(--dim); }
 .elige button:disabled { opacity: .45; }
 @media (max-width: 600px), (max-height: 520px) { #inv-aviso { top: 52px; font-size: .9rem; } .elige button { min-width: 6rem; } .elige button .retrato { width: 36px; height: 52px; } }
+
+/* Tutorial guiado: una tarjeta arriba (en el lugar de los avisos); funciona igual en compu y en celular */
+.tuto { background: rgba(13,17,28,.96) !important; border: 1px solid var(--amber) !important; border-left: 5px solid var(--amber) !important; pointer-events: auto; padding: .4em .7em !important; margin-bottom: 4px; }
+.tuto small { display: block; color: var(--amber); letter-spacing: .08em; }
+.tuto b { display: block; font-weight: normal; color: var(--fg); font-size: 1.25em; }
+.tuto p { margin: .15em 0 .3em; color: #dbe5f7; line-height: 1.15; font-size: 1.05em; }
+.tuto .tuto-bt { display: flex; gap: .5em; flex-wrap: wrap; align-items: center; }
+.tuto .tuto-bt button { pointer-events: auto; min-height: 40px; padding: .1em .9em; }
+.tuto .tuto-bt .grande { font-size: 1.15em; padding: .15em 1em; }
+.tuto[hidden] { display: none; }
+@media (max-width: 600px), (max-height: 520px) { .tuto p { font-size: .98em; } .tuto b { font-size: 1.1em; } .tuto .tuto-bt button { min-height: 44px; } }
+
+body.tuto-on #actividad { display: none; }
