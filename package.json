@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/invertilo/custodia.git"
   },
-  "homepage": "https://github.com/invertilo/custodia#readme",
+  "homepage": "https://custodia-six-phi.vercel.app/",
   "private": true,
   "type": "module",
   "scripts": {

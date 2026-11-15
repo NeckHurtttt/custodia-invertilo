@@ -5,7 +5,7 @@ Team members: **[NAME 1], [NAME 2], [NAME 3], …** ← _TO COMPLETE: ask Sergio
 
 > Working notes (delete before submitting):
 > - The fields below are in English because the global jury reads them in English. Check which fields the Space Apps form asks for this year, and whether the demo goes as a 30-second video or as 7 slides.
-> - **Links:** the live links below point to Sergio's repo (`NeckHurtttt/proyecto-Hackaton-2.0`), because that is where GitHub Pages is published. Pages shows whatever was last pushed there; if Leo's repo becomes the official one, enable Pages on it and update the links.
+> - **Links:** the game is live at https://custodia-six-phi.vercel.app/ and the code is at https://github.com/invertilo/custodia.
 > - **Not claimed on purpose:** we have **not** tested the game with children yet (see `docs/analisis/2026-11-14-lifeline-prueba-con-ninos.md`). Do not write "tested with kids" until it is true.
 
 ---
@@ -14,9 +14,9 @@ Team members: **[NAME 1], [NAME 2], [NAME 3], …** ← _TO COMPLETE: ask Sergio
 CUSTODIA — Keep the base alive
 
 ## Demo / final project link
-- Play (Cadet mode, ages 7–12): https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete&lang=en (in English; the ES/EN switch is on the title screen and `?cadete` alone starts in Spanish)
-- Judge tour (a real solar storm arrives in seconds): https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado
-- Code: https://github.com/NeckHurtttt/proyecto-Hackaton-2.0
+- Play (Cadet mode, ages 7–12): https://custodia-six-phi.vercel.app/?cadete&lang=en (in English; the ES/EN switch is on the title screen and `?cadete` alone starts in Spanish)
+- Judge tour (a real solar storm arrives in seconds): https://custodia-six-phi.vercel.app/?jurado
+- Code: https://github.com/invertilo/custodia
 - No download and no account: it runs in the browser of a computer, tablet or phone.
 
 ## High-level summary (≤ 150 words)

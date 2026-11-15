@@ -5,10 +5,10 @@
 **Un juego de supervivencia espacial donde cuidar la base es tu camino de regreso.**
 
 **Sin internet · Offline:** después de la primera visita funciona sin conexión y se puede instalar (📲 INSTALAR en el inicio).
-**Play in English:** [`?cadete&lang=en`](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete&lang=en) · también con el interruptor ES/EN del inicio.
+**Play in English:** [`?cadete&lang=en`](https://custodia-six-phi.vercel.app/?cadete&lang=en) · también con el interruptor ES/EN del inicio.
 
-[![Jugar](https://img.shields.io/badge/JUGAR-Abrir_misión-70dfc8?style=for-the-badge&labelColor=101c2e)](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete)
-[![Demo](https://img.shields.io/badge/DEMO-Tormenta_solar-e4b577?style=for-the-badge&labelColor=101c2e)](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado)
+[![Jugar](https://img.shields.io/badge/JUGAR-Abrir_misión-70dfc8?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?cadete)
+[![Demo](https://img.shields.io/badge/DEMO-Tormenta_solar-e4b577?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?jurado)
 
 **3 destinos** · **10 días hasta el rescate** · **4 sistemas conectados** · **1 base que depende de ti**
 
@@ -46,7 +46,7 @@ Cada destino tiene su mapa, amenazas y refugio. Salir a la superficie sin un tra
 
 ## Cómo jugar
 
-Abre la [misión en modo Cadete](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete), elige un destino y pulsa **JUGAR**. No necesitas cuenta ni instalación; hay controles táctiles para teléfono y tablet.
+Abre la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), elige un destino y pulsa **JUGAR**. No necesitas cuenta ni instalación; hay controles táctiles para teléfono y tablet.
 
 1. **Sigue la rutina.** La base tiene horarios de comida, trabajo, ejercicio y descanso.
 2. **Haz el mantenimiento.** Durante el turno de 08:00 a 12:00, revisa los cuatro sistemas en sus paneles.
@@ -245,7 +245,7 @@ La lógica funciona sin pantalla, usa azar con semilla y puede serializarse. El 
 
 Solar events from NASA DONKI inspire the mission's storms. Players choose between sheltering and continuing their tasks, balancing exposure, time and energy. Cadet mode supports younger players; higher difficulties introduce stronger surveillance and an AI that remembers observed routes. Two players can cooperate as Astronaut and Mission Control, with simulated communication delays.
 
-The project addresses **Space Mission Design Game**. Scientific sources, simplified mechanics and fictional elements are identified separately. [Play in Cadet mode](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete) · [Try the solar storm demo](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado).
+The project addresses **Space Mission Design Game**. Scientific sources, simplified mechanics and fictional elements are identified separately. [Play in Cadet mode](https://custodia-six-phi.vercel.app/?cadete) · [Try the solar storm demo](https://custodia-six-phi.vercel.app/?jurado).
 
 ## Equipo
 
@@ -266,6 +266,7 @@ The project addresses **Space Mission Design Game**. Scientific sources, simplif
 
 ## Créditos
 
+- **Jugar:** [custodia-six-phi.vercel.app](https://custodia-six-phi.vercel.app/).
 - **Repositorio:** [github.com/invertilo/custodia](https://github.com/invertilo/custodia). Une el trabajo de `NeckHurtttt/proyecto-Hackaton-2.0` y de `leoaguilerasc-design/Hackaton-2.0-en-compu-de-Leo`, con el historial de ambos.
 - **CUSTODIA** nació con el nombre *LIFELINE: Rutina*; la versión de Leo se conserva en la etiqueta `base-leo`.
 - Tipografía **VT323**, distribuida bajo [SIL Open Font License](fonts/OFL-VT323.txt).
@@ -277,6 +278,6 @@ The project addresses **Space Mission Design Game**. Scientific sources, simplif
 
 **Diez días. Cuatro sistemas. Tu camino de regreso.**
 
-[Empezar la misión →](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete)
+[Empezar la misión →](https://custodia-six-phi.vercel.app/?cadete)
 
 </div>
