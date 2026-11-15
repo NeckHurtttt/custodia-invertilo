@@ -80,24 +80,24 @@ export function newDay(s) {
     else if (s.day === e.to + 1) C.say(s, `${e.end}`, 'ok');
   }
   const miss = SYS_IDS.filter((id) => y.lvl[id] < 50).map((id) => SYS[id].name.toLowerCase());
-  if (miss.length) C.say(s, `${s.L.ai}: sistemas débiles hoy → ${miss.join(', ')}. Hoy toca mantenimiento 08:00–12:00.`, 'ia');
+  if (miss.length) C.say(s, T(`${s.L.ai}: sistemas débiles hoy → ${miss.join(', ')}. Hoy toca mantenimiento 08:00–12:00.`, `${s.L.ai}: weak systems today → ${miss.join(', ')}. Today is maintenance time 08:00–12:00.`), 'ia');
 }
 
 /** Empieza el turno de mantenimiento. */
 export function workStart(s) {
   if (!s.sys) return;
-  C.say(s, `Turno de MANTENIMIENTO (08:00–12:00): ${SYS_IDS.length} revisiones obligatorias. Mira el panel SISTEMAS.`, 'info');
+  C.say(s, T(`Turno de MANTENIMIENTO (08:00–12:00): ${SYS_IDS.length} revisiones obligatorias. Mira el panel SISTEMAS.`, `MAINTENANCE shift (08:00–12:00): ${SYS_IDS.length} mandatory checks. Look at the SYSTEMS panel.`), 'info');
 }
 
 /** Termina un bloque. Si era el de trabajo, lo que quedó sin hacer se paga. */
 export function blockEnd(s, prevId) {
   const y = s.sys; if (!y || prevId !== 'trabajo') return;
   const d = C.dif(s).dmg; const left = pending(s);
-  if (!left.length) { y.st.perfect++; s.alert = Math.max(0, s.alert - 5); C.say(s, `${s.L.ai}: mantenimiento completo. Bien hecho, cadete. (−5 de alerta)`, 'ok'); return; }
+  if (!left.length) { y.st.perfect++; s.alert = Math.max(0, s.alert - 5); C.say(s, T(`${s.L.ai}: mantenimiento completo. Bien hecho, cadete. (−5 de alerta)`, `${s.L.ai}: maintenance complete. Well done, cadet. (−5 alert)`), 'ok'); return; }
   for (const id of left) {
     y.lvl[id] = clamp(y.lvl[id] - 10 * d); y.st.skipped++; s.integ -= 2;
-    C.raise(s, 6, `Mantenimiento omitido: ${taskName(s, id).toLowerCase()}.`);
-    C.say(s, `${SYS[id].name} se degradó por no hacer el mantenimiento (${Math.round(y.lvl[id])} %).`, 'warn', true); // el aviso de CUSTODIA de arriba ya lo cuenta: no se repite en pantalla
+    C.raise(s, 6, T(`Mantenimiento omitido: ${taskName(s, id).toLowerCase()}.`, `Maintenance skipped: ${taskName(s, id).toLowerCase()}.`));
+    C.say(s, T(`${SYS[id].name} se degradó por no hacer el mantenimiento (${Math.round(y.lvl[id])} %).`, `${SYS[id].name} degraded because maintenance was not done (${Math.round(y.lvl[id])} %).`), 'warn', true); // el aviso de CUSTODIA de arriba ya lo cuenta: no se repite en pantalla
   }
 }
 
@@ -110,16 +110,16 @@ export function label(s, o) {
 /** Tecla E sobre un panel: empieza la revisión (solo en el turno de trabajo). */
 export function useStation(s, o) {
   const y = s.sys; if (!y) return;
-  if (C.block(s).id !== 'trabajo') return C.flash(s, 'El mantenimiento se hace en el turno de trabajo (08:00–12:00).', 'info');
-  if (y.done[o.sys]) return C.flash(s, `${SYS[o.sys].name}: ya lo revisaste hoy.`, 'info');
-  if (s.p.energia < 6) return C.flash(s, 'Estás demasiado cansado para trabajar. Come o descansa.', 'warn');
+  if (C.block(s).id !== 'trabajo') return C.flash(s, T('El mantenimiento se hace en el turno de trabajo (08:00–12:00).', `Maintenance is done during the work shift (08:00–12:00).`), 'info');
+  if (y.done[o.sys]) return C.flash(s, T(`${SYS[o.sys].name}: ya lo revisaste hoy.`, `${SYS[o.sys].name}: you already checked it today.`), 'info');
+  if (s.p.energia < 6) return C.flash(s, T('Estás demasiado cansado para trabajar. Come o descansa.', `You are too tired to work. Eat or rest.`), 'warn');
   s.pending = { kind: 'protocolo', id: `mant_${o.sys}`, mant: o }; // mini-protocolo de 3 pasos en orden (minijuego de main.js)
 }
 
 /** Resultado del mini-protocolo de mantenimiento. Éxito: la revisión cuenta igual que antes. Fallo o cancelar: sin castigo, el panel sigue pendiente. */
 export function resolveMant(s, pd, ok) {
   if (ok) return finish(s, { kind: 'mant', o: pd.mant });
-  C.flash(s, `${SYS[pd.mant.sys].name}: revisión sin terminar. El panel sigue pendiente; vuelve a pulsar E cuando quieras.`, 'info');
+  C.flash(s, T(`${SYS[pd.mant.sys].name}: revisión sin terminar. El panel sigue pendiente; vuelve a pulsar E cuando quieras.`, `${SYS[pd.mant.sys].name}: check not finished. The panel is still pending; press E again whenever you want.`), 'info');
 }
 
 /** Terminó una acción de mantenimiento o de emergencia. */
@@ -129,12 +129,12 @@ export function finish(s, a) {
     const id = a.o.sys; y.done[id] = true; y.st.done++;
     y.lvl[id] = clamp(y.lvl[id] + SYS[id].restore * restoreMul(s, id)); s.p.energia = Math.max(0, s.p.energia - 2);
     C.say(s, `✔ ${taskName(s, id)}. ${SYS[id].name}: ${Math.round(y.lvl[id])} %.`, 'ok');
-    if (pending(s).length === 0) C.say(s, 'Las 4 revisiones de hoy están listas.', 'ok');
+    if (pending(s).length === 0) C.say(s, T('Las 4 revisiones de hoy están listas.', `Today's 4 checks are done.`), 'ok');
     maybeEmergency(s, id);
   } else if (a.kind === 'emerg' && y.emerg) {
     const e = EMERGS[y.emerg.kind]; const id = e.sys;
     y.lvl[id] = clamp(y.lvl[id] + 15); y.emerg = null; y.st.saved++; s.stats.solved++;
-    C.flash(s, `¡Controlado! ${e.name} resuelta.`, 'ok');
+    C.flash(s, T(`¡Controlado! ${e.name} resuelta.`, `Controlled! ${e.name} solved.`), 'ok');
   }
 }
 
@@ -191,24 +191,24 @@ export function update(s, dt, dm) {
   if (L.comida < 30) p.energia = Math.max(0, p.energia - 0.04 * dm);
   if (L.comida <= 0) { p.salud -= 0.08 * dm; p.hit = 0.2; cause ??= 'comida'; }
   for (const id of SYS_IDS) if (L[id] <= 0) s.integ -= 0.02 * dm;
-  if (p.salud <= 0 && cause === 'vida') C.end(s, false, 'Sin aire respirable', 'El depurador de CO₂ dejó de funcionar y el aire se volvió irrespirable. En la estación real, el soporte vital es lo primero que se revisa cada día.');
-  else if (p.salud <= 0 && cause === 'comida') C.end(s, false, 'Sin raciones', 'Se acabó la comida del invernadero y la tripulación no resistió. Producir alimento a bordo es parte del mantenimiento diario.');
+  if (p.salud <= 0 && cause === 'vida') C.end(s, false, 'Sin aire respirable', T('El depurador de CO₂ dejó de funcionar y el aire se volvió irrespirable. En la estación real, el soporte vital es lo primero que se revisa cada día.', `The CO₂ scrubber stopped working and the air became unbreathable. On the real station, life support is the first thing checked every day.`));
+  else if (p.salud <= 0 && cause === 'comida') C.end(s, false, 'Sin raciones', T('Se acabó la comida del invernadero y la tripulación no resistió. Producir alimento a bordo es parte del mantenimiento diario.', `The greenhouse food ran out and the crew could not hold on. Producing food on board is part of the daily maintenance.`));
 
   // avisos escalonados, como el sistema de Precaución y Advertencia de una nave
   for (const id of SYS_IDS) {
     const lvl = L[id]; const w = y.warn[id] ?? 0;
     if (lvl >= 60) y.warn[id] = 0;
-    else if (lvl < 25 && w < 2) { y.warn[id] = 2; C.flash(s, `🚨 ADVERTENCIA: ${SYS[id].name} al ${Math.round(lvl)} %. ¡Hazle mantenimiento ya!`, 'bad'); }
-    else if (lvl < 50 && w < 1) { y.warn[id] = 1; C.say(s, `⚠ PRECAUCIÓN: ${SYS[id].name} al ${Math.round(lvl)} %.`, 'warn'); }
+    else if (lvl < 25 && w < 2) { y.warn[id] = 2; C.flash(s, T(`🚨 ADVERTENCIA: ${SYS[id].name} al ${Math.round(lvl)} %. ¡Hazle mantenimiento ya!`, `🚨 WARNING: ${SYS[id].name} at ${Math.round(lvl)} %. Do its maintenance now!`), 'bad'); }
+    else if (lvl < 50 && w < 1) { y.warn[id] = 1; C.say(s, T(`⚠ PRECAUCIÓN: ${SYS[id].name} al ${Math.round(lvl)} %.`, `⚠ CAUTION: ${SYS[id].name} at ${Math.round(lvl)} %.`), 'warn'); }
   }
   const pct = dosePct(s);
-  for (const [lim, key] of [[50, 'd50'], [75, 'd75'], [90, 'd90']]) if (pct >= lim && !y.warn[key]) { y.warn[key] = 1; C.say(s, `☢ Dosis de radiación: ${Math.round(pct)} % del límite de la misión.`, pct >= 90 ? 'bad' : 'warn'); }
-  if (pct >= 100) C.end(s, false, 'Dosis límite superada', `Pasaste el límite de radiación de la misión (${y.dose.toFixed(1)} mSv). La NASA trabaja con ALARA: tan poca como sea razonable. Con el blindaje sin revisar, entró más radiación cada día.`);
+  for (const [lim, key] of [[50, 'd50'], [75, 'd75'], [90, 'd90']]) if (pct >= lim && !y.warn[key]) { y.warn[key] = 1; C.say(s, T(`☢ Dosis de radiación: ${Math.round(pct)} % del límite de la misión.`, `☢ Radiation dose: ${Math.round(pct)} % of the mission limit.`), pct >= 90 ? 'bad' : 'warn'); }
+  if (pct >= 100) C.end(s, false, 'Dosis límite superada', T(`Pasaste el límite de radiación de la misión (${y.dose.toFixed(1)} mSv). La NASA trabaja con ALARA: tan poca como sea razonable. Con el blindaje sin revisar, entró más radiación cada día.`, `You passed the mission radiation limit (${y.dose.toFixed(1)} mSv). NASA works with ALARA: as little as reasonably achievable. With the shielding unchecked, more radiation got in every day.`));
 
   updateStorm(s, dt);
 
   // recordatorio a las 11:00
-  if (!y.remind && s.min >= 660 && C.block(s).id === 'trabajo' && pending(s).length) { y.remind = true; C.flash(s, `Queda 1 hora de turno. Falta: ${pending(s).map((id) => SYS[id].name.toLowerCase()).join(', ')}.`, 'warn'); }
+  if (!y.remind && s.min >= 660 && C.block(s).id === 'trabajo' && pending(s).length) { y.remind = true; C.flash(s, T(`Queda 1 hora de turno. Falta: ${pending(s).map((id) => SYS[id].name.toLowerCase()).join(', ')}.`, `1 hour of shift left. Missing: ${pending(s).map((id) => SYS[id].name.toLowerCase()).join(', ')}.`), 'warn'); }
 
   // cuenta atrás de la emergencia
   const e = y.emerg;
@@ -234,7 +234,7 @@ function updateStorm(s, dt) {
   }
   const st = y.storm; st.t -= dt;
   if (st.phase === 'aviso') {
-    if (st.t <= 0) { st.phase = 'barre'; st.t = STORM_SECONDS; s.sfx?.push('alarma'); C.flash(s, inShelter(s) ? '☢ Llegaron las partículas. Estás en el refugio: quédate hasta que pase.' : '☢ ¡Llegaron las partículas solares! Estás fuera del refugio.', inShelter(s) ? 'ok' : 'bad'); }
+    if (st.t <= 0) { st.phase = 'barre'; st.t = STORM_SECONDS; s.sfx?.push('alarma'); C.flash(s, inShelter(s) ? T('☢ Llegaron las partículas. Estás en el refugio: quédate hasta que pase.', `☢ The particles have arrived. You are in the shelter: stay until it passes.`) : T('☢ ¡Llegaron las partículas solares! Estás fuera del refugio.', `☢ The solar particles have arrived! You are outside the shelter.`), inShelter(s) ? 'ok' : 'bad'); }
     return;
   }
   // barre: la dosis se suma según dónde estés
@@ -278,4 +278,18 @@ export function view(s) {
     storm: y.storm ? { n: y.storm.n, phase: y.storm.phase, t: y.storm.t, total: y.storm.phase === 'aviso' ? y.storm.total : STORM_SECONDS, cls: y.storm.flare.cls, source: sourceText(y.storm.flare), shelter: C.roomName(s, shelterOf(s).room), inShelter: inShelter(s), dose: y.storm.dose } : null,
     emerg: e ? { name: ed.name, verb: ed.verb, t: e.t, total: e.total, room: C.roomName(s, e.room), x: e.x, y: e.y } : null,
   };
+}
+
+// ---------- Inglés 2: emergencias de reflejos (getters; el título del final sigue siendo la clave en español) ----------
+const enPropE = (obj, prop, en) => { if (!obj || en == null) return; const es = obj[prop]; Object.defineProperty(obj, prop, { get: () => T(es, en), enumerable: true, configurable: true }); };
+const EN_EM = {
+  meteorito: ['MICROMETEORITE IMPACT', 'Seal the breach', (room) => `A micrometeorite pierced the hull in ${room}! Run to the breach and seal it before the air escapes.`, 'The hull breach was not sealed in time and the station lost its air. A pressure leak is one of the most serious emergencies in space: that is why crews train to react fast.'],
+  sobrecarga: ['ELECTRICAL OVERLOAD', 'Reset the power panel', (room) => `Overload in the panels! Go to ${room} and reset the system before it burns.`, 'The overload was not cut in time and an electrical fire broke out. Fire is one of the most dangerous emergencies on a closed ship.'],
+  co2: ['CO₂ ALARM', 'Purge the air scrubber', (room) => `High CO₂ alarm! Go to ${room} and purge the scrubber before you lose consciousness.`, 'CO₂ rose too much: without clean filters the air becomes unbreathable even if there is oxygen. That is why life support maintenance comes first.'],
+  llamarada: ['SOLAR FLARE', 'Activate the shielding shelter', (room) => `Solar flare! Run to ${room} and activate the radiation shelter before the particles arrive.`, 'The solar particles reached you without protection. NASA requires that a solar storm not exceed 250 mSv per event (NASA-STD-3001, requirement V1 4031), which is why shielding and shelters are used.'],
+  incendio: ['GREENHOUSE FIRE', 'Use the greenhouse extinguisher', (room) => `Fire in the greenhouse! Go to ${room} and put it out before it spreads.`, 'The greenhouse fire spread through the station. With recycled air and no way out, a fire cannot be left to grow.'],
+};
+for (const [k, [nombre, verbo, texto, fatal]] of Object.entries(EN_EM)) {
+  const e = EMERGS[k]; enPropE(e, 'name', nombre); enPropE(e, 'verb', verbo); const es = e.text; e.text = (room) => T(es(room), texto(room));
+  const fes = e.fatal[1]; Object.defineProperty(e.fatal, 1, { get: () => T(fes, fatal), enumerable: true, configurable: true });
 }

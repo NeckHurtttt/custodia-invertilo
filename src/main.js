@@ -126,6 +126,8 @@ function drawBase() {
 function R(b, c, x, y, w, h) { b.fillStyle = c; b.fillRect(x, y, w, h); }
 /** Dibuja el objeto con contorno oscuro y sombra, para que se distinga del suelo y de los vecinos. */
 const OBJ_NOMBRE = { cama: 'CAMA', escondite: 'CASILLERO', cajon: 'CAJÓN', mesa: 'MESA', cinta: 'CINTA', estudio: 'ESTUDIO', registro: 'REGISTRO', capcom: 'RADIO', trabajo: 'CULTIVO', caja: 'CAJA PESADA', casillero: 'CASILLERO', traje: 'TRAJE', nucleo: 'NÚCLEO', palanca: 'PALANCA', asiento: 'ASIENTO' };
+const OBJ_NOMBRE_EN = { cama: 'BED', escondite: 'LOCKER', cajon: 'DRAWER', mesa: 'TABLE', cinta: 'TREADMILL', estudio: 'STUDY', registro: 'RECORD', capcom: 'RADIO', trabajo: 'CROPS', caja: 'HEAVY CRATE', casillero: 'LOCKER', traje: 'SUIT', nucleo: 'CORE', palanca: 'LEVER', asiento: 'SEAT' };
+for (const k of Object.keys(OBJ_NOMBRE)) { const es = OBJ_NOMBRE[k]; Object.defineProperty(OBJ_NOMBRE, k, { get: () => T(es, OBJ_NOMBRE_EN[k]), enumerable: true, configurable: true }); }
 const OBJ_COLOR = { cajon: '#ffd23d', registro: '#ff6b6b', capcom: '#5ff6ff', estudio: '#9fd4ff', mesa: '#9be39c', cinta: '#9be39c', mant: '#ffc23d', nucleo: '#ff6b6b', trabajo: '#9be39c', cama: '#b8c4ff', escondite: '#b8c4ff', casillero: '#b8c4ff', traje: '#e8eef5', palanca: '#ffc23d', caja: '#ffd23d', asiento: '#e8eef5' };
 /** Cuántos letreros se pintaron en este cuadro (lo lee la prueba e2e para vigilar que no se acumulen). */
 let nEtq = 0;
@@ -636,11 +638,11 @@ function hud() {
   // actividad actual: siempre a la vista (lo que toca hacer ahora y dónde)
   { const falta = Math.max(0, Math.round(b.to - s.min)); const enSala = !b.room || G.playerRoom(s) === b.room; let txt;
     const pend = sv && b.id === 'trabajo' ? sv.tasks.filter((k) => !k.done) : [];
-    if (pend.length) txt = `<small>AHORA · ${b.name.toUpperCase()}</small><b>Revisar: ${pend[0].name}</b> → ${pend[0].room}${pend.length > 1 ? ` <small>(+${pend.length - 1} más)</small>` : ''}`;
-    else if (b.id === 'dormir') txt = `<small>AHORA</small><b>${s.min >= 1320 || s.min < 360 ? 'Duerme en tu cama' : b.name}</b>${b.room ? ' → ' + G.roomName(s, b.room) : ''}`;
-    else txt = `<small>AHORA</small><b>${b.name}</b>${b.room ? ' → ' + G.roomName(s, b.room) : ''}`;
+    if (pend.length) txt = `<small>${T('AHORA', 'NOW')} · ${b.name.toUpperCase()}</small><b>${T('Revisar', 'Check')}: ${pend[0].name}</b> → ${pend[0].room}${pend.length > 1 ? ` <small>(+${pend.length - 1} ${T('más', 'more')})</small>` : ''}`;
+    else if (b.id === 'dormir') txt = `<small>${T('AHORA', 'NOW')}</small><b>${s.min >= 1320 || s.min < 360 ? T('Duerme en tu cama', 'Sleep in your bed') : b.name}</b>${b.room ? ' → ' + G.roomName(s, b.room) : ''}`;
+    else txt = `<small>${T('AHORA', 'NOW')}</small><b>${b.name}</b>${b.room ? ' → ' + G.roomName(s, b.room) : ''}`;
     const el = $('actividad'); const h = `${txt}|${enSala}|${falta}`;
-    if (el.dataset.h !== h) { el.dataset.h = h; el.innerHTML = `${txt}<span class="falta">${enSala ? ic('ok') + ' en la sala' : '¡ve!'} · ${falta} min</span>`; el.className = `caja ${enSala ? 'ok' : 'va'}`; } }
+    if (el.dataset.h !== h) { el.dataset.h = h; el.innerHTML = `${txt}<span class="falta">${enSala ? ic('ok') + T(' en la sala', ' in the room') : T('¡ve!', 'go!')} · ${falta} min</span>`; el.className = `caja ${enSala ? 'ok' : 'va'}`; } }
   const cap = G.capacity(s); $('cap').textContent = `${p.inv.length}/${cap}`;
   $('inv').innerHTML = Array.from({ length: cap }, (_, i) => (p.inv[i] ? slot(p.inv[i]) : '<div class="slot vacio"></div>')).join('');
   { const hi = $('inv').parentElement.parentElement; hi.classList.toggle('llena', p.inv.length >= cap); invTop = hi.getBoundingClientRect().top; }
@@ -654,17 +656,17 @@ function hud() {
 }
 /** Ficha de cada compañero (pausa → TRIPULACIÓN): oficio, forma de ser, su frase y cómo está contigo. */
 const crewFichas = () => s.crew.map((c) => { const f = ficha(c.name); const estado = c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? T('pide', 'asks for') + ` ${icon(c.want)} ${ITEMS[c.want].name}` : T('contento', 'happy'); return `<li class="ficha"><b style="color:${c.color}">■ ${c.name}</b>${f ? ` · ${f.rol} · <i>${f.rasgo}</i><br><small>“${f.frase}”</small>` : ''}<br>${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))} ${estado}</li>`; }).join('');
-const crewHTML = () => s.crew.map((c) => `<li><b style="color:${c.color}">■</b> <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> ${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}: ${c.betrayed ? '<span style="color:var(--bad)">te delata</span>' : c.want ? `pide <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)} ${ITEMS[c.want].name}</span>` : 'contento'}</li>`).join('');
+const crewHTML = () => s.crew.map((c) => `<li><b style="color:${c.color}">■</b> <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> ${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}: ${c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? `${T('pide', 'asks for')} <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)} ${ITEMS[c.want].name}</span>` : T('contento', 'happy')}</li>`).join('');
 
-const planHTML = (L = s.L) => G.PLAN_IDS.map((id) => `<li class="${G.has(s, id) ? 'ok' : ''}" title="${L.plan[id].hint}">${L.plan[id].name}</li>`).join('') + `<li class="${s.iaOn ? '' : 'ok'}" title="Opcional: núcleo de la IA con tarjeta y 50 de conocimiento.">(Opcional) Apagar a ${L.ai}</li>` + G.routes(s).filter((r) => r.id !== 'plan').map((r) => `<li class="ruta ${r.ok ? 'ok' : ''}" title="${r.desc}">Ruta ${r.name}${r.ok ? ' ✓' : ''}</li>`).join('');
+const planHTML = (L = s.L) => G.PLAN_IDS.map((id) => `<li class="${G.has(s, id) ? 'ok' : ''}" title="${L.plan[id].hint}">${L.plan[id].name}</li>`).join('') + `<li class="${s.iaOn ? '' : 'ok'}" title="${T('Opcional: núcleo de la IA con tarjeta y 50 de conocimiento.', 'Optional: the AI core, with a card and 50 knowledge.')}">${T('(Opcional) Apagar a ', '(Optional) Shut down ')}${L.ai}</li>` + G.routes(s).filter((r) => r.id !== 'plan').map((r) => `<li class="ruta ${r.ok ? 'ok' : ''}" title="${r.desc}">${T('Ruta ', 'Route ')}${r.name}${r.ok ? ' ✓' : ''}</li>`).join('');
 function amenazasHTML() {
-  const v = s.vil; if (!v) return '<li>Sin amenazas especiales.</li>';
+  const v = s.vil; if (!v) return `<li>${T('Sin amenazas especiales.', 'No special threats.')}</li>`;
   return v.today.map((id, i) => `<li class="${i === 0 ? 'ia' : ''}">${i === 0 && !s.iaOn ? '<s>' + VILLAINS[id].name + '</s>' : VILLAINS[id].name}<small>${VILLAINS[id].desc}</small></li>`).join('')
     + (v.mission ? `<li class="mision">📻 ${v.mission.verb} (${Math.ceil(v.mission.left)} s)<small>${v.mission.text}</small></li>` : '');
 }
 const logHTML = (n) => s.log.slice(-n).reverse().map((l) => `<li class="${l.kind}">${l.kind === 'day' ? '' : G.clock(l.min) + ' '}${l.text}</li>`).join('');
 function mantHTML() {
-  const sv = Sys.view(s); if (!sv) return '<li>Este destino no tiene sistemas que mantener.</li>';
+  const sv = Sys.view(s); if (!sv) return `<li>${T('Este destino no tiene sistemas que mantener.', 'This destination has no systems to maintain.')}</li>`;
   return sv.events.map((e) => `<li class="evento">⚠ ${e.name}: ${e.text}</li>`).join('') + `<li class="enc">${T('REVISIONES DE HOY · 08:00–12:00', 'TODAY\'S CHECKS · 08:00–12:00')}</li>` + sv.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}" title="${k.name}">${k.name} <small>→ ${k.room}</small></li>`).join('') + `<li class="nota">${sv.note}</li>`;
 }
 
@@ -721,7 +723,7 @@ function close() { Voz.parar(); if (!$('modal').hidden) M.ui('cerrar'); $('modal
 function interruptor(id, icono, etiqueta, activo, pista = '', extra = '') {
   return `<button class="sw" id="${id}" role="switch" aria-checked="${!!activo}" ${extra}>${ic(icono)}<span>${etiqueta}${pista ? `<br><small>${pista}</small>` : ''}</span><span class="pista"></span><span class="on-off">${activo ? 'SÍ' : 'NO'}</span></button>`;
 }
-function pintaInterruptor(id, activo) { const b = $(id); if (!b) return; b.setAttribute('aria-checked', String(!!activo)); b.querySelector('.on-off').textContent = activo ? 'SÍ' : 'NO'; }
+function pintaInterruptor(id, activo) { const b = $(id); if (!b) return; b.setAttribute('aria-checked', String(!!activo)); b.querySelector('.on-off').textContent = activo ? T('SÍ', 'YES') : 'NO'; }
 /** Ajustes de sonido y vista (los mismos en el título y en la pausa). get() = estado actual; set() = lo cambia. */
 const AJ = {
   musica: { id: 'sw-musica', ico: 'musica', get txt() { return T('MÚSICA', 'MUSIC'); }, get pista() { return T('Tecla M', 'Key M'); }, get: () => M.on(), set: () => { M.toggle(); if (M.on()) M.ui('ok'); } },
@@ -733,7 +735,7 @@ const AJ = {
 const ajustesHTML = (claves) => claves.map((k) => interruptor(AJ[k].id, AJ[k].ico, AJ[k].txt, AJ[k].get(), AJ[k].pista)).join('');
 function cableaAjustes(claves) { for (const k of claves) { const a = AJ[k]; $(a.id).onclick = () => { a.set(); pintaInterruptor(a.id, a.get()); sincBotones(); }; } }
 /** Refleja en los botones de la barra de arriba el estado real de la música (la tecla M, el botón y la pausa llegan aquí). */
-function sincBotones() { const b = $('btn-musica'); b.classList.toggle('off', !M.on()); b.setAttribute('aria-pressed', String(M.on())); b.title = M.on() ? 'Música: sí (M)' : 'Música: no (M)'; }
+function sincBotones() { const b = $('btn-musica'); b.classList.toggle('off', !M.on()); b.setAttribute('aria-pressed', String(M.on())); b.title = M.on() ? T('Música: sí (M)', 'Music: on (M)') : T('Música: no (M)', 'Music: off (M)'); }
 FX.onFx((m) => document.body.classList.toggle('suave', m === 'suave')); document.body.classList.toggle('suave', FX.suave());
 
 let masAbierto = false; // «más opciones» del título se queda abierto/cerrado al cambiar algo
@@ -807,16 +809,16 @@ const coopUI = coopScreens({ $, open, close, beep, setMenu: (v) => { menu = v; }
 
 function medalsScreen() {
   menu = 'medallas'; const mt = Meta.load();
-  open(`<h2>🏅 MEDALLAS (${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length})</h2><p style="color:var(--dim)">Cada medalla nueva da +50 puntos.</p>
+  open(`<h2>🏅 ${T('MEDALLAS', 'MEDALS')} (${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length})</h2><p style="color:var(--dim)">${T('Cada medalla nueva da +50 puntos.', 'Each new medal gives +50 points.')}</p>
     <div class="medallas">${Object.entries(Meta.MEDALS).map(([k, [n, d]]) => `<div class="medalla ${mt.medals[k] ? 'si' : ''}"><b>${mt.medals[k] ? '🏅' : '🔒'} ${n}</b><small>${d}</small></div>`).join('')}</div>
-    <div class="fila"><button id="volver">VOLVER</button></div>`);
+    <div class="fila"><button id="volver">${T('VOLVER', 'BACK')}</button></div>`);
   $('volver').onclick = titleScreen;
 }
 function archiveScreen(back) {
   menu = 'archivo'; const mt = Meta.load();
   const block = (loc) => { const L = LOCS[loc]; const known = new Set([...(mt.notes[loc] ?? []), ...(s && s.loc === loc ? s.notes : [])]);
-    return `<h3>${L.icon} ${L.name.toUpperCase()} · ${known.size}/${NOTES[loc].length}${known.size >= NOTES[loc].length ? ' · ★ FINAL VERDADERO DESBLOQUEADO' : ''}</h3>${NOTES[loc].map(([t, x], i) => known.has(i) ? `<details class="nota"><summary>📄 ${t}</summary><p>${x}</p></details>` : `<p class="nota no">📄 ??? <small>(en algún cajón)</small></p>`).join('')}`; };
-  open(`<h2>📄 ARCHIVO</h2><p style="color:var(--dim)">Las notas aparecen al revisar cajones. Junta las 6 de un destino y gana allí para ver su final verdadero.</p>${(back ? [s.loc] : Object.keys(LOCS)).map(block).join('')}<div class="fila"><button id="volver">VOLVER</button></div>`);
+    return `<h3>${L.icon} ${L.name.toUpperCase()} · ${known.size}/${NOTES[loc].length}${known.size >= NOTES[loc].length ? T(' · ★ FINAL VERDADERO DESBLOQUEADO', ' · ★ TRUE ENDING UNLOCKED') : ''}</h3>${NOTES[loc].map(([t, x], i) => known.has(i) ? `<details class="nota"><summary>📄 ${t}</summary><p>${x}</p></details>` : `<p class="nota no">📄 ??? <small>${T('(en algún cajón)', '(in some drawer)')}</small></p>`).join('')}`; };
+  open(`<h2>📄 ${T('ARCHIVO', 'ARCHIVE')}</h2><p style="color:var(--dim)">${T('Las notas aparecen al revisar cajones. Junta las 6 de un destino y gana allí para ver su final verdadero.', 'Notes appear when you search drawers. Collect all 6 of a destination and win there to see its true ending.')}</p>${(back ? [s.loc] : Object.keys(LOCS)).map(block).join('')}<div class="fila"><button id="volver">${T('VOLVER', 'BACK')}</button></div>`);
   $('volver').onclick = () => (back ? back() : titleScreen());
 }
 
@@ -967,7 +969,7 @@ function help(back) {
     ${sec('LA BASE Y LA RUTINA', `<p><b>Rutina:</b> 06:00 pase de lista · 07:00 desayuno · 08:00 trabajo · 12:00 almuerzo · 13:00 ejercicio · 15:00 libre · 18:00 pase de lista · 19:00 cena · 20:00 libre · 22:00 luces apagadas.</p>
       <p><b>Sistemas de la Estación:</b> soporte vital, energía, radiación y comida bajan solos cada día. De 08:00 a 12:00 haz las 4 <b>revisiones</b> (E sobre cada panel de color: un mini-protocolo de 3 pasos en orden): lo que omitas te cuesta nivel, integridad y alerta. Con poca energía todo lo demás se degrada más rápido. La radiación se mide como % del límite de la misión: si llega a 100 %, pierdes. Con <b>⚡ REFLEJOS</b> (en el título), al terminar una revisión puede sonar una emergencia: corre al punto rojo y pulsa E antes de que se acabe la cuenta o la misión termina.</p>
       <p><b>Afuera</b> (Luna y Marte) solo se sobrevive con el traje: mira el oxígeno.</p>`)}
-    <div class="fila fila-fija"><button id="volver" class="grande">VOLVER</button></div>`);
+    <div class="fila fila-fija"><button id="volver" class="grande">${T('VOLVER', 'BACK')}</button></div>`);
   $('volver').onclick = () => (back ? back() : close());
 }
 
@@ -975,20 +977,20 @@ function craftMenu() {
   menu = 'fabricar';
   const rows = G.recipes(s).map((r) => {
     const ok = G.canCraft(s, r); const it = ITEMS[r.id];
-    return `<div class="receta ${ok ? '' : 'no'}"><span>${icon(r.id)}</span><span>${G.itemName(s, r.id)}<small>${r.need.map((n) => `${G.has(s, n) ? '✓' : '✗'} ${ITEMS[n].name}`).join(' · ')}${r.k ? ` · conocimiento ${r.k}` : ''}${it.info ? ' — ' + it.info : ''}</small></span><button data-r="${r.id}" ${ok ? '' : 'disabled'}>HACER</button></div>`;
+    return `<div class="receta ${ok ? '' : 'no'}"><span>${icon(r.id)}</span><span>${G.itemName(s, r.id)}<small>${r.need.map((n) => `${G.has(s, n) ? '✓' : '✗'} ${ITEMS[n].name}`).join(' · ')}${r.k ? ` · ${T('conocimiento', 'knowledge')} ${r.k}` : ''}${it.info ? ' — ' + it.info : ''}</small></span><button data-r="${r.id}" ${ok ? '' : 'disabled'}>${T('HACER', 'MAKE')}</button></div>`;
   }).join('');
-  open(`<h2>FABRICAR</h2><p style="color:var(--dim)">Fabricar es sospechoso si la vigilancia te ve.</p><div class="recetas">${rows}</div><div class="fila"><button id="cerrar">CERRAR [C]</button></div>`);
+  open(`<h2>${T('FABRICAR', 'CRAFT')}</h2><p style="color:var(--dim)">${T('Fabricar es sospechoso si la vigilancia te ve.', 'Crafting looks suspicious if surveillance sees you.')}</p><div class="recetas">${rows}</div><div class="fila"><button id="cerrar">${T('CERRAR', 'CLOSE')} [C]</button></div>`);
   $('ventana').querySelectorAll('[data-r]').forEach((b) => (b.onclick = () => { if (G.craft(s, b.dataset.r)) M.sfx('fabricar'); craftMenu(); }));
   $('cerrar').onclick = close;
 }
 
 function stashMenu() {
   menu = 'escondite';
-  const list = (arr, act) => arr.map((it, i) => `<button data-${act}="${i}">${icon(it)} ${G.itemName(s, it)}</button>`).join('') || '<p style="color:var(--dim)">(vacío)</p>';
-  open(`<h2>TU ESCONDITE</h2><p>Lo que guardas aquí no te lo quitan en los pases de lista ni en un bloqueo.</p>
-    <div class="dos"><div><h3>LLEVAS (${s.p.inv.length}/${G.capacity(s)})</h3><div class="lista-it">${list(s.p.inv, 'poner')}</div></div>
-    <div><h3>ESCONDIDO (${s.stash.length}/${G.STASH_MAX})</h3><div class="lista-it">${list(s.stash, 'sacar')}</div></div></div>
-    <div class="fila"><button id="cerrar">CERRAR</button></div>`);
+  const list = (arr, act) => arr.map((it, i) => `<button data-${act}="${i}">${icon(it)} ${G.itemName(s, it)}</button>`).join('') || `<p style="color:var(--dim)">${T('(vacío)', '(empty)')}</p>`;
+  open(`<h2>${T('TU ESCONDITE', 'YOUR HIDING PLACE')}</h2><p>${T('Lo que guardas aquí no te lo quitan en los pases de lista ni en un bloqueo.', 'What you keep here is not taken at roll calls or lockdowns.')}</p>
+    <div class="dos"><div><h3>${T('LLEVAS', 'CARRYING')} (${s.p.inv.length}/${G.capacity(s)})</h3><div class="lista-it">${list(s.p.inv, 'poner')}</div></div>
+    <div><h3>${T('ESCONDIDO', 'HIDDEN')} (${s.stash.length}/${G.STASH_MAX})</h3><div class="lista-it">${list(s.stash, 'sacar')}</div></div></div>
+    <div class="fila"><button id="cerrar">${T('CERRAR', 'CLOSE')}</button></div>`);
   $('ventana').querySelectorAll('[data-poner]').forEach((b) => (b.onclick = () => { if (G.stashPut(s, +b.dataset.poner)) M.sfx('soltar'); stashMenu(); }));
   $('ventana').querySelectorAll('[data-sacar]').forEach((b) => (b.onclick = () => { if (G.stashTake(s, +b.dataset.sacar)) M.sfx('recoger'); stashMenu(); }));
   $('cerrar').onclick = () => { s.pending = null; close(); };
@@ -996,16 +998,16 @@ function stashMenu() {
 
 function bagMenu() {
   menu = 'mochila';
-  const it = (id, i) => { const d = ITEMS[id]; return `<div class="it ${d.plan ? 'plan' : d.tool ? 'tool' : ''}">${icon(id)}<span>${G.itemName(s, id)}<small>${d.info ?? (d.tool ? 'Herramienta (te la quitan si te pillan).' : 'Pieza para fabricar. Se puede lanzar (T) para hacer ruido.')}</small>${i != null && !(id in s.L.plan) ? `<button class="soltar" data-soltar="${i}">SOLTAR</button>` : ''}</span></div>`; };
+  const it = (id, i) => { const d = ITEMS[id]; return `<div class="it ${d.plan ? 'plan' : d.tool ? 'tool' : ''}">${icon(id)}<span>${G.itemName(s, id)}<small>${d.info ?? (d.tool ? T('Herramienta (te la quitan si te pillan).', 'Tool (they take it if you get caught).') : T('Pieza para fabricar. Se puede lanzar (T) para hacer ruido.', 'Crafting part. You can throw it (T) to make noise.'))}</small>${i != null && !(id in s.L.plan) ? `<button class="soltar" data-soltar="${i}">${T('SOLTAR', 'DROP')}</button>` : ''}</span></div>`; };
   const plan = G.PLAN_IDS.map((id) => `<li class="${G.has(s, id) ? 'ok' : ''}">${s.L.plan[id].name}${G.has(s, id) ? '' : ' — ' + s.L.plan[id].hint}</li>`).join('');
-  open(`<h2>MOCHILA (${s.p.inv.length}/${G.capacity(s)})</h2>
-    <div class="mochila">${s.p.inv.map((x, i) => it(x, i)).join('') || '<p style="color:var(--dim)">(vacía)</p>'}</div>
-    <h3>EN TU ESCONDITE (${s.stash.length}/${G.STASH_MAX})</h3><div class="mochila">${s.stash.map((x) => it(x)).join('') || '<p style="color:var(--dim)">(vacío)</p>'}</div>
-    <h3>RUTAS DE ESCAPE</h3><ul class="plan">${G.routes(s).map((r) => `<li class="${r.ok ? 'ok' : ''}"><b>${r.name}</b> — ${r.desc}</li>`).join('')}</ul>
-    <h3>PLAN DE REGRESO</h3><ul class="plan">${plan}</ul>
-    ${s.notes.length ? `<h3>NOTAS ENCONTRADAS EN ESTA PARTIDA</h3>${s.notes.map((i) => `<details class="nota"><summary>📄 ${NOTES[s.loc][i][0]}</summary><p>${NOTES[s.loc][i][1]}</p></details>`).join('')}` : ''}<p style="color:var(--dim)">Notas de ${s.L.name}: ${G.notesKnown(s)}/${NOTES[s.loc].length} <button class="mini" id="archivo">VER ARCHIVO</button></p>
-    <p style="color:var(--dim)">Herramientas encima: ${s.p.inv.filter(G.isContraband).length} · con 2 o más te las quitan en el pase de lista.</p>
-    <div class="fila"><button id="cerrar">CERRAR [I]</button></div>`);
+  open(`<h2>${T('MOCHILA', 'BACKPACK')} (${s.p.inv.length}/${G.capacity(s)})</h2>
+    <div class="mochila">${s.p.inv.map((x, i) => it(x, i)).join('') || `<p style="color:var(--dim)">${T('(vacía)', '(empty)')}</p>`}</div>
+    <h3>${T('EN TU ESCONDITE', 'IN YOUR HIDING PLACE')} (${s.stash.length}/${G.STASH_MAX})</h3><div class="mochila">${s.stash.map((x) => it(x)).join('') || `<p style="color:var(--dim)">${T('(vacío)', '(empty)')}</p>`}</div>
+    <h3>${T('RUTAS DE ESCAPE', 'ESCAPE ROUTES')}</h3><ul class="plan">${G.routes(s).map((r) => `<li class="${r.ok ? 'ok' : ''}"><b>${r.name}</b> — ${r.desc}</li>`).join('')}</ul>
+    <h3>${T('PLAN DE REGRESO', 'RETURN PLAN')}</h3><ul class="plan">${plan}</ul>
+    ${s.notes.length ? `<h3>${T('NOTAS ENCONTRADAS EN ESTA PARTIDA', 'NOTES FOUND THIS GAME')}</h3>${s.notes.map((i) => `<details class="nota"><summary>📄 ${NOTES[s.loc][i][0]}</summary><p>${NOTES[s.loc][i][1]}</p></details>`).join('')}` : ''}<p style="color:var(--dim)">${T('Notas de', 'Notes from')} ${s.L.name}: ${G.notesKnown(s)}/${NOTES[s.loc].length} <button class="mini" id="archivo">${T('VER ARCHIVO', 'VIEW ARCHIVE')}</button></p>
+    <p style="color:var(--dim)">${T('Herramientas encima', 'Tools on you')}: ${s.p.inv.filter(G.isContraband).length} · ${T('con 2 o más te las quitan en el pase de lista.', 'with 2 or more they are taken at roll call.')}</p>
+    <div class="fila"><button id="cerrar">${T('CERRAR', 'CLOSE')} [I]</button></div>`);
   $('cerrar').onclick = close;
   $('archivo').onclick = () => archiveScreen(bagMenu);
   $('ventana').querySelectorAll('[data-soltar]').forEach((b) => (b.onclick = () => { const n0 = s.p.inv.length; G.dropItem(s, +b.dataset.soltar); if (s.p.inv.length < n0) M.sfx('soltar'); bagMenu(); }));
@@ -1013,10 +1015,10 @@ function bagMenu() {
 
 // Minijuego 0: contener la respiración. Mantén ESPACIO (o el botón) para empujar la aguja dentro de la zona.
 function breathGame() {
-  menu = 'respira'; M.sting('susto', { suave: FX.suave() }); scareT = 0.5; s.stats.hid++; const who = s.pending.who; const name = who.vid ? VILLAINS[who.vid].name : `Un ${s.L.watcher}`;
-  open(`<h2>NO RESPIRES</h2><p>${name} está revisando tu escondite… Mantén <kbd>ESPACIO</kbd> (o el botón) para controlar la respiración y deja la aguja dentro de la zona.</p>
+  menu = 'respira'; M.sting('susto', { suave: FX.suave() }); scareT = 0.5; s.stats.hid++; const who = s.pending.who; const name = who.vid ? VILLAINS[who.vid].name : T(`Un ${s.L.watcher}`, `A ${s.L.watcher === 'dron' ? 'drone' : s.L.watcher === 'vigía' ? 'lookout' : s.L.watcher}`);
+  open(`<h2>${T('NO RESPIRES', 'HOLD YOUR BREATH')}</h2><p>${T(`${name} está revisando tu escondite… Mantén <kbd>ESPACIO</kbd> (o el botón) para controlar la respiración y deja la aguja dentro de la zona.`, `${name} is checking your hiding place… Hold <kbd>SPACE</kbd> (or the button) to control your breathing and keep the needle inside the zone.`)}</p>
     <div class="respira-latido" id="lat">♥</div><div class="respira"><div class="zona" id="zona"></div><div class="aguja" id="aguja"></div></div><div class="tiempo"><i id="rt"></i></div>
-    <div class="fila"><button id="aguanta">AGUANTAR (mantener)</button></div>`);
+    <div class="fila"><button id="aguanta">${T('AGUANTAR (mantener)', 'HOLD ON (keep pressed)')}</button></div>`);
   let x = 50, v = 0, time = 0, out = 0; const total = 6; let zc = 50; const zw = 26; let ptr = false;
   const b = $('aguanta'); b.onpointerdown = () => (ptr = true); b.onpointerup = b.onpointerleave = () => (ptr = false);
   const tick = setInterval(() => {
@@ -1054,11 +1056,11 @@ function codeGame() {
   menu = 'codigo';
   const len = 4 + s.frags.filter(Boolean).length; const seq = Array.from({ length: len }, () => Math.floor(Math.random() * 9));
   let pos = 0; let showing = true;
-  open(`<h2>HACKEO · registro de ${s.L.ai}</h2><p id="cg-msg">Memoriza la secuencia…</p>
+  open(`<h2>${T('HACKEO · registro de ', 'HACK · record of ')}${s.L.ai}</h2><p id="cg-msg">${T('Memoriza la secuencia…', 'Memorize the sequence…')}</p>
     <div class="teclado" id="teclado">${Array.from({ length: 9 }, (_, i) => `<button data-k="${i}" disabled>${'▲●■◆★✚♦▼◉'[i]}</button>`).join('')}</div>`);
   const btns = [...$('teclado').querySelectorAll('button')];
   seq.forEach((k, i) => { setTimeout(() => { btns[k].classList.add('lit'); beep(300 + k * 60, 0.15); }, 600 + i * 650); setTimeout(() => btns[k].classList.remove('lit'), 1000 + i * 650); });
-  setTimeout(() => { showing = false; btns.forEach((b) => (b.disabled = false)); $('cg-msg').textContent = 'Ahora repítela.'; }, 700 + len * 650);
+  setTimeout(() => { showing = false; btns.forEach((b) => (b.disabled = false)); $('cg-msg').textContent = T('Ahora repítela.', 'Now repeat it.'); }, 700 + len * 650);
   btns.forEach((b) => (b.onclick = () => {
     if (showing) return; const k = +b.dataset.k;
     b.classList.add('lit'); setTimeout(() => b.classList.remove('lit'), 150);
@@ -1072,7 +1074,7 @@ function cablesGame() {
   menu = 'cables';
   const colors = ['#ff4b4b', '#4dff88', '#5fb6ff', '#ffd23d']; const right = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
   let sel = null; let done = 0; let errors = 0; let time = 14;
-  open(`<h2>CABLES · ${s.pending.h.def.name}</h2><p>Une cada cable con su color (toca uno a la izquierda y luego su par). 2 errores = falla.</p><div class="tiempo"><i id="ct"></i></div>
+  open(`<h2>${T('CABLES', 'WIRES')} · ${s.pending.h.def.name}</h2><p>${T('Une cada cable con su color (toca uno a la izquierda y luego su par). 2 errores = falla.', 'Connect each wire to its color (tap one on the left, then its match). 2 mistakes = fail.')}</p><div class="tiempo"><i id="ct"></i></div>
     <div class="cables"><div>${colors.map((c, i) => `<button data-l="${i}" style="background:${c}"></button>`).join('')}</div><div>${right.map((i) => `<button data-r="${i}" style="background:${colors[i]}"></button>`).join('')}</div></div>`);
   const tick = setInterval(() => { time -= 0.1; const el = $('ct'); if (el) el.style.width = `${Math.max(0, time / 14 * 100)}%`; if (time <= 0) finish(false); }, 100);
   function finish(ok) { clearInterval(tick); M.ui(ok ? 'ok' : 'error'); G.resolveProtocol(s, ok); close(); }
@@ -1096,7 +1098,7 @@ function endScreen() {
   // pregunta de cierre (mide si se aprendió lo central; ver quiz.js)
   const qz = Quiz.preguntaPara(s.seed ?? 0, Meta.quizHist()); const qop = Quiz.opciones(qz, s.seed ?? 0);
   const quizHTML = `<section class="bloque quiz" id="quiz"><h3>${T('PREGUNTA DE CIERRE', 'CLOSING QUESTION')}</h3><p><b>${qz.q}</b></p><div class="quiz-op">${qop.map((o, i) => `<button type="button" data-qi="${i}"><kbd>${i + 1}</kbd> ${o.t}</button>`).join('')}</div><div id="quiz-res" aria-live="polite"></div></section>\n    `;
-  const share = s.daily ? `CUSTODIA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}×${s.dFlare ? ` · ☀️ ${s.dFlare.flare.cls}: ${s.dFlare.result === 'refugio' ? 'refugio' : s.dFlare.result === 'impacto' ? 'afuera' : '—'}` : ''} · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
+  const share = s.daily ? `CUSTODIA · ${T('Reto', 'Challenge')} ${Meta.today()} · ${s.L.name}: ${o.won ? T(`escapé en ${Meta.fmtTime(s.t)} `, `I escaped in ${Meta.fmtTime(s.t)} `) + '★'.repeat(o.stars) : T('no escapé 💀', 'I did not escape 💀')} · ${T('atrapado', 'caught')} ${s.stats.caught}×${s.dFlare ? ` · ☀️ ${s.dFlare.flare.cls}: ${s.dFlare.result === 'refugio' ? T('refugio', 'shelter') : s.dFlare.result === 'impacto' ? T('afuera', 'outside') : '—'}` : ''} · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
   open(`<div class="fin ${o.won ? 'gana' : 'pierde'}">
     <div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? T('¡VOLVISTE A CASA!', 'YOU MADE IT HOME!') : T('MISIÓN PERDIDA', 'MISSION LOST')}</p><h2>${R_.titulo}</h2></div></div>
     ${o.won ? `<div class="estrellas" aria-label="${o.stars} ${T('de 3 estrellas', 'of 3 stars')}">${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}</div>` : ''}
@@ -1332,7 +1334,7 @@ document.fonts?.load('16px VT323').finally(() => {
   titleScreen(); requestAnimationFrame(frame); arranque(); registraOffline();
   if (q.has('jurado')) {
     M.start(); s = G.newGame('estacion', undefined, 'cadete', { flares: liveFlares, mode: 'campana' }); base = null; close();
-    s.day = 2; s.min = 14 * 60 + 52; s.p.sleep = false; G.say(s, 'Modo jurado: día 2, 14:52. En unos segundos llega la primera tormenta solar real (NASA DONKI). ¿Refugio o sigues?', 'info');
+    s.day = 2; s.min = 14 * 60 + 52; s.p.sleep = false; G.say(s, T('Modo jurado: día 2, 14:52. En unos segundos llega la primera tormenta solar real (NASA DONKI). ¿Refugio o sigues?', 'Judge mode: day 2, 14:52. In a few seconds the first real solar storm (NASA DONKI) arrives. Shelter or keep going?'), 'info');
     intro();
   }
   const sala = new URLSearchParams(location.search).get('sala'); // enlace directo del astronauta: ...?sala=ABCD → entra como Control de Misión

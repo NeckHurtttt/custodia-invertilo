@@ -3,6 +3,7 @@
 import { PERKS, DIFS } from './common.js';
 import { NOTES } from './story.js';
 import { dailyFlare } from './clima.js';
+import { T } from './i18n.js';
 
 export const MEDALS = {
   primer: ['Primer regreso', 'Escapa por primera vez.'],
@@ -23,6 +24,27 @@ export const MEDALS = {
   racha3: ['En racha', 'Gana 3 partidas seguidas.'],
   reto: ['Puntual', 'Completa un reto del día.'],
 };
+
+const MEDALS_EN = {
+  primer: ['First return', 'Escape for the first time.'],
+  fantasma: ['Ghost', 'Escape without being caught even once.'],
+  invisible: ['Invisible', 'Escape without anyone seeing you.'],
+  relampago: ['Lightning', 'Escape in the campaign before day 4.'],
+  apagon: ['Switch', 'Escape with the AI shut down.'],
+  motin: ['Captain', 'Escape by the MUTINY route.'],
+  sabotaje: ['Saboteur', 'Escape by the SABOTAGE route.'],
+  traidor: ['Lone wolf', 'Escape after reporting someone.'],
+  lealtad: ['Nobody left behind', 'Escape with all 3 crewmates on your side.'],
+  archivo: ['Archivist', 'Find all 6 notes of a destination.'],
+  verdad: ['The truth', 'Get a true ending.'],
+  noche: ['Night owl', 'Win a ONE NIGHT game.'],
+  terror: ['Cold blood', 'Win on Terror.'],
+  pesadilla: ['Legend', 'Win on Nightmare.'],
+  trotamundos: ['Globetrotter', 'Escape from the Station, the Moon and Mars.'],
+  racha3: ['On a streak', 'Win 3 games in a row.'],
+  reto: ['Punctual', 'Complete a daily challenge.'],
+};
+for (const [k, [n, d]] of Object.entries(MEDALS_EN)) { const m = MEDALS[k]; const [n0, d0] = m; Object.defineProperty(m, 0, { get: () => T(n0, n), enumerable: true, configurable: true }); Object.defineProperty(m, 1, { get: () => T(d0, d), enumerable: true, configurable: true }); }
 
 const KEY = 'lfr.meta';
 const blank = () => ({ pts: 0, unlocked: ['novato'], medals: {}, notes: {}, wins: {}, streak: 0, bestStreak: 0, daily: {}, games: 0, quiz: {} });

@@ -8,6 +8,10 @@ import { LOCS, ROOM_EN } from '../src/locs.js';
 import { DIFS, PERKS, PROTOCOLS, PROTO_FUENTE, PROTO_NIVEL, PROTO_NIVEL_EN, HAZARDS, ITEMS } from '../src/common.js';
 import { restriccion, dosisReales, osdr, escala } from '../src/datos.js';
 import { SHELTER, classText, sourceText } from '../src/clima.js';
+import { VILLAINS, MISSIONS } from '../src/villains.js';
+import { NOTES, TRUE_END } from '../src/story.js';
+import { MEDALS } from '../src/meta.js';
+import { CMD, AVISOS, DELAY_NOTE } from '../src/coop.js';
 
 /** Corre `fn` en inglés y siempre vuelve a español (las demás pruebas esperan español). */
 const enIngles = (fn) => { setLang('en'); try { return fn(); } finally { setLang('es'); } };
@@ -80,4 +84,26 @@ test('idioma: peligros, objetos, protocolos, horario y tareas de mantenimiento t
   assert.deepEqual(en, { f: 'FIRE', c: 'Duct tape', i: 'Puts out a fire.', tr: 'Lunar base maintenance', lista: 'Roll call', t1: 'Swap the CO₂ and dust filters', t2: 'Batteries', te: 'Check the shielding and the dosimeter' });
   const sp = G.newGame('luna', 5); assert.equal(Sys.taskName(sp, 'vida'), 'Cambiar los filtros de CO₂ y de polvo'); assert.equal(sp.L.schedule[0].name, 'Dormir');
   const aviso = enIngles(() => { const s = G.newGame('estacion', 5); G.spawnHazard(s, 'fuego'); return s.log.at(-1).text; }); assert.match(aviso, /FIRE in /);
+});
+
+test('idioma: villanos, misiones, notas, finales verdaderos, medallas, emergencias y textos de destino salen en inglés, sin acentos del español', () => {
+  const esp = /[áéíóúñ¡¿]/i;
+  const dist = [];
+  const ver = (nombre, es, en) => { assert.ok(en && !esp.test(en), `${nombre}: sin traducir → ${en}`); dist.push([nombre, es, en]); };
+  const es = {}; const en = {};
+  const recoge = (dest, f) => { dest.villanos = Object.entries(VILLAINS).map(([k, v]) => `${k}|${v.name}|${v.desc}`); dest.notas = Object.entries(NOTES).flatMap(([l, a]) => a.map(([t, x]) => `${l}|${t}|${x}`)); dest.finales = Object.entries(TRUE_END).map(([k, v]) => `${k}|${v}`); dest.medallas = Object.entries(MEDALS).map(([k, [n, d]]) => `${k}|${n}|${d}`); dest.emerg = Object.entries(Sys.EMERGS).map(([k, e]) => `${k}|${e.name}|${e.verb}|${e.text('Sala')}|${e.fatal[1]}`); dest.misiones = MISSIONS.map((m) => `${m.id}|${m.verb}|${m.text('Laboratorio')}`); dest.destinos = Object.entries(LOCS).flatMap(([k, L]) => [`${k}|${L.ai}|${Object.values(L.labels).join('|')}|${L.aiLines.join('|')}|${L.win.join('|')}|${G.PLAN_IDS.map((p) => L.plan[p].name + '|' + L.plan[p].hint).join('|')}|${L.sysFlavor?.note ?? ''}|${(L.sysFlavor?.events ?? []).map((e) => [e.name, e.hud, e.msg, e.end].join('|')).join('|')}`]); dest.coop = [...Object.values(CMD).map((c) => `${c.name}|${c.help}`), ...Object.values(AVISOS).map((a) => a[0]), ...Object.values(DELAY_NOTE)]; };
+  recoge(es, 0); enIngles(() => recoge(en, 1));
+  for (const k of Object.keys(es)) {
+    assert.equal(en[k].length, es[k].length, `${k}: mismo número de textos`);
+    es[k].forEach((e, i) => { ver(`${k}[${i}]`, e, en[k][i].split('|').filter((p) => p).join(' | ')); assert.notEqual(en[k][i], e, `${k}[${i}] igual en los dos idiomas`); });
+  }
+  assert.equal(es.notas.length, 18); assert.equal(es.villanos.length, 30);
+  // las etiquetas de objetos y los títulos de final también
+  enIngles(() => { for (const t of ['Final verdadero', 'Base recuperada', 'Regreso silencioso', 'Por los pelos']) assert.ok(!esp.test(UI.tituloFin(t)), t); });
+});
+
+test('idioma: jugar en inglés no cambia las reglas (mismo estado, solo cambian los textos)', () => {
+  const corre = () => { const s = G.newGame('estacion', 11, 'cadete'); for (let i = 0; i < 4000; i++) G.update(s, 0.1, { dx: i % 40 < 20 ? 1 : -1, dy: i % 70 < 35 ? 0 : 1 }); return { x: +s.p.x.toFixed(3), y: +s.p.y.toFixed(3), min: Math.floor(s.min), day: s.day, alert: Math.round(s.alert), integ: Math.round(s.integ), over: !!s.over, n: s.log.length }; };
+  const a = corre(); const b = enIngles(corre);
+  assert.deepEqual(b, a);
 });

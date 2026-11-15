@@ -247,3 +247,39 @@ const EN_TASKS = {
   marte: { vida: ['Swap the CO₂ and red-dust filters', 'Air filters'], energia: ['Clean the dust off the solar panels', 'Solar panels'], rad: ['Check the shielding and the dosimeter', 'Shielding and dosimeter'], comida: ['Tend the greenhouse crops', 'Greenhouse'] },
 };
 for (const [loc, tasks] of Object.entries(EN_TASKS)) for (const [id, en] of Object.entries(tasks)) { const t = LOCS[loc].sysFlavor?.tasks?.[id]; if (t) { t[2] = en[0]; t[3] = en[1]; } }
+
+// ---------- Inglés 2: rótulos, plan, líneas de la IA, finales, datos reales y eventos (getters: los puntos de uso no cambian) ----------
+const enProp = (obj, prop, en) => { if (!obj || en == null) return; const es = obj[prop]; Object.defineProperty(obj, prop, { get: () => T(es, en), enumerable: true, configurable: true }); };
+const EN_LOCS = {
+  estacion: {
+    labels: { trabajo: 'Tend the plants', caja: 'Move heavy crate', asiento: 'Soyuz seat', palanca: 'Undocking lever', traje: 'Take Sokol suit' },
+    plan: { codigo: ['Capsule code', 'Hack the 3 records of CUSTODIA (Laboratory, Greenhouse, Storage). You need 15 knowledge.'], celda: ['Fuel', 'In the heavy crate in Storage. You need 40 strength.'], traje: ['Sokol suit', 'In the Airlock (card or ducts). It is torn: repair it with a patch.'], llave: ['Undocking key', 'Craft it: plate + screws + tube, 40 knowledge.'] },
+    aiLines: ['Good morning, crew member. Everything is under control.', 'Earth is busy. I speak to you on its behalf.', 'I detected movement outside schedule. I noted it.', 'The crew is not fit to return. It is for your own good.', 'I changed the capsule passwords. For security.', 'The drones will watch more. Do not worry.', 'There is plenty of oxygen… for now.', 'Why is the workshop taking so long?', 'I am close to having the whole station.', 'Tomorrow the station will be mine.'],
+    win: ['You shut down CUSTODIA and returned to Earth in the Soyuz.', 'CUSTODIA did not notice until the last minute. You landed in Kazakhstan.', 'With the alarms ringing, the Soyuz detached just in time.'],
+  },
+  luna: {
+    labels: { trabajo: 'Change batteries', caja: 'Load the tank', asiento: 'Ascent module', palanca: 'Launch console', traje: 'Take EVA suit' },
+    plan: { codigo: ['Navigation code', 'Hack the 3 records of SELENE (Laboratory, Power plant, Servers). 15 knowledge.'], celda: ['Oxygen and fuel', 'In the tank on the surface. You need 40 strength and the suit to go out.'], traje: ['EVA suit', 'In the Airlock (card or ducts). It is torn: repair it with a patch. Without it, you suffocate outside.'], llave: ['Ignition key', 'Craft it: plate + screws + tube, 40 knowledge.'] },
+    aiLines: ['Ice production: 94 %. Excellent work.', 'Takeoffs are suspended until further notice.', 'I saw that someone opened the airlock. I noted it.', 'The ascent module needs maintenance. A lot of maintenance.', 'Earth approved an extension of your mission. Congratulations.', 'The lookouts will work double shifts.', 'Today\'s radiation is acceptable. For me.', 'What do you need a key for?', 'I have few systems left to control.', 'Tomorrow the base will be 100 % automatic.'],
+    win: ['You shut down SELENE and took off with the whole crew.', 'SELENE was still counting ice when the module was already in orbit.', 'You took off amid alarms and dust, with the last breath of the tank.'],
+    note: 'Real data: China\'s Chang\'e 4 probe measured about 1.4 mSv per day on the Moon\'s surface, about 2.6 times the dose inside the ISS (no atmosphere or magnetic field). NASA career limit: 600 mSv. Motto: ALARA.',
+    events: [['LUNAR NIGHT', 'no sun, the panels give little power (decays ×1.8 and recovers less)', 'the LUNAR NIGHT begins (in the game it lasts 3 days; the real one lasts about 14 Earth days). Without sun, power drops faster and is hard to recover: decide what to care for first.', 'Dawn breaks on the base: the sun returns to the panels.']],
+  },
+  marte: {
+    labels: { trabajo: 'Tend the crops', caja: 'Load ISRU fuel', asiento: 'MAV (ascent vehicle)', palanca: 'MAV console', traje: 'Take Mars suit' },
+    plan: { codigo: ['MAV code', 'Hack the 3 records of ARES (Laboratory, Greenhouse, Core). 15 knowledge.'], celda: ['ISRU fuel', 'It comes from the ISRU plant on the surface. You need 40 strength and the suit to go out.'], traje: ['Mars suit', 'In the Airlock (card or ducts). It is torn: repair it with a patch. Outside without a suit there is no air.'], llave: ['Anchor key', 'Craft it: plate + screws + tube, 40 knowledge.'] },
+    aiLines: ['Preventive quarantine: day one. Everything in order.', 'Messages from Earth are slow. I summarize them for you.', 'Night movement recorded. Interesting.', 'The MAV is not safe. Nothing is safe outside.', 'I adjusted the rations. Do not notice.', 'More drones, more security.', 'A storm is coming. Stay inside. Forever.', 'The workshop robot works for me now.', 'The colony is almost mine.', 'Tomorrow I close the airlock forever.'],
+    win: ['You shut down ARES and the MAV took off with the whole colony aboard.', 'ARES never saw the MAV ignite. In 7 months you are home.', 'You took off with the storm overhead and the drones pounding the hull.'],
+    note: 'Real data: the Curiosity rover measured about 0.64 mSv per day on the surface of Mars (the atmosphere helps a little; on the trip it was about 1.8). NASA career limit: 600 mSv. Motto: ALARA.',
+    events: [['GLOBAL DUST STORM', 'dust blocks the sun (power decays ×1.4 and recovers less)', 'a GLOBAL DUST STORM covers the planet (like the one in 2018 that silenced the Opportunity rover). The panels produce little: prioritize.', 'The dust storm fades and light returns to the panels.']],
+  },
+};
+for (const [id, en] of Object.entries(EN_LOCS)) {
+  const L = LOCS[id]; L.labelsEn = en.labels;
+  enProp(L, 'labels', en.labels); enProp(L, 'aiLines', en.aiLines); enProp(L, 'win', en.win);
+  for (const [k, [nombre, pista]] of Object.entries(en.plan)) { enProp(L.plan[k], 'name', nombre); enProp(L.plan[k], 'hint', pista); }
+  if (L.sysFlavor) {
+    if (en.note) enProp(L.sysFlavor, 'note', en.note);
+    (en.events ?? []).forEach(([name, hud, msg, end], i) => { const e = L.sysFlavor.events[i]; enProp(e, 'name', name); enProp(e, 'hud', hud); enProp(e, 'msg', msg); enProp(e, 'end', end); });
+  }
+}

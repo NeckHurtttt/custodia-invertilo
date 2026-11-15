@@ -373,6 +373,14 @@ try {
     const mini = await pg.textContent('#ventana');
     for (const frag of ['MAINTENANCE · life support', 'Tap the steps', 'Measure the CO₂ in the air', 'NOT NOW', 'Educational fiction']) assert.ok(mini.includes(frag), `el mantenimiento en inglés debe decir "${frag}"`);
     await pg.click('#pc'); await pg.waitForTimeout(300);
+    // mochila, fabricar y archivo en inglés (nada de español)
+    await pg.keyboard.press('i'); await pg.waitForSelector('#archivo', { timeout: 3000 });
+    const bolsa = await pg.textContent('#ventana'); for (const frag of ['BACKPACK', 'IN YOUR HIDING PLACE', 'ESCAPE ROUTES', 'RETURN PLAN', 'VIEW ARCHIVE']) assert.ok(bolsa.includes(frag), `la mochila en inglés debe decir "${frag}"`);
+    await pg.click('#archivo'); await pg.waitForSelector('#volver'); const arch = await pg.textContent('#ventana'); for (const frag of ['ARCHIVE', 'in some drawer']) assert.ok(arch.includes(frag), `el archivo en inglés debe decir "${frag}"`);
+    assert.ok(!/ARCHIVO|algún cajón|VOLVER/.test(arch), 'el archivo no queda en español');
+    await pg.click('#volver'); await pg.waitForSelector('#cerrar'); await pg.click('#cerrar');
+    await pg.keyboard.press('c'); await pg.waitForSelector('.recetas', { timeout: 3000 }); const fab = await pg.textContent('#ventana'); assert.ok(fab.includes('CRAFT') && fab.includes('MAKE') && !/FABRICAR|HACER/.test(fab), `fabricar en inglés: ${fab.slice(0, 80)}`); await pg.click('#cerrar');
+    assert.match(await pg.textContent('.hud-crew'), /happy|asks for/, 'la tripulación del HUD en inglés');
     // tormenta solar: cartel del HUD en inglés
     await pg.evaluate(() => { const { s, Sys } = lfr; Object.assign(s.p, { x: 5.5, y: 13.5 }); Sys.startStorm(s); s.grace = 9999; });
     await pg.waitForFunction(() => /SOLAR STORM 1\/3/.test(document.getElementById('emerg')?.textContent ?? ''), null, { timeout: 4000 });

@@ -2,6 +2,7 @@
 // cada día se sortean otros al azar. También: misiones con reloj, huellas, votación y peligros nuevos.
 import { ITEMS, LOOT } from './common.js';
 import { T } from './i18n.js';
+import { ROOM_EN } from './locs.js';
 import * as C from './core.js';
 
 /*
@@ -126,7 +127,7 @@ export function startDay(s) {
   // rasgo de la IA
   if (ia === 'custodia' && s.iaOn) {
     v.welded = v.welded.filter((w) => w.until > s.day);
-    for (const [i, n2] of Object.entries(v.gUse)) if (n2 >= 3 && !v.welded.some((w) => w.i === +i)) { v.welded.push({ i: +i, until: s.day + 2 }); C.say(s, `CUSTODIA: Noté tráfico raro en una rejilla de ${C.roomName(s, C.roomIdAt(s, s.L.grates[i][0] + 0.5, s.L.grates[i][1] + 0.5))}. La soldé.`, 'ia'); }
+    for (const [i, n2] of Object.entries(v.gUse)) if (n2 >= 3 && !v.welded.some((w) => w.i === +i)) { v.welded.push({ i: +i, until: s.day + 2 }); C.say(s, T(`CUSTODIA: Noté tráfico raro en una rejilla de ${C.roomName(s, C.roomIdAt(s, s.L.grates[i][0] + 0.5, s.L.grates[i][1] + 0.5))}. La soldé.`, `CUSTODIA: I noticed strange traffic in a grate in ${C.roomName(s, C.roomIdAt(s, s.L.grates[i][0] + 0.5, s.L.grates[i][1] + 0.5))}. I welded it.`), 'ia'); }
     v.gUse = {};
   }
   if (ia === 'selene' && s.iaOn) { const want = Math.min(5, 2 + Math.floor((s.day - 1) / 3)); while (s.hazards.filter((h) => h.kind === 'camara').length < want) C.spawnHazard(s, 'camara'); }
@@ -142,7 +143,7 @@ export function startDay(s) {
   v.missions = [];
   if (s.day >= 1) v.missions.push(480 + Math.floor(rnd(s) * 420));
   if (s.day >= 3) v.missions.push(1340 + Math.floor(rnd(s) * 60));
-  C.say(s, `Amenazas de hoy: ${v.today.map((id) => VILLAINS[id].name).join(' · ')}.`, 'ia');
+  C.say(s, T(`Amenazas de hoy: ${v.today.map((id) => VILLAINS[id].name).join(' · ')}.`, `Today's threats: ${v.today.map((id) => VILLAINS[id].name).join(' · ')}.`), 'ia');
 }
 
 function newWalker(s, vid, k) {
@@ -205,8 +206,8 @@ function updateWalker(s, w, dt) {
   const d = VILLAINS[w.vid]; const p = s.p;
   if (d.window) {
     const inWin = s.min >= w.from && s.min < w.to;
-    if (inWin && w.away) { w.away = false; const r = room(s, 'nodo'); [w.x, w.y] = tileIn(s, r); C.flash(s, `Llegó la nave de carga con ${d.name} (hasta las ${C.clock(w.to)}). Esconde tus herramientas.`, 'bad'); sfx(s, 'alarma'); }
-    if (!inWin && !w.away) { w.away = true; C.say(s, `${d.name} se fue en la nave de carga.`, 'info'); }
+    if (inWin && w.away) { w.away = false; const r = room(s, 'nodo'); [w.x, w.y] = tileIn(s, r); C.flash(s, T(`Llegó la nave de carga con ${d.name} (hasta las ${C.clock(w.to)}). Esconde tus herramientas.`, `The cargo ship arrived with ${d.name} (until ${C.clock(w.to)}). Hide your tools.`), 'bad'); sfx(s, 'alarma'); }
+    if (!inWin && !w.away) { w.away = true; C.say(s, T(`${d.name} se fue en la nave de carga.`, `${d.name} left on the cargo ship.`), 'info'); }
     if (w.away) return;
   }
   w.moving = false; w.cd = Math.max(0, w.cd - dt); w.chatCd = Math.max(0, w.chatCd - dt); if (w.alarmT > 0) w.alarmT -= dt; if (w.qT > 0) w.qT -= dt; if (w.ignore > 0) w.ignore -= dt;
@@ -251,12 +252,12 @@ export function caughtBy(s, w) {
   const toDorm = () => Object.assign(p, { x: 3.5, y: 3.5, inDuct: false, hidden: null });
   const skip = (m) => { s.min = Math.min(s.min + m, 1439); };
   switch (d.onCatch) {
-    case 'confisca': { const l = tools(); C.raise(s, 10); return C.flash(s, `${d.name} te revisó${l ? ' y te quitó: ' + l : ', pero no llevabas nada'}.`, 'bad'); }
-    case 'enfermeria': toDorm(); skip(150); p.salud = Math.max(p.salud, 85); p.energia = Math.max(p.energia, 70); return C.flash(s, `${d.name} te llevó a la enfermería. Perdiste 2 h y media, pero te curó.`, 'bad');
-    case 'golpe': { p.salud -= 20; const r = room(s, 'esclusa'); Object.assign(p, { x: r.x + 1.5, y: r.y + 2.5 }); C.raise(s, 10); return C.flash(s, `Los mineros te golpearon (−20 salud) y te tiraron a la esclusa.`, 'bad'); }
-    case 'cuarentena': toDorm(); skip(120); p.energia = Math.max(0, p.energia - 10); return C.flash(s, `${d.name}: "Posible contagio." Te pusieron 2 h en cuarentena.`, 'bad');
-    case 'trabajo': { skip(90); p.energia = Math.max(0, p.energia - 20); const b = s.L.schedule.find((x) => x.id === 'trabajo'); const wo = s.objects.find((o) => o.t === 'trabajo'); const r = room(s, b.room ?? (wo ? C.roomIdAt(s, wo.x + 0.5, wo.y + 0.5) : 'lab')); Object.assign(p, { x: r.x + 1.5, y: r.y + 1.5, inDuct: false, hidden: null }); return C.flash(s, `${d.name} te puso a trabajar 1 h y media extra (−20 energía).`, 'bad'); }
-    default: { const l = tools(); toDorm(); p.energia = Math.max(0, p.energia - 20); C.raise(s, 15); return C.flash(s, `${d.name} te atrapó y te encerró en el dormitorio${l ? '. Te quitó: ' + l : ''}.`, 'bad'); }
+    case 'confisca': { const l = tools(); C.raise(s, 10); return C.flash(s, T(`${d.name} te revisó${l ? ' y te quitó: ' + l : ', pero no llevabas nada'}.`, `${d.name} searched you${l ? ' and took: ' + l : ', but you were carrying nothing'}.`), 'bad'); }
+    case 'enfermeria': toDorm(); skip(150); p.salud = Math.max(p.salud, 85); p.energia = Math.max(p.energia, 70); return C.flash(s, T(`${d.name} te llevó a la enfermería. Perdiste 2 h y media, pero te curó.`, `${d.name} took you to the infirmary. You lost 2.5 hours, but they cured you.`), 'bad');
+    case 'golpe': { p.salud -= 20; const r = room(s, 'esclusa'); Object.assign(p, { x: r.x + 1.5, y: r.y + 2.5 }); C.raise(s, 10); return C.flash(s, T(`Los mineros te golpearon (−20 salud) y te tiraron a la esclusa.`, `The miners hit you (−20 health) and threw you into the airlock.`), 'bad'); }
+    case 'cuarentena': toDorm(); skip(120); p.energia = Math.max(0, p.energia - 10); return C.flash(s, T(`${d.name}: "Posible contagio." Te pusieron 2 h en cuarentena.`, `${d.name}: "Possible contagion." They put you in quarantine for 2 hours.`), 'bad');
+    case 'trabajo': { skip(90); p.energia = Math.max(0, p.energia - 20); const b = s.L.schedule.find((x) => x.id === 'trabajo'); const wo = s.objects.find((o) => o.t === 'trabajo'); const r = room(s, b.room ?? (wo ? C.roomIdAt(s, wo.x + 0.5, wo.y + 0.5) : 'lab')); Object.assign(p, { x: r.x + 1.5, y: r.y + 1.5, inDuct: false, hidden: null }); return C.flash(s, T(`${d.name} te puso a trabajar 1 h y media extra (−20 energía).`, `${d.name} put you to work for 1.5 extra hours (−20 energy).`), 'bad'); }
+    default: { const l = tools(); toDorm(); p.energia = Math.max(0, p.energia - 20); C.raise(s, 15); return C.flash(s, T(`${d.name} te atrapó y te encerró en el dormitorio${l ? '. Te quitó: ' + l : ''}.`, `${d.name} caught you and locked you in the dormitory${l ? '. They took: ' + l : ''}.`), 'bad'); }
   }
 }
 
@@ -266,12 +267,12 @@ function updateSnitch(s, w, dt) {
   if (d.mode === 'ladron') {
     if (w.loot) { // huye a un cajón para esconder lo robado
       if (!w.goal) { const o = pick(s, s.objects.filter((o) => o.t === 'cajon' && !C.roomAt(s, o.x, o.y)?.restricted)); w.goal = [o.x + 0.5, o.y + 0.5]; w.obj = o; }
-      if (C.follow(s, w, w.goal, 3.0, dt, 'd')) { const o = s.objects.find((x) => x.x === w.obj?.x && x.y === w.obj?.y) ?? s.objects.find((x) => x.t === 'cajon'); o.loot.push(w.loot); C.flash(s, `El Desertor escondió tu ${C.itemName(s, w.loot)} en un cajón de ${C.roomName(s, C.roomIdAt(s, w.x, w.y))}.`, 'bad'); w.loot = null; w.goal = null; w.cd = 45; }
+      if (C.follow(s, w, w.goal, 3.0, dt, 'd')) { const o = s.objects.find((x) => x.x === w.obj?.x && x.y === w.obj?.y) ?? s.objects.find((x) => x.t === 'cajon'); o.loot.push(w.loot); C.flash(s, T(`El Desertor escondió tu ${C.itemName(s, w.loot)} en un cajón de ${C.roomName(s, C.roomIdAt(s, w.x, w.y))}.`, `The Deserter hid your ${C.itemName(s, w.loot)} in a drawer in ${C.roomName(s, C.roomIdAt(s, w.x, w.y))}.`), 'bad'); w.loot = null; w.goal = null; w.cd = 45; }
       return;
     }
     if (w.cd > 0 || p.inDuct || p.hidden) { if (!w.goal || Math.hypot(w.goal[0] - w.x, w.goal[1] - w.y) < 0.7) w.goal = tileIn(s, pick(s, indoor(s))); C.follow(s, w, w.goal, 1.6, dt, 'd'); return; }
     C.follow(s, w, [p.x, p.y], 2.4, dt, 'd');
-    if (dd < 0.7) { const it = C.PLAN_IDS.find((x) => C.has(s, x)) ?? p.inv.find(C.isContraband) ?? p.inv[0]; if (it) { C.take(s, it); w.loot = it; w.goal = null; sfx(s, 'visto'); C.flash(s, `¡El Desertor te robó: ${C.itemName(s, it)}! Atrápalo (E) antes de que lo esconda.`, 'bad'); } else w.cd = 20; }
+    if (dd < 0.7) { const it = C.PLAN_IDS.find((x) => C.has(s, x)) ?? p.inv.find(C.isContraband) ?? p.inv[0]; if (it) { C.take(s, it); w.loot = it; w.goal = null; sfx(s, 'visto'); C.flash(s, T(`¡El Desertor te robó: ${C.itemName(s, it)}! Atrápalo (E) antes de que lo esconda.`, `The Deserter stole from you: ${C.itemName(s, it)}! Catch them (E) before they hide it.`), 'bad'); } else w.cd = 20; }
     return;
   }
   // soplón y doble: te siguen y cuentan
@@ -282,7 +283,7 @@ function updateSnitch(s, w, dt) {
   const bad = C.suspicious(s) || (d.mode === 'soplon' && p.inv.filter(C.isContraband).length >= 1);
   if (dd < 6 && !p.inDuct && !p.hidden && C.los(s, w.x, w.y, p.x, p.y) && bad) {
     w.rep += dt;
-    if (w.rep > 3) { w.rep = 0; w.say = d.mode === 'doble' ? '…' : '¡Te vi!'; w.sayFor = 2; if (s.iaOn) C.raise(s, 12, `${d.mode === 'doble' ? 'Un compañero' : 'El Soplón'} me contó lo que hacías.`); sfx(s, 'visto'); }
+    if (w.rep > 3) { w.rep = 0; w.say = d.mode === 'doble' ? '…' : T('¡Te vi!', `I saw you!`); w.sayFor = 2; if (s.iaOn) C.raise(s, 12, T(`${d.mode === 'doble' ? 'Un compañero' : 'El Soplón'} me contó lo que hacías.`, `${d.mode === 'doble' ? 'A crewmate' : 'The Snitch'} told me what you were doing.`)); sfx(s, 'visto'); }
   }
   if (w.sayFor > 0) w.sayFor -= dt;
 }
@@ -292,11 +293,11 @@ function vote(s) {
   const score = s.alert * 0.6 + v.spot * 8 + s.p.inv.filter(C.isContraband).length * 5 - fav * 15;
   if (score >= 35) {
     const inStash = s.stash.findIndex(C.isContraband);
-    if (inStash >= 0) { const [it] = s.stash.splice(inStash, 1); C.flash(s, `El Consejo votó en tu contra: registraron tu escondite y se llevaron ${C.itemName(s, it)}.`, 'bad'); }
-    else { const it = s.p.inv.find(C.isContraband); if (it) C.take(s, it); C.flash(s, `El Consejo votó en tu contra${it ? ': te quitaron ' + C.itemName(s, it) : ''}. Mañana te vigilan más.`, 'bad'); C.raise(s, 15); }
+    if (inStash >= 0) { const [it] = s.stash.splice(inStash, 1); C.flash(s, T(`El Consejo votó en tu contra: registraron tu escondite y se llevaron ${C.itemName(s, it)}.`, `The Council voted against you: they searched your hiding place and took ${C.itemName(s, it)}.`), 'bad'); }
+    else { const it = s.p.inv.find(C.isContraband); if (it) C.take(s, it); C.flash(s, T(`El Consejo votó en tu contra${it ? ': te quitaron ' + C.itemName(s, it) : ''}. Mañana te vigilan más.`, `The Council voted against you${it ? ': they took ' + C.itemName(s, it) : ''}. They will watch you more tomorrow.`), 'bad'); C.raise(s, 15); }
     sfx(s, 'atrapado');
-  } else if (score < 15) { s.alert = Math.max(0, s.alert - 20); const it = C.pick(s, Object.keys(LOOT)); C.give(s, it); C.flash(s, `El Consejo confía en ti (−20 alerta). Te regalaron: ${ITEMS[it].name}.`, 'ok'); }
-  else C.say(s, 'El Consejo votó: nada contra ti… por ahora.', 'info');
+  } else if (score < 15) { s.alert = Math.max(0, s.alert - 20); const it = C.pick(s, Object.keys(LOOT)); C.give(s, it); C.flash(s, T(`El Consejo confía en ti (−20 alerta). Te regalaron: ${ITEMS[it].name}.`, `The Council trusts you (−20 alert). They gave you: ${ITEMS[it].name}.`), 'ok'); }
+  else C.say(s, T('El Consejo votó: nada contra ti… por ahora.', `The Council voted: nothing against you… for now.`), 'info');
 }
 
 // ---------- E cerca de un villano o de la misión ----------
@@ -319,21 +320,21 @@ export function label(s, n) {
 }
 export function interact(s, n) {
   const p = s.p;
-  if (n.m) { n.m.holding = true; return C.flash(s, `Quédate quieto ${n.m.need} s junto al objetivo… que no te vean.`, 'info'); }
+  if (n.m) { n.m.holding = true; return C.flash(s, T(`Quédate quieto ${n.m.need} s junto al objetivo… que no te vean.`, `Stay still ${n.m.need} s next to the target… do not get seen.`), 'info'); }
   const w = n.w; const def = VILLAINS[w.vid];
-  if (def.mode === 'ladron') { if (!w.loot) return C.flash(s, 'El Desertor te mira de reojo.', 'info'); C.give(s, w.loot); C.flash(s, `¡Recuperaste ${C.itemName(s, w.loot)}! El Desertor huye.`, 'ok'); w.loot = null; w.cd = 60; w.goal = null; return; }
-  if (def.mode === 'doble') { w.gone = true; s.alert = Math.max(0, s.alert - 10); sfx(s, 'radio'); return C.flash(s, `"${w.name}" no sabe tu apodo… ¡era EL DOBLE! Huyó por la esclusa (−10 alerta).`, 'ok'); }
-  if (def.mode === 'soplon') { const i = p.inv.findIndex((x) => !ITEMS[x].tool); if (i < 0) return C.flash(s, 'El Soplón: "Mi silencio cuesta una pieza."', 'warn'); const [it] = p.inv.splice(i, 1); w.gone = true; return C.flash(s, `Le diste ${ITEMS[it].name} al Soplón. Hoy no dirá nada.`, 'ok'); }
+  if (def.mode === 'ladron') { if (!w.loot) return C.flash(s, T('El Desertor te mira de reojo.', `The Deserter is eyeing you.`), 'info'); C.give(s, w.loot); C.flash(s, T(`¡Recuperaste ${C.itemName(s, w.loot)}! El Desertor huye.`, `You recovered ${C.itemName(s, w.loot)}! The Deserter runs away.`), 'ok'); w.loot = null; w.cd = 60; w.goal = null; return; }
+  if (def.mode === 'doble') { w.gone = true; s.alert = Math.max(0, s.alert - 10); sfx(s, 'radio'); return C.flash(s, T(`"${w.name}" no sabe tu apodo… ¡era EL DOBLE! Huyó por la esclusa (−10 alerta).`, `"${w.name}" does not know your nickname… it was THE DOUBLE! It fled through the airlock (−10 alert).`), 'ok'); }
+  if (def.mode === 'soplon') { const i = p.inv.findIndex((x) => !ITEMS[x].tool); if (i < 0) return C.flash(s, T('El Soplón: "Mi silencio cuesta una pieza."', `The Snitch: "My silence costs a part."`), 'warn'); const [it] = p.inv.splice(i, 1); w.gone = true; return C.flash(s, T(`Le diste ${ITEMS[it].name} al Soplón. Hoy no dirá nada.`, `You gave ${ITEMS[it].name} to the Snitch. They will not say anything today.`), 'ok'); }
   if (def.chat) {
-    if (w.mode === 'persigue') return; if (w.chatCd > 0) return C.flash(s, `${def.name}: "Ahora no, tengo cosas que hacer."`, 'warn');
+    if (w.mode === 'persigue') return; if (w.chatCd > 0) return C.flash(s, T(`${def.name}: "Ahora no, tengo cosas que hacer."`, `${def.name}: "Not now, I have things to do."`), 'warn');
     w.busy = 20; w.busyBy = p; w.chatCd = 120; p.energia = Math.max(0, p.energia - 8);
-    return C.flash(s, `${def.name} empieza a contar historias de su primera misión… tienes 20 s (−8 energía).`, 'ok');
+    return C.flash(s, T(`${def.name} empieza a contar historias de su primera misión… tienes 20 s (−8 energía).`, `${def.name} starts telling stories about their first mission… you have 20 s (−8 energy).`), 'ok');
   }
 }
 
 // ---------- rejillas ----------
 export function grateBlocked(s, i) {
-  if (s.vil?.welded.some((w) => w.i === i) && s.iaOn) return 'CUSTODIA soldó esta rejilla. Usa otra (vuelve en 2 días).';
+  if (s.vil?.welded.some((w) => w.i === i) && s.iaOn) return T('CUSTODIA soldó esta rejilla. Usa otra (vuelve en 2 días).', `CUSTODIA welded this grate. Use another one (it comes back in 2 days).`);
   if (s.hazards.some((h) => h.def.type === 'mold' && h.blocked.includes(i))) return 'Hongo: la rejilla está tapada. Límpiala con fungicida (E cerca).';
   return null;
 }
@@ -362,7 +363,7 @@ export function updateHazard(s, h, dt, dm) {
   const def = h.def; const p = s.p;
   if (def.type === 'shelter') {
     h.t -= dt;
-    if (!h.w10 && h.t <= 10 && h.t > 0) { h.w10 = true; sfx(s, 'aviso'); C.say(s, `${def.name}: ¡10 segundos! Corre al ${C.roomName(s, def.safe[0])}.`, 'warn'); }
+    if (!h.w10 && h.t <= 10 && h.t > 0) { h.w10 = true; sfx(s, 'aviso'); C.say(s, T(`${def.name}: ¡10 segundos! Corre al ${C.roomName(s, def.safe[0])}.`, `${def.name}: 10 seconds! Run to the ${C.roomName(s, def.safe[0])}.`), 'warn'); }
     s.crew.forEach((c, i) => { const r = room(s, def.safe[0]); c.goal = [r.x + 1.5 + i, r.y + 2.5]; c.goalBlock = s.block; c.goalDay = s.day; });
     if (h.t > 0) return false;
     if (def.safe.includes(C.playerRoom(s))) { s.stats.solved++; if (h.flareDay && s.dFlare) s.dFlare.result = 'refugio'; C.flash(s, T(`${def.name}: pasó rozando. Estabas a salvo.`, `${def.name}: it passed by. You were safe.`), 'ok'); }
@@ -377,14 +378,14 @@ export function updateHazard(s, h, dt, dm) {
       if (h.x > r.x + r.w - 0.5 || h.x < r.x + 0.5) { h.dirx *= -1; h.x = Math.max(r.x + 0.5, Math.min(r.x + r.w - 0.5, h.x)); h.gap = r.y + Math.floor(rnd(s) * (r.h - 1)); h.pause = 0.9; h.tele = 0.9; }
     }
     if (!(h.pause > 0) && C.playerRoom(s) === h.room && !p.inDuct && !p.hidden && Math.abs(p.x - h.x) < 0.5 && !(p.y >= h.gap && p.y < h.gap + 2) && p.hit <= 0) {
-      p.salud -= def.dmg; p.hit = 0.9; C.moveBody(s, p, h.dirx * 1.2, 0, 0.28, 'p'); s.noise = { x: p.x, y: p.y, t: 5 }; C.say(s, '¡El brazo robótico te golpeó!', 'bad'); sfx(s, 'boom');
+      p.salud -= def.dmg; p.hit = 0.9; C.moveBody(s, p, h.dirx * 1.2, 0, 0.28, 'p'); s.noise = { x: p.x, y: p.y, t: 5 }; C.say(s, T('¡El brazo robótico te golpeó!', `The robotic arm hit you!`), 'bad'); sfx(s, 'boom');
     }
-    if (h.life <= 0) { C.say(s, `${def.name}: se detuvo.`, 'info'); return true; }
+    if (h.life <= 0) { C.say(s, T(`${def.name}: se detuvo.`, `${def.name}: it stopped.`), 'info'); return true; }
     return false;
   }
   if (def.type === 'mold') {
     h.t += dt; s.integ -= 0.004 * dm * h.blocked.length;
-    if (h.t > def.grow && h.blocked.length < s.L.grates.length) { h.t = 0; const free = s.L.grates.map((_, i) => i).filter((i) => !h.blocked.includes(i)); h.blocked.push(pick(s, free)); C.say(s, 'El hongo tapó otra rejilla.', 'warn'); }
+    if (h.t > def.grow && h.blocked.length < s.L.grates.length) { h.t = 0; const free = s.L.grates.map((_, i) => i).filter((i) => !h.blocked.includes(i)); h.blocked.push(pick(s, free)); C.say(s, T('El hongo tapó otra rejilla.', `The mold blocked another grate.`), 'warn'); }
     return false;
   }
   if (def.type === 'meteor') {
@@ -395,9 +396,9 @@ export function updateHazard(s, h, dt, dm) {
       let x, y; if (C.isOutside(s) && rnd(s) < 0.55) { x = p.x + (rnd(s) - 0.5) * 4; y = p.y + (rnd(s) - 0.5) * 4; } else { [x, y] = tileIn(s, o); }
       if (C.isOutside(s, x, y)) h.marks.push({ x, y, t: 2 });
     }
-    for (const m of h.marks) { m.t -= dt; if (m.t <= 0 && !m.done) { m.done = true; m.boom = 0.3; if (Math.hypot(p.x - m.x, p.y - m.y) < 1.1 && !p.inDuct) { p.salud -= def.dmg; p.hit = 0.8; s.shake = 0.4; C.say(s, '¡Te alcanzó un micrometeorito!', 'bad'); } } if (m.boom > 0) m.boom -= dt; }
+    for (const m of h.marks) { m.t -= dt; if (m.t <= 0 && !m.done) { m.done = true; m.boom = 0.3; if (Math.hypot(p.x - m.x, p.y - m.y) < 1.1 && !p.inDuct) { p.salud -= def.dmg; p.hit = 0.8; s.shake = 0.4; C.say(s, T('¡Te alcanzó un micrometeorito!', `A micrometeorite hit you!`), 'bad'); } } if (m.boom > 0) m.boom -= dt; }
     h.marks = h.marks.filter((m) => !m.done || m.boom > 0);
-    if (h.life <= 0 && !h.marks.length) { s.stats.solved++; C.say(s, 'La lluvia de micrometeoritos terminó.', 'ok'); return true; }
+    if (h.life <= 0 && !h.marks.length) { s.stats.solved++; C.say(s, T('La lluvia de micrometeoritos terminó.', `The micrometeorite shower is over.`), 'ok'); return true; }
     return false;
   }
   if (def.type === 'camera') {
@@ -417,13 +418,13 @@ export function updateHazard(s, h, dt, dm) {
     h.life -= dt;
     if (h.life > 0) return false;
     for (const [id, open, lock] of h.saved) { const d = s.map.doors[id]; if (d.lock === 'energia' || d.lock === 'cuarentena') { d.lock = lock; d.open = open || !lock; } }
-    C.say(s, `${def.name} terminó en ${C.roomName(s, h.room)}.`, 'info'); return true;
+    C.say(s, T(`${def.name} terminó en ${C.roomName(s, h.room)}.`, `${def.name} ended in ${C.roomName(s, h.room)}.`), 'info'); return true;
   }
   return false;
 }
 
 // ---------- misiones con reloj ----------
-const MISSIONS = [
+export const MISSIONS = [
   { id: 'caja', verb: 'Recuperar la caja negra', text: (r) => `Encuentra la caja negra del último accidente en ${r}. Tiene los datos que la IA borró.`, need: 3, time: 110 },
   { id: 'rele', verb: 'Sabotear el relé', text: (r) => `Corta el relé de vigilancia en ${r}: los drones quedarán sordos un rato.`, need: 4, time: 100 },
   { id: 'diario', verb: 'Leer el diario', text: (r) => `Alguien dejó un diario en ${r} con el código de una escotilla. Léelo antes de que lo encuentre la IA.`, need: 3, time: 90 },
@@ -436,16 +437,16 @@ function newMission(s) {
   const giver = pick(s, s.crew);
   s.vil.mission = { ...t, text: t.text(r.name), room: r.id, x, y, left: t.time + (night ? 20 : 0), prog: 0, holding: false, night, spot0: s.vil.spot, giver: giver.name };
   sfx(s, 'radio');
-  C.flash(s, `📻 ${giver.name} por radio: "${t.text(r.name)}" Tienes ${t.time} s. ${night ? '(De noche: el doble de premio.)' : ''}`, 'warn');
+  C.flash(s, T(`📻 ${giver.name} por radio: "${t.text(r.name)}" Tienes ${t.time} s. ${night ? '(De noche: el doble de premio.)' : ''}`, `📻 ${giver.name} on the radio: "${t.text(r.name)}" You have ${t.time} s. ${night ? '(At night: double reward.)' : ''}`), 'warn');
 }
 function updateMission(s, dt) {
   const m = s.vil.mission; const p = s.p;
   m.left -= dt;
-  if (m.left <= 0) return failMission(s, 'Se acabó el tiempo.');
+  if (m.left <= 0) return failMission(s, T('Se acabó el tiempo.', `Time is up.`));
   if (m.holding) {
     const near = Math.hypot(m.x - p.x, m.y - p.y) < 1.4 && !p.inDuct && !p.hidden;
     const hunted = [...s.drones.filter((d) => s.iaOn && d.mode === 'persigue'), ...s.vil.walkers.filter((w) => w.mode === 'persigue')].length > 0;
-    if (!near) { m.holding = false; C.say(s, 'Te alejaste del objetivo: el progreso se pausa.', 'warn'); }
+    if (!near) { m.holding = false; C.say(s, T('Te alejaste del objetivo: el progreso se pausa.', `You moved away from the target: progress is paused.`), 'warn'); }
     else if (!hunted) m.prog += dt;
     if (m.prog >= m.need) winMission(s);
   }
@@ -453,20 +454,63 @@ function updateMission(s, dt) {
 function winMission(s) {
   const m = s.vil.mission; s.vil.mission = null; const p = s.p; const k = m.night ? 2 : 1;
   const rewards = [
-    () => { s.alert = Math.max(0, s.alert - 25 * k); return `−${25 * k} de alerta`; },
+    () => { s.alert = Math.max(0, s.alert - 25 * k); return T(`−${25 * k} de alerta`, `−${25 * k} alert`); },
     () => { p.conoc = Math.min(100, p.conoc + 6 * k); return `+${6 * k} conocimiento`; },
     () => { p.fuerza = Math.min(100, p.fuerza + 6 * k); return `+${6 * k} fuerza`; },
     () => { for (let i = 0; i < k; i++) C.give(s, 'chip'); return `${k} chip(s)`; },
-    () => { C.give(s, k > 1 ? 'tarjeta' : 'bateria'); return k > 1 ? 'una tarjeta clonada' : 'una batería'; },
+    () => { C.give(s, k > 1 ? 'tarjeta' : 'bateria'); return k > 1 ? T('una tarjeta clonada', `a cloned card`) : T('una batería', `a battery`); },
   ];
   let txt = pick(s, rewards)();
   if (m.id === 'rele') { for (const d of s.drones) d.stun = Math.max(d.stun, 25); txt += ' y los drones quedaron sordos 25 s'; }
-  if (s.vil.spot === m.spot0) { s.alert = Math.max(0, s.alert - 10); txt += ' · ¡sin que te vieran! (−10 alerta)'; }
+  if (s.vil.spot === m.spot0) { s.alert = Math.max(0, s.alert - 10); txt += T(' · ¡sin que te vieran! (−10 alerta)', ` · without being seen! (−10 alert)`); }
   s.stats.solved++; sfx(s, 'radio');
-  C.flash(s, `MISIÓN CUMPLIDA: ${m.verb}. Premio: ${txt}.`, 'ok');
+  C.flash(s, T(`MISIÓN CUMPLIDA: ${m.verb}. Premio: ${txt}.`, `MISSION COMPLETE: ${m.verb}. Reward: ${txt}.`), 'ok');
 }
 function failMission(s, why) {
   const m = s.vil.mission; s.vil.mission = null; if (!m) return;
-  C.raise(s, 12, `Interferí la radio de ${m.giver}.`);
-  C.flash(s, `MISIÓN FALLIDA (${m.verb}): ${why}`, 'bad');
+  C.raise(s, 12, T(`Interferí la radio de ${m.giver}.`, `I jammed ${m.giver}'s radio.`));
+  C.flash(s, T(`MISIÓN FALLIDA (${m.verb}): ${why}`, `MISSION FAILED (${m.verb}): ${why}`), 'bad');
 }
+
+// ---------- Inglés 2: villanos y misiones por radio (getters; ver i18n.js) ----------
+const enProp = (obj, prop, en) => { if (!obj || en == null) return; const es = obj[prop]; Object.defineProperty(obj, prop, { get: () => T(es, en), enumerable: true, configurable: true }); };
+const EN_VIL = {
+  custodia: ['CUSTODIA learns', 'If you use the same grate a lot, CUSTODIA welds it shut for 2 days.'],
+  inspector: ['The Inspector', 'Arrives with the cargo ship and checks everyone: if he sees you with tools, he takes ALL of them.'],
+  cazador: ['Hunter drone', 'Faster than the others and follows your trail even if it loses sight of you.'],
+  volkov: ['Commander Volkov', 'Does rounds on foot. Talk to him (E) and he tells stories for 20 s.'],
+  soplon: ['The Snitch', 'Follows you and tells the AI everything. Give him a part (E) so he keeps quiet.'],
+  basura: ['Orbital debris', 'Collision warning: everyone to the Central hub. Anyone who does not make it gets hurt.'],
+  canadarm: ['Robotic arm', 'Sweeps a room from side to side. Go through the gap.'],
+  fuego0g: ['Fire in zero gravity', 'Fireballs that float and bounce. Extinguisher.'],
+  medico: ['The Doctor', 'If he sees you with low health or energy, he chases you to lock you in the infirmary.'],
+  hongo: ['Mold in the filters', 'Blocks the duct grates one by one. Fungicide.'],
+  selene: ['SELENE\'s cameras', 'Fixed cameras that rotate. Inhibit them (Q) and take them apart with a screwdriver.'],
+  hart: ['Commander Hart', 'Follows your moon-dust footprints. Go through the airlock to clean yourself.'],
+  mineros: ['The company miners', 'Two guards who patrol the surface.'],
+  rover: ['Autonomous rover', 'Roams the base and runs you over.'],
+  solar: ['Solar storm', 'Everyone to the radiation shelter.'],
+  doble: ['The Double', 'An infiltrator copies the color of a crewmate. Talk to them (E) to unmask them.'],
+  meteoritos: ['Micrometeorites', 'Marks on the surface that explode after 2 s.'],
+  grieta: ['Crater cracks', 'The floor opens up. Resin.'],
+  frio: ['Lunar night', 'The cold eats your energy. Battery.'],
+  perro: ['Robot dog', 'Sniffs the tools you carry.'],
+  ares: ['ARES blackouts', 'Cuts the power to a room: the hatches will not open without a battery.'],
+  consejo: ['The Colonists\' Council', 'At 20:30 they vote. If they suspect you, they search your hiding place.'],
+  bioseg: ['Biosecurity', 'Two guards in suits; they seal a room in quarantine.'],
+  diablo: ['Dust devil', 'Whirlwinds outside that drag you away.'],
+  tormenta: ['Global storm', 'Outside it is deadly; inside the power goes out.'],
+  mutacion: ['Mutant plants', 'They grow in the greenhouse and catch you. Fungicide.'],
+  jefe: ['The Colony Boss', 'If he catches you in free time, he gives you extra work (you lose hours).'],
+  minero: ['Broken mining robot', 'Attracted by the metal of your tools.'],
+  perclorato: ['Perchlorate', 'Toxic puddles that spread.'],
+  desertor: ['The Deserter', 'Another colonist who wants to escape: steals plan parts from you and hides them. Catch them (E)!'],
+};
+for (const [k, [n, d]] of Object.entries(EN_VIL)) { if (!VILLAINS[k]) throw new Error('villano sin definir: ' + k); enProp(VILLAINS[k], 'name', n); enProp(VILLAINS[k], 'desc', d); }
+const EN_MIS = {
+  caja: ['Recover the black box', (r) => `Find the black box of the last accident in ${r}. It has the data the AI erased.`],
+  rele: ['Sabotage the relay', (r) => `Cut the surveillance relay in ${r}: the drones will be deaf for a while.`],
+  diario: ['Read the diary', (r) => `Someone left a diary in ${r} with the code of a hatch. Read it before the AI finds it.`],
+  baliza: ['Turn on the beacon', (r) => `Turn on the emergency beacon in ${r} so Earth can hear you.`],
+};
+for (const m of MISSIONS) { const [verbo, texto] = EN_MIS[m.id]; enProp(m, 'verb', verbo); const es = m.text; m.text = (r) => T(es(r), texto(ROOM_EN[r] ?? r)); }

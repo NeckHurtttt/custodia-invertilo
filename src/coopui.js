@@ -5,6 +5,7 @@ import { LOCS } from './locs.js';
 import { ROOM_TINT } from './arte.js';
 import { CMD, AVISOS, DELAY_NOTE, climaView } from './coop.js';
 import { newRoom, netInfo, wsLink, rtcHost, rtcGuest } from './link.js';
+import { T } from './i18n.js';
 
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const SYSC = { vida: '#5fd3ff', energia: '#ffd23d', rad: '#ffb23d', comida: '#5fd35f' };
@@ -16,14 +17,14 @@ export function coopScreens(ctx) {
 
   function roles() {
     ctx.setMenu('coop');
-    open(`<h2>🤝 COOPERATIVO · dos computadoras</h2>
-      <p>Como en una misión real: <b>uno está en la base</b> y <b>otro, en Houston</b>, ve todo y ayuda.</p>
+    open(`<h2>🤝 ${T('COOPERATIVO · dos computadoras', 'CO-OP · two computers')}</h2>
+      <p>${T('Como en una misión real: <b>uno está en la base</b> y <b>otro, en Houston</b>, ve todo y ayuda.', 'Like a real mission: <b>one is on the base</b> and <b>the other, in Houston</b>, sees everything and helps.')}</p>
       <div class="coop-roles">
-        <button id="c-host"><span class="ico">🧑‍🚀</span>ASTRONAUTA<small>Juegas normal en la base. Control de Misión te ayuda desde otra computadora.</small></button>
-        <button id="c-guest"><span class="ico">🛰️</span>CONTROL DE MISIÓN<small>No caminas: ves los sistemas, el mapa y las alarmas, y mandas ayuda (recursos, escotillas, balizas, mensajes).</small></button>
+        <button id="c-host"><span class="ico">🧑‍🚀</span>${T('ASTRONAUTA', 'ASTRONAUT')}<small>${T('Juegas normal en la base. Control de Misión te ayuda desde otra computadora.', 'You play normally on the base. Mission Control helps you from another computer.')}</small></button>
+        <button id="c-guest"><span class="ico">🛰️</span>${T('CONTROL DE MISIÓN', 'MISSION CONTROL')}<small>${T('No caminas: ves los sistemas, el mapa y las alarmas, y mandas ayuda (recursos, escotillas, balizas, mensajes).', 'You do not walk: you see the systems, the map and the alarms, and send help (resources, hatches, beacons, messages).')}</small></button>
       </div>
-      <p style="color:var(--dim)">Se conectan de dos maneras: por la <b>red local</b> (misma WiFi, con el servidor del juego) o con un <b>código</b> que se copian y pegan (sin servidor).</p>
-      <div class="fila"><button id="volver">VOLVER</button></div>`);
+      <p style="color:var(--dim)">${T('Se conectan de dos maneras: por la <b>red local</b> (misma WiFi, con el servidor del juego) o con un <b>código</b> que se copian y pegan (sin servidor).', 'You connect in two ways: over the <b>local network</b> (same WiFi, with the game server) or with a <b>code</b> you copy and paste (no server).')}</p>
+      <div class="fila"><button id="volver">${T('VOLVER', 'BACK')}</button></div>`);
     $('c-host').onclick = () => hostScreen(); $('c-guest').onclick = () => guestScreen(); $('volver').onclick = ctx.titleScreen;
   }
 
@@ -31,14 +32,14 @@ export function coopScreens(ctx) {
   function hostScreen(st = { loc: 'estacion', kind: 'ws' }) {
     ctx.setMenu('coop');
     const cards = Object.values(LOCS).map((L) => `<button data-loc="${L.id}" class="${L.id === st.loc ? 'on' : ''}">${L.icon} ${L.name.toUpperCase()}<small>${esc(DELAY_NOTE[L.id] ?? '')}</small></button>`).join('');
-    open(`<h2>🧑‍🚀 ASTRONAUTA</h2>
-      <div class="dificultad"><span class="lbl">DESTINO</span>${cards}</div>
-      <div class="dificultad"><span class="lbl">CONEXIÓN</span><button data-kind="ws" class="${st.kind === 'ws' ? 'on' : ''}">RED LOCAL (misma WiFi)</button><button data-kind="rtc" class="${st.kind === 'rtc' ? 'on' : ''}">CÓDIGO MANUAL</button></div>
+    open(`<h2>🧑‍🚀 ${T('ASTRONAUTA', 'ASTRONAUT')}</h2>
+      <div class="dificultad"><span class="lbl">${T('DESTINO', 'DESTINATION')}</span>${cards}</div>
+      <div class="dificultad"><span class="lbl">${T('CONEXIÓN', 'CONNECTION')}</span><button data-kind="ws" class="${st.kind === 'ws' ? 'on' : ''}">${T('RED LOCAL (misma WiFi)', 'LOCAL NETWORK (same WiFi)')}</button><button data-kind="rtc" class="${st.kind === 'rtc' ? 'on' : ''}">${T('CÓDIGO MANUAL', 'MANUAL CODE')}</button></div>
       <div id="c-cuerpo" class="coop-cuerpo"></div>
-      <div class="fila"><button id="c-empezar" disabled>▶ EMPEZAR</button><button id="volver">VOLVER</button></div>`);
+      <div class="fila"><button id="c-empezar" disabled>▶ ${T('EMPEZAR', 'START')}</button><button id="volver">${T('VOLVER', 'BACK')}</button></div>`);
     let link = null;
     const estado = (txt, ok = false) => { const e = $('c-estado'); if (e) { e.textContent = txt; e.className = ok ? 'ok' : ''; } };
-    const listo = (l, ya) => { link = l; l.onpeer = (up) => { estado(up ? '✔ Control de Misión conectado' : 'Esperando a Control de Misión…', up); if (up || st.kind === 'ws') $('c-empezar').disabled = false; }; if (ya) $('c-empezar').disabled = false; };
+    const listo = (l, ya) => { link = l; l.onpeer = (up) => { estado(up ? T('✔ Control de Misión conectado', '✔ Mission Control connected') : T('Esperando a Control de Misión…', 'Waiting for Mission Control…'), up); if (up || st.kind === 'ws') $('c-empezar').disabled = false; }; if (ya) $('c-empezar').disabled = false; };
     $('ventana').querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { link?.close(); hostScreen({ ...st, loc: b.dataset.loc }); }));
     $('ventana').querySelectorAll('[data-kind]').forEach((b) => (b.onclick = () => { link?.close(); hostScreen({ ...st, kind: b.dataset.kind }); }));
     $('volver').onclick = () => { link?.close(); roles(); };
@@ -46,55 +47,55 @@ export function coopScreens(ctx) {
     const cuerpo = $('c-cuerpo');
     if (st.kind === 'ws') {
       const room = newRoom();
-      cuerpo.innerHTML = `<p>1. En <b>esta</b> computadora, el juego debe estar abierto con <code>node tools/serve.mjs 8000 --lan</code>.</p>
-        <p id="c-red" style="color:var(--dim)">Buscando la dirección de red…</p>
-        <p>2. El código de sala es <b class="sala">${room}</b> <button id="c-abrir">ABRIR SALA</button></p>
+      cuerpo.innerHTML = `<p>${T('1. En <b>esta</b> computadora, el juego debe estar abierto con ', '1. On <b>this</b> computer, the game must be open with ')}<code>node tools/serve.mjs 8000 --lan</code>.</p>
+        <p id="c-red" style="color:var(--dim)">${T('Buscando la dirección de red…', 'Looking for the network address…')}</p>
+        <p>${T('2. El código de sala es', '2. The room code is')} <b class="sala">${room}</b> <button id="c-abrir">${T('ABRIR SALA', 'OPEN ROOM')}</button></p>
         <p id="c-enlace" style="color:var(--dim)" hidden></p>
         <p id="c-estado" style="color:var(--dim)"></p>`;
-      netInfo().then((i) => { $('c-red').innerHTML = !i ? '⚠ Este juego no está abierto con nuestro servidor: usa <code>node tools/serve.mjs 8000 --lan</code> (o la opción CÓDIGO MANUAL).'
-        : !i.lan ? '⚠ El servidor no está en modo red: ciérralo y ábrelo con <code>node tools/serve.mjs 8000 --lan</code>.'
+      netInfo().then((i) => { $('c-red').innerHTML = !i ? T('⚠ Este juego no está abierto con nuestro servidor: usa <code>node tools/serve.mjs 8000 --lan</code> (o la opción CÓDIGO MANUAL).', '⚠ This game is not open with our server: use <code>node tools/serve.mjs 8000 --lan</code> (or the MANUAL CODE option).')
+        : !i.lan ? T('⚠ El servidor no está en modo red: ciérralo y ábrelo con <code>node tools/serve.mjs 8000 --lan</code>.', '⚠ The server is not in network mode: close it and open it with <code>node tools/serve.mjs 8000 --lan</code>.')
           : (() => {
             const r = i.redes?.length ? i.redes : i.ips.map((ip) => ({ ip, probable: false }));
             const mejor = r.find((x) => x.probable) ?? r[0];
-            if (mejor) { const e = $('c-enlace'); e.hidden = false; e.innerHTML = `Enlace directo para Control: <b>http://${mejor.ip}:${i.port}/?sala=${room}</b> <button id="c-copia-enlace" class="mini">COPIAR</button>`; $('c-copia-enlace').onclick = () => navigator.clipboard?.writeText(`http://${mejor.ip}:${i.port}/?sala=${room}`); }
+            if (mejor) { const e = $('c-enlace'); e.hidden = false; e.innerHTML = `${T('Enlace directo para Control', 'Direct link for Control')}: <b>http://${mejor.ip}:${i.port}/?sala=${room}</b> <button id="c-copia-enlace" class="mini">${T('COPIAR', 'COPY')}</button>`; $('c-copia-enlace').onclick = () => navigator.clipboard?.writeText(`http://${mejor.ip}:${i.port}/?sala=${room}`); }
             const otras = r.filter((x) => x !== mejor).map((x) => `http://${x.ip}:${i.port}`);
-            return mejor ? `En la otra computadora abre el enlace de abajo (misma WiFi).${otras.length ? ` Si no abre, prueba: <b>${otras.join('  o  ')}</b> → COOPERATIVO → CONTROL DE MISIÓN.` : ''}` : 'No encuentro tu dirección de red: ¿estás conectado al WiFi? Mira la terminal.';
+            return mejor ? T(`En la otra computadora abre el enlace de abajo (misma WiFi).${otras.length ? ` Si no abre, prueba: <b>${otras.join('  o  ')}</b> → COOPERATIVO → CONTROL DE MISIÓN.` : ''}`, `On the other computer open the link below (same WiFi).${otras.length ? ` If it does not open, try: <b>${otras.join('  or  ')}</b> → CO-OP → MISSION CONTROL.` : ''}`) : T('No encuentro tu dirección de red: ¿estás conectado al WiFi? Mira la terminal.', 'I cannot find your network address: are you connected to WiFi? Check the terminal.');
           })(); });
-      $('c-abrir').onclick = async () => { try { $('c-abrir').disabled = true; listo(await wsLink(room, 'host')); estado('Sala abierta. Esperando a Control de Misión… (puedes empezar ya; entrará cuando conecte)'); $('c-empezar').disabled = false; } catch (e) { $('c-abrir').disabled = false; estado(`⚠ ${e.message}`); } };
+      $('c-abrir').onclick = async () => { try { $('c-abrir').disabled = true; listo(await wsLink(room, 'host')); estado(T('Sala abierta. Esperando a Control de Misión… (puedes empezar ya; entrará cuando conecte)', 'Room open. Waiting for Mission Control… (you can start now; they will join when they connect)')); $('c-empezar').disabled = false; } catch (e) { $('c-abrir').disabled = false; estado(`⚠ ${e.message}`); } };
     } else {
-      cuerpo.innerHTML = `<p>1. <button id="c-gen">GENERAR INVITACIÓN</button> y mándasela a Control (chat, WhatsApp…).</p>
-        <textarea id="c-inv" readonly rows="3" placeholder="aquí aparece la invitación"></textarea> <button id="c-copia" class="mini">COPIAR</button>
-        <p>2. Control te devuelve una <b>respuesta</b>. Pégala aquí:</p>
-        <textarea id="c-resp" rows="3" placeholder="pega la respuesta"></textarea> <button id="c-conectar">CONECTAR</button>
+      cuerpo.innerHTML = `<p>1. <button id="c-gen">${T('GENERAR INVITACIÓN', 'CREATE INVITATION')}</button> ${T('y mándasela a Control (chat, WhatsApp…).', 'and send it to Control (chat, WhatsApp…).')}</p>
+        <textarea id="c-inv" readonly rows="3" placeholder="${T('aquí aparece la invitación', 'the invitation appears here')}"></textarea> <button id="c-copia" class="mini">${T('COPIAR', 'COPY')}</button>
+        <p>${T('2. Control te devuelve una <b>respuesta</b>. Pégala aquí:', '2. Control sends you back a <b>reply</b>. Paste it here:')}</p>
+        <textarea id="c-resp" rows="3" placeholder="${T('pega la respuesta', 'paste the reply')}"></textarea> <button id="c-conectar">${T('CONECTAR', 'CONNECT')}</button>
         <p id="c-estado" style="color:var(--dim)"></p>`;
       let h = null;
-      $('c-gen').onclick = async () => { $('c-gen').disabled = true; estado('Generando…'); try { h = await rtcHost(); $('c-inv').value = h.code; listo(h.link); estado('Invitación lista. Esperando la respuesta de Control…'); } catch (e) { $('c-gen').disabled = false; estado(`⚠ ${e.message}`); } };
+      $('c-gen').onclick = async () => { $('c-gen').disabled = true; estado(T('Generando…', 'Generating…')); try { h = await rtcHost(); $('c-inv').value = h.code; listo(h.link); estado(T('Invitación lista. Esperando la respuesta de Control…', 'Invitation ready. Waiting for Control\'s reply…')); } catch (e) { $('c-gen').disabled = false; estado(`⚠ ${e.message}`); } };
       $('c-copia').onclick = () => navigator.clipboard?.writeText($('c-inv').value);
-      $('c-conectar').onclick = async () => { if (!h) return estado('Primero genera la invitación.'); try { await h.accept($('c-resp').value); estado('Conectando…'); } catch { estado('⚠ Esa respuesta no es válida. Pídesela de nuevo a Control.'); } };
+      $('c-conectar').onclick = async () => { if (!h) return estado(T('Primero genera la invitación.', 'First create the invitation.')); try { await h.accept($('c-resp').value); estado(T('Conectando…', 'Connecting…')); } catch { estado(T('⚠ Esa respuesta no es válida. Pídesela de nuevo a Control.', '⚠ That reply is not valid. Ask Control for it again.')); } };
     }
   }
 
   // ---------- control de misión ----------
   function guestScreen(st = { kind: 'ws' }) { // st.sala: código que viene del enlace ?sala=XXXX (entra solo)
     ctx.setMenu('coop');
-    open(`<h2>🛰️ CONTROL DE MISIÓN</h2>
-      <div class="dificultad"><span class="lbl">CONEXIÓN</span><button data-kind="ws" class="${st.kind === 'ws' ? 'on' : ''}">RED LOCAL (misma WiFi)</button><button data-kind="rtc" class="${st.kind === 'rtc' ? 'on' : ''}">CÓDIGO MANUAL</button></div>
+    open(`<h2>🛰️ ${T('CONTROL DE MISIÓN', 'MISSION CONTROL')}</h2>
+      <div class="dificultad"><span class="lbl">${T('CONEXIÓN', 'CONNECTION')}</span><button data-kind="ws" class="${st.kind === 'ws' ? 'on' : ''}">${T('RED LOCAL (misma WiFi)', 'LOCAL NETWORK (same WiFi)')}</button><button data-kind="rtc" class="${st.kind === 'rtc' ? 'on' : ''}">${T('CÓDIGO MANUAL', 'MANUAL CODE')}</button></div>
       <div id="c-cuerpo" class="coop-cuerpo"></div>
-      <div class="fila"><button id="volver">VOLVER</button></div>`);
+      <div class="fila"><button id="volver">${T('VOLVER', 'BACK')}</button></div>`);
     $('ventana').querySelectorAll('[data-kind]').forEach((b) => (b.onclick = () => guestScreen({ kind: b.dataset.kind })));
     $('volver').onclick = roles;
     const estado = (txt) => { const e = $('c-estado'); if (e) e.textContent = txt; };
     if (st.kind === 'ws') {
-      $('c-cuerpo').innerHTML = `<p>Abre en esta computadora la dirección que te dé el astronauta y escribe el <b>código de sala</b> (4 letras):</p>
-        <input id="c-sala" maxlength="12" size="8" style="text-transform:uppercase" autocomplete="off" value="${esc(st.sala ?? '')}"> <button id="c-entrar">ENTRAR</button><p id="c-estado" style="color:var(--dim)"></p>`;
+      $('c-cuerpo').innerHTML = `<p>${T('Abre en esta computadora la dirección que te dé el astronauta y escribe el <b>código de sala</b> (4 letras):', 'Open on this computer the address the astronaut gives you and type the <b>room code</b> (4 letters):')}</p>
+        <input id="c-sala" maxlength="12" size="8" style="text-transform:uppercase" autocomplete="off" value="${esc(st.sala ?? '')}"> <button id="c-entrar">${T('ENTRAR', 'JOIN')}</button><p id="c-estado" style="color:var(--dim)"></p>`;
       let yendo = false;
-      $('c-entrar').onclick = async () => { if (yendo) return; const room = $('c-sala').value.trim().toUpperCase(); if (!/^[A-Z0-9]{3,12}$/.test(room)) return estado('Escribe el código de 3 a 12 letras o números.'); yendo = true; try { estado('Conectando…'); entrar(await wsLink(room, 'guest')); } catch (e) { yendo = false; estado(`⚠ ${e.message}`); } };
+      $('c-entrar').onclick = async () => { if (yendo) return; const room = $('c-sala').value.trim().toUpperCase(); if (!/^[A-Z0-9]{3,12}$/.test(room)) return estado(T('Escribe el código de 3 a 12 letras o números.', 'Type the code, 3 to 12 letters or numbers.')); yendo = true; try { estado(T('Conectando…', 'Connecting…')); entrar(await wsLink(room, 'guest')); } catch (e) { yendo = false; estado(`⚠ ${e.message}`); } };
       if (st.sala) $('c-entrar').onclick();
     } else {
-      $('c-cuerpo').innerHTML = `<p>1. Pega aquí la <b>invitación</b> del astronauta:</p><textarea id="c-inv" rows="3"></textarea> <button id="c-gen">GENERAR RESPUESTA</button>
-        <p>2. Mándale este código de vuelta:</p><textarea id="c-resp" readonly rows="3"></textarea> <button id="c-copia" class="mini">COPIAR</button><p id="c-estado" style="color:var(--dim)"></p>`;
+      $('c-cuerpo').innerHTML = `<p>${T('1. Pega aquí la <b>invitación</b> del astronauta:', '1. Paste the astronaut\'s <b>invitation</b> here:')}</p><textarea id="c-inv" rows="3"></textarea> <button id="c-gen">${T('GENERAR RESPUESTA', 'CREATE REPLY')}</button>
+        <p>${T('2. Mándale este código de vuelta:', '2. Send this code back:')}</p><textarea id="c-resp" readonly rows="3"></textarea> <button id="c-copia" class="mini">COPIAR</button><p id="c-estado" style="color:var(--dim)"></p>`;
       $('c-copia').onclick = () => navigator.clipboard?.writeText($('c-resp').value);
-      $('c-gen').onclick = async () => { try { estado('Generando…'); const g = await rtcGuest($('c-inv').value); $('c-resp').value = g.code; estado('Listo: mándale la respuesta al astronauta. Cuando la pegue, esta pantalla cambia sola.'); g.link.onpeer = (up) => { if (up) entrar(g.link); }; } catch { estado('⚠ Esa invitación no es válida.'); } };
+      $('c-gen').onclick = async () => { try { estado(T('Generando…', 'Generating…')); const g = await rtcGuest($('c-inv').value); $('c-resp').value = g.code; estado(T('Listo: mándale la respuesta al astronauta. Cuando la pegue, esta pantalla cambia sola.', 'Done: send the reply to the astronaut. When they paste it, this screen changes by itself.')); g.link.onpeer = (up) => { if (up) entrar(g.link); }; } catch { estado(T('⚠ Esa invitación no es válida.', '⚠ That invitation is not valid.')); } };
     }
   }
 
@@ -103,15 +104,15 @@ export function coopScreens(ctx) {
     ctx.close(); ctx.setMenu('mcc'); guestView?.destroy();
     const root = document.createElement('div'); root.id = 'mcc'; document.body.appendChild(root);
     const V = { link, ref: null, snap: null, tool: 'marca', cd: {}, ack: '', note: '', delay: 0, offline: false, rx: performance.now() };
-    root.innerHTML = `<header class="mcc-top"><b>🛰️ CONTROL DE MISIÓN</b><span id="m-reloj">—</span><span id="m-bloque"></span><span id="m-estado" class="ok">conectando…</span><button id="m-salir" class="mini">SALIR</button></header>
-      <div class="mcc-cuerpo"><div class="mcc-mapa"><div id="m-herr" class="mcc-herr"><span>CLIC EN EL MAPA:</span><button data-tool="marca" class="on">📍 Marcar punto</button><button data-tool="abrir">🚪 Abrir escotilla</button></div><p id="m-ack" class="mcc-ack"></p><canvas id="m-mapa"></canvas></div>
+    root.innerHTML = `<header class="mcc-top"><b>🛰️ ${T('CONTROL DE MISIÓN', 'MISSION CONTROL')}</b><span id="m-reloj">—</span><span id="m-bloque"></span><span id="m-estado" class="ok">${T('conectando…', 'connecting…')}</span><button id="m-salir" class="mini">${T('SALIR', 'EXIT')}</button></header>
+      <div class="mcc-cuerpo"><div class="mcc-mapa"><div id="m-herr" class="mcc-herr"><span>${T('CLIC EN EL MAPA:', 'CLICK ON THE MAP:')}</span><button data-tool="marca" class="on">📍 ${T('Marcar punto', 'Mark a spot')}</button><button data-tool="abrir">🚪 ${T('Abrir escotilla', 'Open hatch')}</button></div><p id="m-ack" class="mcc-ack"></p><canvas id="m-mapa"></canvas></div>
       <aside class="mcc-lado"><div class="caja" id="m-astro"></div><div class="caja" id="m-sis"></div><div class="caja" id="m-clima"></div><div class="caja" id="m-ordenes"></div><div class="caja" id="m-log"></div></aside></div><div id="m-fin" class="mcc-fin" hidden></div>`;
     const $m = (id) => root.querySelector('#' + id); const cvm = $m('m-mapa'); const g = cvm.getContext('2d'); let K = 12;
-    const ord = () => `<h3>ÓRDENES <small>(retraso de señal: ${V.delay} s)</small></h3>
-      <div class="m-fila"><small>${CMD.apoyo.name}: ${CMD.apoyo.help}</small>${['vida', 'energia', 'rad', 'comida'].map((id) => `<button data-apoyo="${id}" style="border-color:${SYSC[id]}">${{ vida: 'Vida', energia: 'Energía', rad: 'Radiación', comida: 'Comida' }[id]}</button>`).join('')}</div>
-      <div class="m-fila"><small>Mensaje al astronauta:</small>${Object.entries(AVISOS).map(([id, a]) => `<button data-aviso="${id}">${esc(a[0])}</button>`).join('')}</div>`;
+    const ord = () => `<h3>${T('ÓRDENES', 'ORDERS')} <small>(${T('retraso de señal', 'signal delay')}: ${V.delay} s)</small></h3>
+      <div class="m-fila"><small>${CMD.apoyo.name}: ${CMD.apoyo.help}</small>${['vida', 'energia', 'rad', 'comida'].map((id) => `<button data-apoyo="${id}" style="border-color:${SYSC[id]}">${{ vida: T('Vida', 'Life'), energia: T('Energía', 'Power'), rad: T('Radiación', 'Radiation'), comida: T('Comida', 'Food') }[id]}</button>`).join('')}</div>
+      <div class="m-fila"><small>${T('Mensaje al astronauta:', 'Message to the astronaut:')}</small>${Object.entries(AVISOS).map(([id, a]) => `<button data-aviso="${id}">${esc(a[0])}</button>`).join('')}</div>`;
     $m('m-ordenes').innerHTML = ord();
-    const mandar = (m) => { const w = Math.ceil(((V.cd[m.k] ?? 0) - performance.now()) / 1000); if (w > 0) { V.ack = `Espera ${w} s para repetir esa orden.`; return pinta(); } V.cd[m.k] = performance.now() + CMD[m.k].cd * 1000; link.send({ t: 'cmd', ...m }); V.ack = 'Enviando…'; pinta(); };
+    const mandar = (m) => { const w = Math.ceil(((V.cd[m.k] ?? 0) - performance.now()) / 1000); if (w > 0) { V.ack = T(`Espera ${w} s para repetir esa orden.`, `Wait ${w} s to repeat that order.`); return pinta(); } V.cd[m.k] = performance.now() + CMD[m.k].cd * 1000; link.send({ t: 'cmd', ...m }); V.ack = T('Enviando…', 'Sending…'); pinta(); };
     root.querySelectorAll('[data-apoyo]').forEach((b) => (b.onclick = () => mandar({ k: 'apoyo', sys: b.dataset.apoyo })));
     root.querySelectorAll('[data-aviso]').forEach((b) => (b.onclick = () => mandar({ k: 'aviso', id: b.dataset.aviso })));
     $m('m-clima').onclick = (e) => { const b = e.target.closest('[data-aviso]'); if (b && !b.disabled) mandar({ k: 'aviso', id: b.dataset.aviso }); }; // el botón de la tormenta se vuelve a dibujar a cada rato: se escucha en la caja
@@ -120,7 +121,7 @@ export function coopScreens(ctx) {
       if (!V.ref) return; const r = cvm.getBoundingClientRect(); const x = (e.clientX - r.left) / K, y = (e.clientY - r.top) / K;
       if (V.tool === 'marca') return mandar({ k: 'marca', x, y });
       let best = null; V.ref.map.doors.forEach((d, i) => d.tiles.forEach(([tx, ty]) => { const dd = Math.hypot(tx + 0.5 - x, ty + 0.5 - y); if (dd < 1.2 && (!best || dd < best[0])) best = [dd, i]; }));
-      if (best) mandar({ k: 'abrir', door: best[1] }); else { V.ack = 'Haz clic cerca de una escotilla (el rectángulo entre dos salas).'; pinta(); }
+      if (best) mandar({ k: 'abrir', door: best[1] }); else { V.ack = T('Haz clic cerca de una escotilla (el rectángulo entre dos salas).', 'Click near a hatch (the rectangle between two rooms).'); pinta(); }
     };
     function dibujaMapa() {
       const s = V.ref; if (!s) return; const L = s.L; const sn = V.snap;
@@ -144,26 +145,26 @@ export function coopScreens(ctx) {
     function pinta() {
       const sn = V.snap; $m('m-ack').textContent = V.ack;
       const reconectando = link.estado === 'reconectando'; const debil = !V.offline && sn && !sn.paused && performance.now() - V.rx > 3000;
-      $m('m-estado').textContent = reconectando ? '⚠ reconectando…' : V.offline ? '⚠ el astronauta no está conectado' : debil ? '⚠ señal débil' : sn ? (sn.paused ? '⏸ el astronauta pausó' : '● en vivo') : 'esperando datos del astronauta…'; $m('m-estado').className = reconectando || V.offline || debil ? 'bad' : 'ok';
+      $m('m-estado').textContent = reconectando ? T('⚠ reconectando…', '⚠ reconnecting…') : V.offline ? T('⚠ el astronauta no está conectado', '⚠ the astronaut is not connected') : debil ? T('⚠ señal débil', '⚠ weak signal') : sn ? (sn.paused ? T('⏸ el astronauta pausó', '⏸ the astronaut paused') : T('● en vivo', '● live')) : T('esperando datos del astronauta…', 'waiting for data from the astronaut…'); $m('m-estado').className = reconectando || V.offline || debil ? 'bad' : 'ok';
       for (const b of root.querySelectorAll('[data-apoyo],[data-aviso]')) { const k = b.dataset.apoyo ? 'apoyo' : 'aviso'; b.disabled = (V.cd[k] ?? 0) > performance.now(); }
       if (!sn) return;
-      $m('m-reloj').textContent = `DÍA ${sn.day} · ${sn.clock}`; $m('m-bloque').textContent = sn.block.name;
+      $m('m-reloj').textContent = `${T('DÍA', 'DAY')} ${sn.day} · ${sn.clock}`; $m('m-bloque').textContent = sn.block.name;
       const bar = (v, low = 30) => `<div class="barrita ${v < low ? 'bajo' : ''}"><i style="width:${Math.max(0, Math.min(100, v))}%"></i></div>`;
-      $m('m-astro').innerHTML = `<h3>ASTRONAUTA · ${esc(sn.p.room)}${sn.p.hidden ? ' · escondido' : ''}</h3><div class="fila-sis"><span>SALUD</span>${bar(sn.p.salud)}<span>${sn.p.salud}</span></div><div class="fila-sis"><span>ENERGÍA</span>${bar(sn.p.energia)}<span>${sn.p.energia}</span></div>
-        <div class="fila-sis"><span>INTEGRIDAD</span>${bar(sn.integ)}<span>${sn.integ}</span></div><div class="fila-sis"><span>ALERTA ${esc(V.ref?.L.ai ?? 'IA')}</span>${bar(100 - sn.alert, 0)}<span>${sn.alert}</span></div>`;
-      $m('m-sis').innerHTML = !sn.sys ? '<h3>SISTEMAS</h3><small>Este modo no tiene sistemas.</small>' : `<h3>SISTEMAS DE LA BASE</h3>${sn.sys.events.map((e) => `<p class="evento">⚠ ${esc(e.name)}: ${esc(e.text)}</p>`).join('')}`
-        + sn.sys.meters.map((m) => m.id === 'rad' ? `<div class="fila-sis"><span>${m.name}</span>${bar(100 - sn.sys.dosePct, 25)}<span>${m.v}%</span></div><small>dosis ${sn.sys.dosePct}% del límite</small>` : `<div class="fila-sis"><span>${m.name}</span>${bar(m.v)}<span>${m.v}%</span></div>`).join('')
+      $m('m-astro').innerHTML = `<h3>${T('ASTRONAUTA', 'ASTRONAUT')} · ${esc(sn.p.room)}${sn.p.hidden ? T(' · escondido', ' · hiding') : ''}</h3><div class="fila-sis"><span>${T('SALUD', 'HEALTH')}</span>${bar(sn.p.salud)}<span>${sn.p.salud}</span></div><div class="fila-sis"><span>${T('ENERGÍA', 'ENERGY')}</span>${bar(sn.p.energia)}<span>${sn.p.energia}</span></div>
+        <div class="fila-sis"><span>${T('INTEGRIDAD', 'INTEGRITY')}</span>${bar(sn.integ)}<span>${sn.integ}</span></div><div class="fila-sis"><span>${T('ALERTA', 'ALERT')} ${esc(V.ref?.L.ai ?? 'IA')}</span>${bar(100 - sn.alert, 0)}<span>${sn.alert}</span></div>`;
+      $m('m-sis').innerHTML = !sn.sys ? `<h3>${T('SISTEMAS', 'SYSTEMS')}</h3><small>${T('Este modo no tiene sistemas.', 'This mode has no systems.')}</small>` : `<h3>${T('SISTEMAS DE LA BASE', 'BASE SYSTEMS')}</h3>${sn.sys.events.map((e) => `<p class="evento">⚠ ${esc(e.name)}: ${esc(e.text)}</p>`).join('')}`
+        + sn.sys.meters.map((m) => m.id === 'rad' ? `<div class="fila-sis"><span>${m.name}</span>${bar(100 - sn.sys.dosePct, 25)}<span>${m.v}%</span></div><small>${T('dosis', 'dose')} ${sn.sys.dosePct}% ${T('del límite', 'of the limit')}</small>` : `<div class="fila-sis"><span>${m.name}</span>${bar(m.v)}<span>${m.v}%</span></div>`).join('')
         + `<ul class="plan">${sn.sys.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}">${esc(k.short)} <small>→ ${esc(k.room)}</small></li>`).join('')}</ul>`
-        + (sn.sys.emerg ? `<p class="mcc-emerg">🚨 ${esc(sn.sys.emerg.name)} en ${esc(sn.sys.emerg.room)} · ${sn.sys.emerg.t} s</p>` : '');
+        + (sn.sys.emerg ? `<p class="mcc-emerg">🚨 ${esc(sn.sys.emerg.name)} ${T('en', 'in')} ${esc(sn.sys.emerg.room)} · ${sn.sys.emerg.t} s</p>` : '');
       const cv = climaView(sn, V.delay); const cl = $m('m-clima'); cl.hidden = !cv;
       if (cv) {
         const espera = (V.cd.aviso ?? 0) > performance.now();
-        const html = `<h3>☀️ CLIMA ESPACIAL REAL</h3>${cv.lineas.map((l, i) => `<p class="${i === 0 && cv.modo === 'tormenta' ? 'mcc-storm' : ''}${cv.tarde && i === cv.lineas.length - 1 ? ' mcc-tarde' : ''}">${esc(l)}</p>`).join('')}`
-          + (cv.boton ? `<button class="mcc-grande" data-aviso="refugio" ${espera ? 'disabled' : ''}>📡 AVISAR: ¡AL REFUGIO!</button>` : '');
+        const html = `<h3>☀️ ${T('CLIMA ESPACIAL REAL', 'REAL SPACE WEATHER')}</h3>${cv.lineas.map((l, i) => `<p class="${i === 0 && cv.modo === 'tormenta' ? 'mcc-storm' : ''}${cv.tarde && i === cv.lineas.length - 1 ? ' mcc-tarde' : ''}">${esc(l)}</p>`).join('')}`
+          + (cv.boton ? `<button class="mcc-grande" data-aviso="refugio" ${espera ? 'disabled' : ''}>📡 ${T('AVISAR: ¡AL REFUGIO!', 'WARN: TO THE SHELTER!')}</button>` : '');
         if (html !== V.climaHtml) { V.climaHtml = html; cl.innerHTML = html; }
       }
-      $m('m-log').innerHTML = `<h3>AVISOS DE LA BASE</h3><ul class="log">${V.log.slice(-8).reverse().map((l) => `<li class="${l.kind}">${esc(l.text)}</li>`).join('')}</ul>`;
-      const f = $m('m-fin'); f.hidden = !sn.over; if (sn.over) f.innerHTML = `<b>${sn.over.won ? '🎉 ¡MISIÓN CUMPLIDA!' : '💀 MISIÓN FALLIDA'}</b><br>${esc(sn.over.title)}`;
+      $m('m-log').innerHTML = `<h3>${T('AVISOS DE LA BASE', 'BASE ALERTS')}</h3><ul class="log">${V.log.slice(-8).reverse().map((l) => `<li class="${l.kind}">${esc(l.text)}</li>`).join('')}</ul>`;
+      const f = $m('m-fin'); f.hidden = !sn.over; if (sn.over) f.innerHTML = `<b>${sn.over.won ? T('🎉 ¡MISIÓN CUMPLIDA!', '🎉 MISSION ACCOMPLISHED!') : T('💀 MISIÓN FALLIDA', '💀 MISSION FAILED')}</b><br>${esc(sn.over.title)}`;
     }
     V.log = [];
     link.onmessage = (m) => {
