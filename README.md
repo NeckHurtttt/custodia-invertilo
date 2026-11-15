@@ -258,6 +258,10 @@ The project addresses **Space Mission Design Game**. Scientific sources, simplif
 <td align="center"><a href="https://github.com/leoaguilerasc-design"><img src="https://github.com/leoaguilerasc-design.png?size=160" width="110" alt="Foto de Leonardo Aguilera"><br><b>Leonardo Aguilera</b><br><sub>@leoaguilerasc-design</sub></a></td>
 <td align="center"><a href="https://github.com/NeckHurtttt"><img src="https://github.com/NeckHurtttt.png?size=160" width="110" alt="Foto de Sergio Santiago Rioja Coca"><br><b>Sergio Santiago Rioja Coca</b><br><sub>@NeckHurtttt</sub></a></td>
 </tr>
+<tr>
+<td align="center" colspan="2"><a href="https://github.com/rodrigocam"><b>Rodrigo Reynaldo Camacho Marangani</b><br><sub>@rodrigocam</sub></a></td>
+<td align="center" colspan="2"><a href="https://github.com/luxero123x"><b>Joshua Villagomez</b><br><sub>@luxero123x</sub></a></td>
+</tr>
 </table>
 
 ## Créditos
