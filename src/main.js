@@ -947,7 +947,7 @@ function tutoAro(t) {
   if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (!o) return;
   const k = 0.5 + 0.5 * Math.sin(t / 600); cx.strokeStyle = `rgba(255,194,61,${0.55 + 0.45 * k})`; cx.lineWidth = 2; cx.beginPath(); cx.arc(o.x * TS, o.y * TS, 10 + k * 3, 0, 7); cx.stroke();
 }
-function tutoFlecha(t) { if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (o) arrowTo(o.x, o.y, '#ffc23d', T('PANEL', 'PANEL'), t); }
+function tutoFlecha(t) { if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (o) arrowTo(o.x, o.y, '#ffc23d', Tu.actual(tu) === 'esconder' ? T('ESCONDITE', 'HIDING SPOT') : T('PANEL', 'PANEL'), t); }
 
 // ---------- cooperativo: TRIPULANTE (la otra persona maneja a un compañero en el mismo mapa) ----------
 // El anfitrión (astronauta) manda el estado ~15 veces por segundo; aquí se copia en `s` (sin simular) y se dibuja desde el compañero elegido.
