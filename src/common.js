@@ -75,10 +75,10 @@ export const PROTO_NIVEL = {
 };
 export const PROTO_FUENTE = {
   fuego: { nivel: 'iss', fuente: 'NASA NTRS 20120002562 y 20030053429 (fuego en ISS: PBA y extintor PFE)' },
-  fuga: { nivel: 'iss', fuente: 'NASA NTRS 20250003954 (despresurización rápida: el tiempo restante es el dato clave)' },
+  fuga: { nivel: 'iss', fuente: 'NASA NTRS 20250003954 (Chen, Walker y Williams, 2025: emergencias en la ISS: fuego, derrames tóxicos y despresurización rápida; los pasos del juego están muy simplificados)' },
   amoniaco: { nivel: 'iss', fuente: 'NASA NTRS 20220019247 (atmósfera tóxica en ISS, incluye fugas de amoníaco)' },
   polvo: { nivel: 'riesgo', fuente: 'Apolo: el polvo lunar irritó ojos y pulmones; NASA lo trata como riesgo mayor para Artemis' },
-  perclorato: { nivel: 'riesgo', fuente: 'GeoHealth 2025 (Wang et al.): el perclorato marciano daña la tiroides' },
+  perclorato: { nivel: 'riesgo', fuente: 'GeoHealth 2025 (Wang et al., doi:10.1029/2024GH001213): el perclorato del polvo marciano podría frenar la tiroides; es una hipótesis de revisión, no un caso en astronautas' },
   grieta: { nivel: 'ficcion', fuente: 'Inspirado en reparar fugas de hábitat; pasos inventados' },
   plaga: { nivel: 'ficcion', fuente: 'Inspirado en cultivo en órbita (Veggie); pasos inventados' },
   hongo: { nivel: 'ficcion', fuente: 'Inspirado en filtros de aire de estaciones; pasos inventados' },

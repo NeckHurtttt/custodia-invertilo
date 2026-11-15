@@ -46,7 +46,7 @@ export const EMERGS = {
     fatal: ['Intoxicación por CO₂', 'El CO₂ subió demasiado: sin filtros limpios el aire se vuelve irrespirable aunque haya oxígeno. Por eso el mantenimiento del soporte vital va primero.'] },
   llamarada: { name: 'LLAMARADA SOLAR', verb: 'Activar el refugio del blindaje', spot: 'estacion', sys: 'rad',
     text: (room) => `¡Llamarada solar! Corre a ${room} y activa el refugio de radiación antes de que lleguen las partículas.`,
-    fatal: ['Dosis aguda de radiación', 'Las partículas solares te alcanzaron sin protección. La NASA limita la dosis de una tormenta solar a 250 mSv por evento y diseña refugios para eso.'] },
+    fatal: ['Dosis aguda de radiación', 'Las partículas solares te alcanzaron sin protección. La NASA pide que una tormenta solar no pase de 250 mSv por evento (NASA-STD-3001, requisito V1 4031) y por eso se usan blindaje y refugios.'] },
   incendio: { name: 'INCENDIO EN EL INVERNADERO', verb: 'Usar el extintor del invernadero', spot: 'estacion', sys: 'comida',
     text: (room) => `¡Fuego en el invernadero! Ve a ${room} y apágalo antes de que se extienda.`,
     fatal: ['Incendio a bordo', 'El fuego del invernadero se extendió por la estación. Con el aire reciclado y sin salida, un incendio no se puede dejar crecer.'] },

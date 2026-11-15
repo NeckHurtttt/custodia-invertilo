@@ -76,13 +76,13 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 
 ## 5. Siguiente paso y cola de trabajo
 
-> **SIGUIENTE PASO:** D · verificar las 3 citas de Leo (NTRS 20250003954, GeoHealth 2025 Wang et al., 250 mSv por evento).
+> **SIGUIENTE PASO:** E · adaptar la entrega de Space Apps a Custodia (`docs/entrega-space-apps.md`, en inglés). Faltan los nombres del equipo: pedírselos a Sergio.
 
 Cola en orden (marca `[x]` al terminar y sube):
 - [x] A · Instrucciones para el Claude que retome + bitácora (este archivo).
 - [x] B · **Campo para la llave de api.nasa.gov** en DATOS NASA: se guarda en `lfr.nasaKey`, borra la caché `lfr.flares` y vuelve a pedir DONKI (`pedirDonki()` en `src/main.js`). Si NASA no responde, lo dice y sigue con las archivadas.
 - [x] C · **Ocultar "delatar a un compañero" en Cadete** (público de 7-12). Tecla B en `src/main.js` y `betray()` en `src/core.js`; también el texto "[B] delatar".
-- [ ] D · **Verificar 3 citas de Leo** y corregir o marcar como no verificadas: NTRS 20250003954 (despresurización, `PROTO_FUENTE.fuga`), "GeoHealth 2025, Wang et al." (`PROTO_FUENTE.perclorato`) y "250 mSv por evento" (`src/sistemas.js`, `EMERGS.llamarada.fatal`).
+- [x] D · **Verificar 3 citas de Leo** y corregir o marcar como no verificadas: NTRS 20250003954 (despresurización, `PROTO_FUENTE.fuga`), "GeoHealth 2025, Wang et al." (`PROTO_FUENTE.perclorato`) y "250 mSv por evento" (`src/sistemas.js`, `EMERGS.llamarada.fatal`).
 - [ ] E · **Adaptar la entrega de Space Apps a Custodia**: nuevo `docs/entrega-space-apps.md` en inglés (nombre, resumen, enlaces, datos NASA, uso de IA, guion de 30 s, 7 diapositivas) y la descripción del equipo. Faltan los nombres del equipo: pedírselos a Sergio.
 - [ ] F · **El mantenimiento como mini-protocolo** de 2 o 3 pasos en orden (hoy es "E y esperar 3 s"). Sin romper el bot del simulador ni `npm run e2e`.
 - [ ] G · **Control de Misión (cooperativo) ve la llamarada real** y puede avisar al astronauta (con el retraso del destino).
@@ -131,4 +131,5 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
 | 14/11 | `b7c3663`, `3cd072f` | CONTEXTO, referencias, análisis; publicado en GitHub y Pages | — |
 | 14/11 | (este commit) | A · Instrucciones para el Claude que retome y cola de trabajo | B |
 | 14/11 | `1732dd0` | B · Campo para la llave de api.nasa.gov en DATOS NASA (probado con llave falsa: avisa y sigue con archivadas); e2e 18/18 | C |
-| 14/11 | (este commit) | C · En Cadete no se puede delatar: `noBetray` en `DIFS.cadete`; `betray()` no hace nada, la etiqueta no ofrece [B] y la ayuda no lo menciona. Prueba nueva en `tests/meta.test.js`; 146/146 y e2e 18/18 | D |
+| 14/11 | `d43bfdc` | C · En Cadete no se puede delatar: `noBetray` en `DIFS.cadete`; `betray()` no hace nada, la etiqueta no ofrece [B] y la ayuda no lo menciona. Prueba nueva en `tests/meta.test.js`; 146/146 y e2e 18/18 | D |
+| 14/11 | (este commit) | D · Citas verificadas: **NTRS 20250003954** existe (Chen, Walker y Williams 2025, emergencias ECLSS de la ISS: fuego, derrames tóxicos, despresurización rápida); se quitó la frase "el tiempo restante es el dato clave" porque el resumen no la dice. **GeoHealth 2025** es real (Wang et al., doi:10.1029/2024GH001213); el perclorato "podría frenar la tiroides" (hipótesis de la revisión), ya no "daña". **250 mSv por evento** confirmado en el Technical Brief de NASA (OCHMO-TB-020, NASA-STD-3001 Vol. 1 Rev B, requisito V1 4031); el texto ahora lo cita. 146/146 y e2e 18/18 | E |
