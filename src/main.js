@@ -33,6 +33,7 @@ import * as UI from './ui.js';
 import { informe, estadoNivel } from './informe.js';
 import { idMant } from './variedad.js';
 import * as Tu from './tutorial.js';
+import * as Cert from './certificado.js';
 import * as Cu from './cuerpos.js';
 const { ic } = UI;
 
@@ -1284,6 +1285,26 @@ function bitacoraHTML() {
     </tbody></table></div>
     <small>${T('Cada columna es un día. Los números son el nivel de cada sistema al terminar el día; «!» avisa que estuvo bajo. La dosis solo sube: nunca se borra.', 'Each column is one day. The numbers are each system level at the end of the day; “!” warns it was low. The dose only goes up: it never goes away.')}</small></section>`;
 }
+/** Certificado de Cadete (ventana encima del final, así el final no se vuelve a calcular). Funciona igual en compu y en celular: nombre, vista previa, descargar y compartir. */
+function certificado(o) {
+  if ($('cert-modal')) return; const antes = menu; menu = 'cert';
+  const sis = s.sys ? Math.round(Object.values(s.sys.lvl).reduce((a, b) => a + b, 0) / 4) : 0;
+  const base = { destino: nm(s.L), estrellas: o.stars ?? 0, dias: Math.min(G.DAYS, s.day), sistemas: sis, dosis: s.sys ? Math.min(100, Sys.dosePct(s)) : 0, fecha: new Date().toLocaleDateString(getLang() === 'en' ? 'en-US' : 'es-ES'), nivel: nm(G.dif(s)).toUpperCase() };
+  const m = document.createElement('div'); m.id = 'cert-modal'; m.className = 'modal'; document.body.appendChild(m);
+  m.innerHTML = `<div class="ventana cert-ventana"><h2>🎓 ${T('CERTIFICADO DE CADETE', 'CADET CERTIFICATE')}</h2>
+    <label class="cert-nombre"><span>${T('Escribe tu nombre:', 'Type your name:')}</span><input id="cert-nombre" maxlength="24" autocomplete="off" value="${esc2(Cert.limpiaNombre(getOpt('nombre', '')))}" placeholder="${T('Cadete astronauta', 'Astronaut cadet')}"></label>
+    <canvas id="cert-lienzo" class="cert" width="${Cert.ANCHO}" height="${Cert.ALTO}" role="img" aria-label="${T('Vista previa del certificado', 'Certificate preview')}"></canvas>
+    <div class="fila"><button id="cert-bajar" class="grande">⬇ ${T('DESCARGAR', 'DOWNLOAD')}</button>${navigator.share ? `<button id="cert-comp" class="sec">${T('COMPARTIR', 'SHARE')}</button>` : ''}<button id="cert-volver" class="sec">${T('VOLVER', 'BACK')}</button></div></div>`;
+  const cv2 = $('cert-lienzo'), g = cv2.getContext('2d'); const nombre = () => Cert.limpiaNombre($('cert-nombre').value);
+  const pinta = () => Cert.dibujaCertificado(g, { ...base, nombre: nombre() });
+  pinta(); document.fonts?.ready?.then(pinta); $('cert-nombre').oninput = () => { setOpt('nombre', nombre()); pinta(); };
+  const archivo = () => new Promise((res) => cv2.toBlob((b) => res(b), 'image/png'));
+  $('cert-bajar').onclick = async () => { M.ui('ok'); const b = await archivo(); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = Cert.nombreArchivo({ nombre: nombre() }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  if ($('cert-comp')) $('cert-comp').onclick = async () => { try { const f = new File([await archivo()], Cert.nombreArchivo({ nombre: nombre() }), { type: 'image/png' }); const datos = { title: 'CUSTODIA', text: T('Mi certificado de Cadete Astronauta en CUSTODIA', 'My Astronaut Cadet certificate in CUSTODIA'), files: [f] }; if (navigator.canShare && !navigator.canShare(datos)) delete datos.files; await navigator.share(datos); } catch { /* el usuario canceló */ } };
+  const cierra = () => { m.remove(); menu = antes; }; $('cert-volver').onclick = cierra; m.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); cierra(); } });
+  $('cert-nombre').focus({ preventScroll: true });
+}
+const esc2 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function endScreen() {
   menu = 'fin'; clearSave(s.loc); document.body.classList.toggle('derrota', !s.over.won);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
@@ -1304,10 +1325,11 @@ function endScreen() {
     ${r.medals.map((id) => `<div class="medalla si nueva"><b>${ic('medalla')} ${Meta.MEDALS[id][0]}</b><small>${Meta.MEDALS[id][1]}</small></div>`).join('')}
     ${dr ? `<p>${dr.isNew ? T('¡NUEVO RÉCORD DEL DÍA!', 'NEW RECORD OF THE DAY!') : dr.best ? T(`Tu récord de hoy: ${Meta.fmtTime(dr.best)}`, `Your record today: ${Meta.fmtTime(dr.best)}`) : ''}</p>` : ''}
     ${!o.won ? `<p style="color:var(--dim)">${T(`Siguiente desbloqueo: ${nextUnlock(r.total)}`, `Next unlock: ${nextUnlock(r.total)}`)}</p>` : ''}
-    <div class="fila">${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')} <kbd>R</kbd></button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
+    <div class="fila">${o.won && s.sys ? `<button id="certif" class="sec">🎓 ${T('CERTIFICADO', 'CERTIFICATE')}</button>` : ''}${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')} <kbd>R</kbd></button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
   if (s.daily) $('compartir').onclick = () => { navigator.clipboard?.writeText(share).then(() => ($('compartir').textContent = '✓ COPIADO'), () => prompt('Copia tu resultado:', share)); };
   else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
   $('menu').onclick = titleScreen;
+  if ($('certif')) $('certif').onclick = () => certificado(o, R_);
   let respondida = false;
   const responde = (i) => {
     if (respondida || !qop[i]) return; respondida = true; const acerto = qop[i].ok; const hist = Meta.quizAnota(qz.id, acerto); M.ui(acerto ? 'ok' : 'error');
@@ -1370,7 +1392,7 @@ addEventListener('keydown', (e) => {
   if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
   if (menu === 'fin' && /^[1-3]$/.test(k) && !e.target.closest?.('input, textarea')) { finQuiz?.(+k - 1); return; } // 1–3 responden la pregunta de cierre
-  if (menu === 'fin' && (k === 'r' || (k === 'enter' && !e.target.closest?.('button, summary, input, textarea')))) { ($('otra') ?? $('menu'))?.click(); return; } // reintento inmediato con una tecla
+  if (menu === 'fin' && !e.target.closest?.('input, textarea') && (k === 'r' || (k === 'enter' && !e.target.closest?.('button, summary')))) { ($('otra') ?? $('menu'))?.click(); return; } // reintento inmediato con una tecla
   if (menu === 'datos' && /^[1-6]$/.test(k) && !e.target.closest?.('input, textarea')) { datosIr?.(+k - 1); return; } // atajos 1–6 en la terminal de DATOS NASA
   if (k === 'enter' && menu === 'titulo' && !e.target.closest?.('button, summary, input, textarea')) { $('t-jugar')?.click(); return; } // Enter = JUGAR en el título
   if (['e', 'q', 'c', 'p', 'f', 't', 'g', 'b', 'i', 'm', 'v', '1', '2', '3', '4', 'escape'].includes(k)) act(k);

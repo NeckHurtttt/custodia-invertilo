@@ -625,3 +625,11 @@ body.invitado #t-f, body.invitado #t-t, body.invitado #t-sh, body.invitado #t-q,
 @media (max-width: 600px), (max-height: 520px) { .tuto p { font-size: .98em; } .tuto b { font-size: 1.1em; } .tuto .tuto-bt button { min-height: 44px; } }
 
 body.tuto-on #actividad { display: none; }
+
+/* Certificado de Cadete: ventana encima del final; la vista previa se achica para caber en cualquier pantalla */
+#cert-modal { z-index: 12; overflow: auto; }
+.cert-ventana { max-width: 760px; }
+.cert-nombre { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .3rem 0; }
+.cert-nombre input { flex: 1 1 12rem; min-height: 44px; font: inherit; font-size: 1.2rem; padding: .2rem .6rem; background: #0b1018; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+canvas.cert { position: static; inset: auto; display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: #0a1121; margin: .4rem 0; }
+#cert-modal { background: rgba(4,7,14,.94); }

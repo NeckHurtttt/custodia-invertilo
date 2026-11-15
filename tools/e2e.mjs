@@ -517,6 +517,26 @@ try {
   }
   ok('tutorial guiado (compu y celular): 7 pasos con tarjeta que cabe en pantalla, adelanta el reloj, se completa con las acciones reales, SALTAR se recuerda y no vuelve solo');
 
+  // 13. Certificado de Cadete al ganar (compu y celular): nombre, vista previa, descarga con nombre de archivo seguro y la tecla R no reinicia al escribir.
+  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'certificado compu'], [375, 812, true, 'certificado celular']]) {
+    const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, acceptDownloads: true, ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
+    await pg.goto(`${url}?noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok'); await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden);
+    await pg.evaluate(() => { lfr.s.sys.storm = null; lfr.G.rescue(lfr.s); }); await pg.waitForSelector('#certif', { timeout: 5000 });
+    const puntos0 = await pg.evaluate(() => JSON.parse(localStorage.getItem('lfr.meta') || '{}').pts);
+    await pg.click('#certif'); await pg.waitForSelector('#cert-lienzo'); await pg.fill('#cert-nombre', ''); await pg.type('#cert-nombre', 'Ruth');
+    assert.equal(await pg.inputValue('#cert-nombre'), 'Ruth', `${nombre}: se puede escribir una R sin reiniciar la partida`); assert.ok(await pg.evaluate(() => !!lfr.s.over && !!document.querySelector('.fin')), `${nombre}: el final sigue ahí`);
+    assert.ok(await pg.evaluate(() => { const g = document.getElementById('cert-lienzo').getContext('2d'); const d = g.getImageData(0, 0, 1200, 850).data; let n = 0; for (let i = 0; i < d.length; i += 4 * 97) if (d[i] > 120 || d[i + 1] > 120) n++; return n > 40; }), `${nombre}: el certificado se dibuja`);
+    assert.ok(await pg.evaluate(() => { const r = document.querySelector('.cert-ventana').getBoundingClientRect(); const q = document.getElementById('cert-lienzo').getBoundingClientRect(); return q.width <= innerWidth && r.left >= -1 && r.right <= innerWidth + 1 && document.documentElement.scrollWidth <= innerWidth + 1; }), `${nombre}: cabe en la pantalla`);
+    if (movil) assert.ok(await pg.evaluate(() => [...document.querySelectorAll('#cert-modal button, #cert-nombre')].every((b) => b.getBoundingClientRect().height >= 43.5)), `${nombre}: botones táctiles ≥ 44 px`);
+    await pg.screenshot({ path: join(salida, `certificado-${movil ? 'celular' : 'compu'}.png`) });
+    const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 6000 }), pg.click('#cert-bajar')]); assert.equal(dl.suggestedFilename(), 'certificado-custodia-ruth.png', `${nombre}: nombre de archivo`);
+    await pg.click('#cert-volver'); await pg.waitForSelector('#cert-modal', { state: 'detached' }); assert.ok(await pg.evaluate(() => !!document.querySelector('.fin')), `${nombre}: vuelve al final`);
+    assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('lfr.meta') || '{}').pts), puntos0, `${nombre}: abrir el certificado no da puntos otra vez`);
+    await c.close();
+  }
+  ok('certificado de cadete (compu y celular): se dibuja con el nombre, se descarga con nombre seguro, cabe en la pantalla, la R no reinicia y no repite puntos');
+
   ok('sin errores de JavaScript ni de red');
   console.log(`\nTodo bien (${paso} pasos). Capturas en ${salida}`);
 } catch (e) {
