@@ -1216,25 +1216,44 @@ function stormCard(l) {
   $('ok').onclick = close;
 }
 
+/**
+ * Ventana de inicio de partida. Primero lo ESENCIAL (la misión en una línea, los controles de ESTE aparato y EMPEZAR) y debajo, plegado,
+ * lo OPCIONAL (historia, las 3 reglas y más detalles). Los textos cambian según el aparato: teclado (PC), botones (tablet) o rueda (teléfono).
+ * Arriba hay una ✕ que la cierra (igual que EMPEZAR).
+ */
 function intro() {
   document.body.classList.remove('derrota');
   menu = 'intro'; const L = s.L;
   const night = s.mode === 'noche';
-  open(`<h2>${ic(s.loc, 'g')} ${nm(L).toUpperCase()} · ${s.daily ? T('RETO DEL DÍA', 'DAILY CHALLENGE') : night ? T('UNA NOCHE', 'ONE NIGHT') : T('DÍA 1', 'DAY 1')}</h2>${night ? T(`<p>Son las 21:00. Llevas semanas preparando el escape y esta es la noche. Tienes hasta las <b>06:00</b> (unos 7 minutos): si te descubren en el pase de lista, se acabó.</p>`, `<p>It is 21:00. You have spent weeks preparing your escape and tonight is the night. You have until <b>06:00</b> (about 7 minutes): if they catch you at roll call, it is over.</p>`) : T(L.intro, L.introEn).map((t) => `<p>${t}</p>`).join('')}
-    ${s.dFlare ? T(`<p>☀️ <b>Llamarada del día:</b> clase ${s.dFlare.flare.cls} (${s.dFlare.flare.date}, archivo real de NASA DONKI). En algún momento de la noche sonará un aviso de 30 s: <b>refugio</b> (pierdes tiempo) o <b>seguir escapando</b> (pierdes salud). Es la misma para todos.</p>`, `<p>☀️ <b>Flare of the day:</b> class ${s.dFlare.flare.cls} (${s.dFlare.flare.date}, real NASA DONKI archive). At some point during the night a 30 s warning will sound: <b>shelter</b> (you lose time) or <b>keep escaping</b> (you lose health). It is the same for everyone.</p>`) : ''}<div class="pasos3">
-      <div><b>${ic('reloj')} ${T(`1 · CUMPLE LA RUTINA`, `1 · FOLLOW THE ROUTINE`)}</b><p>${T(`Arriba dice dónde ir y una flecha te guía. Faltar sube la alerta de ${L.ai}.`, `The top says where to go and an arrow guides you. Missing it raises the alert of ${L.ai}.`)}</p></div>
-      <div><b>${ic('alerta')} ${T(`2 · ESQUIVA A LA IA`, `2 · DODGE THE AI`)}</b><p>${T(`El cono amarillo es lo que ve; rojo, te persigue. Agáchate (Shift) y escóndete (F).`, `The yellow cone is what it sees; red means it is chasing you. Crouch (Shift) and hide (F).`)}</p></div>
-      <div><b>${ic('mant')} ${T(`3 · CUIDA LA BASE`, `3 · CARE FOR THE BASE`)}</b><p>${T(`De 08:00 a 12:00 haz las 4 revisiones (tecla 1). Si un sistema baja, la base sufre. Extra: el PLAN para volver antes (tecla 2).`, `From 08:00 to 12:00 do the 4 checks (key 1). If a system drops, the base suffers. Extra: the PLAN to return sooner (key 2).`)}</p></div>
-    </div>
-    <div class="basico">${T(`<span><kbd>WASD</kbd> o <kbd>flechas</kbd> moverse</span><span><kbd>E</kbd> usar / hablar</span><span><kbd>Shift</kbd> agacharse</span><span><kbd>Esc</kbd> pausa y ajustes</span>`, `<span><kbd>WASD</kbd> or <kbd>arrows</kbd> move</span><span><kbd>E</kbd> use / talk</span><span><kbd>Shift</kbd> crouch</span><span><kbd>Esc</kbd> pause and settings</span>`)}</div>
-    <details class="mas-info">${T(`<summary>MÁS DETALLES</summary>`, `<summary>MORE DETAILS</summary>`)}
+  const tact = esTactil(), rueda = document.body.classList.contains('rueda-on');
+  const dev = (pc, tab, cel) => (rueda ? cel : tact ? tab : pc); // compu / tablet / teléfono (o tablet con rueda)
+  const mision = night ? T('Escapa antes de las <b>06:00</b> sin que te descubran en el pase de lista.', 'Escape before <b>06:00</b> without being caught at roll call.')
+    : T('Mantén viva la base <b>10 días</b>: cuida aire, energía, radiación y comida hasta que llegue la nave de rescate.', 'Keep the base alive for <b>10 days</b>: look after air, power, radiation and food until the rescue ship arrives.');
+  const controles = dev(
+    T('<span><kbd>WASD</kbd> o <kbd>flechas</kbd> moverse</span><span><kbd>E</kbd> usar / hablar</span><span><kbd>Shift</kbd> agacharse</span><span><kbd>F</kbd> esconderse</span><span><kbd>Tab</kbd> mapa</span><span><kbd>Esc</kbd> pausa</span>', '<span><kbd>WASD</kbd> or <kbd>arrows</kbd> move</span><span><kbd>E</kbd> use / talk</span><span><kbd>Shift</kbd> crouch</span><span><kbd>F</kbd> hide</span><span><kbd>Tab</kbd> map</span><span><kbd>Esc</kbd> pause</span>'),
+    T('<span><kbd>🕹</kbd> joystick: moverse</span><span><kbd>USAR</kbd> usar / hablar</span><span><kbd>AGACHAR</kbd> <kbd>ESCONDER</kbd></span><span><kbd>MAPA</kbd></span><span><kbd>⏸</kbd> pausa</span>', '<span><kbd>🕹</kbd> joystick: move</span><span><kbd>USE</kbd> use / talk</span><span><kbd>CROUCH</kbd> <kbd>HIDE</kbd></span><span><kbd>MAP</kbd></span><span><kbd>⏸</kbd> pause</span>'),
+    T('<span><kbd>🕹</kbd> joystick: moverse</span><span><kbd>USAR</kbd> toca: usar / hablar</span><span><kbd>USAR</kbd> mantén 2 s: más acciones</span><span><kbd>⏸</kbd> pausa</span>', '<span><kbd>🕹</kbd> joystick: move</span><span><kbd>USE</kbd> tap: use / talk</span><span><kbd>USE</kbd> hold 2 s: more actions</span><span><kbd>⏸</kbd> pause</span>'));
+  const esconde = dev(T('Agáchate (Shift) y escóndete (F).', 'Crouch (Shift) and hide (F).'), T('Agáchate (AGACHAR) y escóndete (ESCONDER).', 'Crouch (CROUCH) and hide (HIDE).'), T('Mantén USAR y elige AGACHAR o ESCONDER.', 'Hold USE and pick CROUCH or HIDE.'));
+  const panel = (n, es, en) => dev(T(`tecla ${n}`, `key ${n}`), T(`botón ${n} ${es}`, `button ${n} ${en}`), T(`en la pausa ⏸`, `in the pause ⏸`));
+  open(`<button type="button" id="x-intro" class="btn-x" aria-label="${T('Cerrar y empezar', 'Close and start')}">✕</button>
+    <h2>${ic(s.loc, 'g')} ${nm(L).toUpperCase()} · ${s.daily ? T('RETO DEL DÍA', 'DAILY CHALLENGE') : night ? T('UNA NOCHE', 'ONE NIGHT') : T('DÍA 1', 'DAY 1')}</h2>
+    <p class="mision">🎯 ${mision}</p>
+    ${s.dFlare ? T(`<p>☀️ <b>Llamarada del día:</b> clase ${s.dFlare.flare.cls} (${s.dFlare.flare.date}, archivo real de NASA DONKI). En algún momento de la noche sonará un aviso de 30 s: <b>refugio</b> (pierdes tiempo) o <b>seguir escapando</b> (pierdes salud). Es la misma para todos.</p>`, `<p>☀️ <b>Flare of the day:</b> class ${s.dFlare.flare.cls} (${s.dFlare.flare.date}, real NASA DONKI archive). At some point during the night a 30 s warning will sound: <b>shelter</b> (you lose time) or <b>keep escaping</b> (you lose health). It is the same for everyone.</p>`) : ''}
+    <div class="basico">${controles}</div>
+    <details class="mas-info"><summary>${T('VER MÁS: historia y cómo se juega', 'MORE: story and how to play')}</summary>
+      ${night ? T(`<p>Son las 21:00. Llevas semanas preparando el escape y esta es la noche. Tienes hasta las <b>06:00</b> (unos 7 minutos).</p>`, `<p>It is 21:00. You have spent weeks preparing your escape and tonight is the night. You have until <b>06:00</b> (about 7 minutes).</p>`) : T(L.intro, L.introEn).map((x) => `<p>${x}</p>`).join('')}
+      <div class="pasos3">
+        <div><b>${ic('reloj')} ${T(`1 · CUMPLE LA RUTINA`, `1 · FOLLOW THE ROUTINE`)}</b><p>${T(`Arriba dice dónde ir y una flecha te guía. Faltar sube la alerta de ${L.ai}.`, `The top says where to go and an arrow guides you. Missing it raises the alert of ${L.ai}.`)}</p></div>
+        <div><b>${ic('alerta')} ${T(`2 · ESQUIVA A LA IA`, `2 · DODGE THE AI`)}</b><p>${T('El cono amarillo es lo que ve; rojo, te persigue.', 'The yellow cone is what it sees; red means it is chasing you.')} ${esconde}</p></div>
+        <div><b>${ic('mant')} ${T(`3 · CUIDA LA BASE`, `3 · CARE FOR THE BASE`)}</b><p>${T(`De 08:00 a 12:00 haz las 4 revisiones (${panel(1, 'Mantenim.', 'Upkeep')}). Si un sistema baja, la base sufre. Extra: el PLAN para volver antes (${panel(2, 'Plan', 'Plan')}).`, `From 08:00 to 12:00 do the 4 checks (${panel(1, 'Mantenim.', 'Upkeep')}). If a system drops, the base suffers. Extra: the PLAN to return sooner (${panel(2, 'Plan', 'Plan')}).`)}</p></div>
+      </div>
       ${night ? T('<p>En tu escondite ya tienes parte del plan.</p>', '<p>You already have part of the plan in your hiding place.</p>') : ''}
       ${T(`<p><b>3 formas de escapar:</b> el PLAN (4 piezas), el SABOTAJE (apaga la IA: código + llave) o el MOTÍN (gánate a los 3 compañeros: código + combustible). Personaje: <b>${nm(G.perk(s))}</b>.</p>`, `<p><b>3 ways to escape:</b> the PLAN (4 pieces), SABOTAGE (shut down the AI: code + key) or MUTINY (win over the 3 crewmates: code + fuel). Character: <b>${nm(G.perk(s))}</b>.</p>`)}
-      ${T(`<p>De día cumple el horario. Si faltas o te ven haciendo algo raro, sube la <span style="color:var(--amber)">alerta</span>. A 100: bloqueo y te quitan lo que llevas.</p>`, `<p>By day, follow the schedule. If you miss it or they see you doing something strange, the <span style="color:var(--amber)">alert</span> rises. At 100: lockdown and they take what you carry.</p>`)}
+      ${T(`<p>Si faltas al horario o te ven haciendo algo raro, sube la <span style="color:var(--amber)">alerta</span>. A 100: bloqueo y te quitan lo que llevas.</p>`, `<p>If you miss the schedule or they see you doing something strange, the <span style="color:var(--amber)">alert</span> rises. At 100: lockdown and they take what you carry.</p>`)}
       ${T(`<p>Tus 3 compañeros te piden piezas: ayúdalos y te devuelven favores. Los problemas se resuelven con protocolos de la NASA.</p>`, `<p>Your 3 crewmates ask you for parts: help them and they return the favor. Problems are solved with NASA protocols.</p>`)}
     </details>
     <div class="fila fila-fija"><button id="ok" class="grande">${ic('jugar')} ${T('EMPEZAR', 'START')}</button><button id="ay" class="sec">${ic('ayuda')} ${T('CONTROLES', 'CONTROLS')}</button></div>`);
-  $('ok').onclick = close; $('ay').onclick = () => help(intro);
+  $('ok').onclick = close; $('x-intro').onclick = close; $('ay').onclick = () => help(intro);
 }
 
 function help(back) {
