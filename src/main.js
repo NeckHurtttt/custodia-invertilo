@@ -990,7 +990,7 @@ function finalesTuto(x) {
   const md = Meta.load().medals ?? {};
   const fila = (f) => { const ya = f.medalla && md[f.medalla]; return `<li class="fin-tuto${f.secreto && !ya ? ' secreto' : ''}"><span class="fi">${ya ? '🏅' : f.ico}</span><span><b>${ya ? f.revela : f.nombre}</b><br><small>${f.como}</small></span></li>`; };
   const L = Tu.FINALES();
-  open(`<h2>🎓 ${x.titulo}</h2><p>${T('Ya sabes moverte, revisar paneles, agacharte, esconderte, usar el mapa y protegerte del Sol. Ahora empieza la misión de verdad.', 'You can now move, check panels, crouch, hide, use the map and shelter from the Sun. Now the real mission begins.')}</p>
+  open(`<h2>🎓 ${x.titulo}</h2><p>${T('Ya sabes cuidar la base: leer sus barras, revisar los paneles, usar el mapa y protegerte del Sol. Ahora empieza la misión de verdad.', 'You can now look after the base: read its bars, check the panels, use the map and shelter from the Sun. Now the real mission begins.')}</p>
     <h3>${T('FINALES POR DESCUBRIR', 'ENDINGS TO DISCOVER')}</h3><ul class="fines-tuto">${L.filter((f) => !f.secreto).map(fila).join('')}</ul>
     <h3>${T('FINALES SECRETOS', 'SECRET ENDINGS')}</h3><ul class="fines-tuto">${L.filter((f) => f.secreto).map(fila).join('')}</ul>
     <p class="nota-aj">${T('También hay muchas formas de perder (aire, comida, radiación, incendios…): cada una te enseña algo.', 'There are also many ways to lose (air, food, radiation, fires…): each one teaches you something.')}</p>
