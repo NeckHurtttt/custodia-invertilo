@@ -782,6 +782,11 @@ body.mapa-on.tactil-on #btn-mapa { visibility: hidden; }
   body.tactil-on .hud-teclas { top: 108px; }
 }
 body.tactil-on #btn-mapa { display: none; }
+/* ---- Tablet (táctil sin rueda): los botones de acción ocupan la esquina inferior derecha; los atajos suben encima de ellos
+   y los paneles 1-4 terminan antes, así nada queda tapado. ---- */
+body.tactil-on:not(.rueda-on):not(.cruz-on) .hud-teclas { bottom: 272px; }
+body.tactil-on:not(.rueda-on):not(.cruz-on) .hud-der { bottom: calc(272px + 5.2em); }
+@media (max-height: 520px) { body.tactil-on:not(.rueda-on):not(.cruz-on) .hud-teclas { bottom: 150px; } body.tactil-on:not(.rueda-on):not(.cruz-on) .hud-der { bottom: calc(150px + 5.2em); } }
 /* ---- Teléfono a pantalla completa: sin barra ni atajos; solo ⏸ + día + hora arriba a la izquierda, los indicadores en una tabla
    debajo, el minimapa en la esquina y USAR (la rueda trae todo lo demás). Más específico (html body…) para ganar a las reglas de abajo. ---- */
 html body.telefono .barra { right: auto; top: 6px; left: 6px; padding: 0; gap: 4px; background: none; border: 0; font-size: 12px; pointer-events: none; }
