@@ -548,7 +548,7 @@ function arrowToGoal(t) {
 }
 
 function minimap() {
-  const L = s.L; const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H); const k = g.k; const mw = g.w, mh = g.h; const ox = cv.width - mw - g.borde, oy = g.oy;
+  const L = s.L; const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height); const k = g.k; const mw = g.w, mh = g.h; const ox = cv.width - mw - g.borde, oy = g.oy;
   R(cx, 'rgba(0,0,0,.6)', ox - 3, oy - 3, mw + 6, mh + 6); cx.strokeStyle = '#33405e'; cx.strokeRect(ox - 3.5, oy - 3.5, mw + 7, mh + 7);
   const goal = G.block(s).room;
   for (let y = 0; y < L.H; y++) for (let x = 0; x < L.W; x++) {
@@ -737,7 +737,7 @@ function hud() {
   const th = amenazasHTML();
   if ($('amenazas').dataset.h !== th) { $('amenazas').innerHTML = th; $('amenazas').dataset.h = th; }
   if (!$('c-reg').hidden) { const html = logHTML(8); if ($('log').dataset.h !== html) { $('log').innerHTML = html; $('log').dataset.h = html; } }
-  { const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
+  { const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
   toasts(); paneles();
 }
 /** Retrato de un compañero (el mismo dibujo del mapa, de frente): una imagen chica por personaje y ánimo, guardada para no dibujarla cada vez. */
@@ -1522,6 +1522,17 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 $('btn-nombres').onclick = () => { if (s && !menu) alternaNombres(); }; $('btn-fabricar').onclick = () => act('c'); $('btn-full').onclick = toggleFull; document.querySelectorAll('#teclas [data-panel]').forEach((b) => { b.onclick = () => { if (s && !menu) togglePanel(b.dataset.panel); }; }); $('btn-mochila').onclick = () => act('i'); $('btn-menu').onclick = () => { if (!menu) act('p'); else if (menu === 'pausa') close(); }; $('btn-musica').onclick = () => { M.toggle(); sincBotones(); }; $('btn-usar').onclick = () => act('q'); $('btn-ayuda').onclick = () => { if (!menu) help(null); };
+// Celular y tablet: se juega en HORIZONTAL. Al primer toque pide pantalla completa y fija la orientación (Android/Chrome lo permite;
+// en iPhone no, y ahí queda el aviso «Gira el teléfono» del CSS). Si lo pones en vertical a mitad de partida, el juego se pausa.
+const tacto = matchMedia('(pointer: coarse)'); const vertical = matchMedia('(orientation: portrait)');
+function aHorizontal() {
+  if (!tacto.matches) return;
+  if (screen.orientation?.type?.startsWith('landscape') && document.fullscreenElement) return;
+  const fija = () => screen.orientation?.lock?.('landscape').catch(() => {});
+  if (document.fullscreenElement) fija(); else document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).then(fija).catch(fija);
+}
+addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') aHorizontal(); }, { capture: true });
+vertical.addEventListener?.('change', () => { if (tacto.matches && vertical.matches && s && !menu && !crew) pausa(); });
 // controles táctiles: en pantallas táctiles o angostas (teléfono); body.tactil-on deja sitio a los atajos
 const esTactil = () => matchMedia('(pointer: coarse)').matches || UI.esAngosta(innerWidth);
 function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('cruz-on', on && vista.cruz); }
@@ -1547,7 +1558,7 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
   pant.addEventListener('pointerdown', (e) => {
     if (s && !menu && !e.target.closest('button, input, textarea, a')) {
       if (mapaOn) { alternaMapa(false); return; }
-      const g = UI.geomMinimapa(cv.width, ZOOM, s.L.W, s.L.H); const r = cv.getBoundingClientRect(); const mx = (e.clientX - r.left) * (cv.width / r.width), my = (e.clientY - r.top) * (cv.height / r.height);
+      const g = UI.geomMinimapa(cv.width, ZOOM, s.L.W, s.L.H, cv.height); const r = cv.getBoundingClientRect(); const mx = (e.clientX - r.left) * (cv.width / r.width), my = (e.clientY - r.top) * (cv.height / r.height);
       if (mx >= cv.width - g.w - g.borde - 6 && my >= g.oy - 6 && my <= g.oy + g.h + 6) { alternaMapa(true); return; }
     }
     if (e.pointerType === 'mouse' || joy.id !== null || menu || !s || vista.cruz || e.target.closest('button, input, textarea, a')) return;

@@ -69,8 +69,9 @@ export const alterna = (tMs, hz = 0.8) => Math.floor(tMs / (500 / Math.min(1.5, 
 /** ¿Pantalla angosta (teléfono en vertical)? Cambia la forma del HUD y activa los controles táctiles. */
 export const esAngosta = (ancho) => ancho <= 600;
 /** Geometría del minimapa: en pantallas angostas es más chico para no tapar el HUD. */
-export function geomMinimapa(ancho, zoom, W, H) {
-  const k = esAngosta(ancho) ? 1.5 : zoom + 1; // un poco más grande que la vista del mundo para leerlo de un vistazo
+export function geomMinimapa(ancho, zoom, W, H, alto = 1000) {
+  const chico = esAngosta(ancho) || alto <= 520; // teléfono vertical o acostado: deja sitio a los atajos y botones
+  const k = chico ? 1.5 : zoom + 1; // un poco más grande que la vista del mundo para leerlo de un vistazo
   return { k, w: W * k, h: H * k, oy: esAngosta(ancho) ? 52 : 46, borde: 10 };
 }
 /** Mapa completo (tecla Tab o tocar el minimapa): ocupa casi toda la pantalla, centrado, dejando sitio a la leyenda. */

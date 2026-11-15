@@ -67,7 +67,7 @@ test('modo suave en CSS: sin animaciones ni transiciones de las barras', () => {
 test('pantalla angosta: cambia la forma del HUD y el minimapa se hace chico', () => {
   assert.ok(esAngosta(375)); assert.ok(esAngosta(600)); assert.ok(!esAngosta(601)); assert.ok(!esAngosta(1280));
   const a = geomMinimapa(375, 2, 44, 35), b = geomMinimapa(1280, 3, 44, 35);
-  assert.equal(a.k, 1.5); assert.equal(a.w, 66); assert.equal(b.k, 4); assert.equal(b.h, 140);
+  assert.equal(a.k, 1.5); assert.equal(a.w, 66); assert.equal(geomMinimapa(844, 2, 44, 35, 390).k, 1.5, 'teléfono acostado: minimapa chico'); assert.equal(b.k, 4); assert.equal(b.h, 140);
   const m = geomMapa(1280, 720, 44, 35); assert.ok(m.w <= 1280 && m.oy + m.h <= 720 && m.k > b.k, 'el mapa completo cabe y es más grande que el minimapa');
 });
 
