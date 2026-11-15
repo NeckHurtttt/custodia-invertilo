@@ -4,13 +4,12 @@
 
 **Un juego de supervivencia espacial donde cuidar la base es tu camino de regreso.**
 
-**Sin internet · Offline:** después de la primera visita funciona sin conexión y se puede instalar (📲 INSTALAR en el inicio).
-**Play in English:** [`?cadete&lang=en`](https://custodia-six-phi.vercel.app/?cadete&lang=en) · también con el interruptor ES/EN del inicio.
-
 [![Jugar](https://img.shields.io/badge/JUGAR-Abrir_misión-70dfc8?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?cadete)
 [![Demo](https://img.shields.io/badge/DEMO-Tormenta_solar-e4b577?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?jurado)
 
 **3 destinos** · **10 días hasta el rescate** · **4 sistemas conectados** · **1 base que depende de ti**
+
+Sin cuenta ni instalación · funciona sin internet tras la primera visita · [Play in English](https://custodia-six-phi.vercel.app/?cadete&lang=en)
 
 NASA Space Apps 2026 · desafío **Space Mission Design Game** · equipo **#EraConTuto** · Santa Cruz, Bolivia
 
@@ -18,7 +17,7 @@ NASA Space Apps 2026 · desafío **Space Mission Design Game** · equipo **#EraC
 ![Pruebas](https://img.shields.io/badge/PRUEBAS-236_en_verde-4fe08a?style=for-the-badge&labelColor=101c2e)
 ![Idiomas](https://img.shields.io/badge/IDIOMAS-ES_·_EN_·_עב-ffc23d?style=for-the-badge&labelColor=101c2e)
 
-[La misión](#la-misión) · [Cómo jugar](#cómo-jugar) · [Para aprender](#pensado-para-aprender) · [Idiomas](#idiomas-y-voces) · [La IA](#una-ia-que-aprende-tus-rutinas) · [Ciencia](#del-sol-real-a-tu-partida) · [Desarrollo](#ejecutar-en-local) · [Equipo](#equipo) · [English](#english-summary)
+[La misión](#la-misión) · [Cómo jugar](#cómo-jugar) · [Para aprender](#pensado-para-aprender) · [Idiomas](#idiomas-y-voces) · [La IA](#una-ia-que-aprende-tus-rutinas) · [Ciencia](#del-sol-real-a-tu-partida) · [Cooperativo](#dos-computadoras-una-tripulación) · [Desarrollo](#ejecutar-en-local) · [Equipo](#equipo) · [English](#english-summary)
 
 </div>
 
@@ -44,6 +43,8 @@ Tu misión es mantener a la tripulación con vida: revisar los sistemas, adminis
 
 Cada destino tiene su mapa, amenazas y refugio. Salir a la superficie sin un traje tiene consecuencias.
 
+En cada base hay **6 notas escondidas en los cajones**. Reunirlas todas, en una o varias partidas, desbloquea el **final verdadero** de ese destino.
+
 ## Cómo jugar
 
 Abre la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), elige un destino y pulsa **JUGAR**. No necesitas cuenta ni instalación; hay controles táctiles para teléfono y tablet.
@@ -53,6 +54,18 @@ Abre la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), e
 3. **Responde a las emergencias.** Busca la herramienta necesaria y resuelve el protocolo del peligro.
 4. **Vigila el Sol.** Cuando llegue una tormenta, decide si vas al refugio o continúas tu tarea.
 5. **Llega al día 10.** El rescate valora cómo cuidaste los sistemas, la base y tu exposición a radiación.
+
+### Enlaces directos
+
+| Dirección | Qué hace |
+| :--- | :--- |
+| [`?cadete`](https://custodia-six-phi.vercel.app/?cadete) | Empieza en el nivel Cadete, para 7–12 años. |
+| [`?jurado`](https://custodia-six-phi.vercel.app/?jurado) | Demo: entra en el día 2, poco antes de la tormenta solar. |
+| `?lang=en` · `?lang=he` | Cambia el idioma a inglés o hebreo. |
+| `?sala=CÓDIGO` | Entra directo como Control de Misión en una sala cooperativa. |
+| `?boot` · `?noboot` | Fuerza o quita el arranque animado «CUSTODIA OS». |
+
+Se pueden combinar: `?cadete&lang=en`.
 
 ### Cuatro sistemas, una sola misión
 
@@ -227,11 +240,16 @@ Las capturas se guardan en `e2e-out/`. Puedes indicar un navegador instalado med
 | Archivo | Responsabilidad |
 | :--- | :--- |
 | [`src/core.js`](src/core.js) | Simulación, acciones, inventario, guardado y finales. |
+| [`src/locs.js`](src/locs.js) · [`src/common.js`](src/common.js) | Los tres destinos (mapas, IA, tripulación, finales) y datos compartidos: piezas, recetas y protocolos. |
+| [`src/variedad.js`](src/variedad.js) · [`src/story.js`](src/story.js) · [`src/meta.js`](src/meta.js) | Variedad entre partidas, notas del final verdadero y progreso guardado (medallas, racha, reto diario). |
 | [`src/ia.js`](src/ia.js) · [`src/villains.js`](src/villains.js) | Progresión, memoria, sospecha y amenazas. |
 | [`src/sistemas.js`](src/sistemas.js) | Sistemas de la base, mantenimiento y tormentas. |
 | [`src/clima.js`](src/clima.js) · [`src/datos.js`](src/datos.js) | Clima espacial, datos y referencias. |
 | [`src/main.js`](src/main.js) · [`src/arte.js`](src/arte.js) | Interfaz, controles y dibujo en Canvas. |
-| [`src/coop.js`](src/coop.js) · [`src/link.js`](src/link.js) | Reglas cooperativas y comunicación. |
+| [`src/ui.js`](src/ui.js) · [`src/avisos.js`](src/avisos.js) · [`src/fx.js`](src/fx.js) · [`src/cuerpos.js`](src/cuerpos.js) | Decisiones de interfaz, avisos en pantalla, efectos y dibujo de los astronautas. |
+| [`src/personajes.js`](src/personajes.js) · [`src/informe.js`](src/informe.js) | Personalidad de la tripulación y bitácora final («qué pasó cada día y por qué»). |
+| [`src/music.js`](src/music.js) · [`src/sonido.js`](src/sonido.js) | Música generativa y efectos con WebAudio, sin archivos de audio. |
+| [`src/coop.js`](src/coop.js) · [`src/link.js`](src/link.js) · [`src/coopui.js`](src/coopui.js) | Reglas cooperativas, comunicación y pantallas de Control de Misión. |
 | [`src/tutorial.js`](src/tutorial.js) · [`src/quiz.js`](src/quiz.js) · [`src/certificado.js`](src/certificado.js) · [`src/docente.js`](src/docente.js) | Entrenamiento guiado, pregunta de cierre, certificado y panel docente. |
 | [`src/i18n.js`](src/i18n.js) · [`src/he.js`](src/he.js) · [`src/voz.js`](src/voz.js) · [`src/inicio.js`](src/inicio.js) | Idiomas, lectura en voz alta y pantalla de arranque. |
 | [`sw.js`](sw.js) · [`manifest.webmanifest`](manifest.webmanifest) | Modo sin internet e instalación. |
