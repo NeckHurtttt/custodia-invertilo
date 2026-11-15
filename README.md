@@ -1,6 +1,8 @@
 <div align="center">
 
-<a href="https://custodia-six-phi.vercel.app/?cadete&amp;lang=en"><img src="docs/assets/readme/hero.svg" alt="CUSTODIA. Keep the base alive. Bring everyone home. Ten days. Four systems. One crew." width="100%"></a>
+<a href="https://custodia-six-phi.vercel.app/?cadete&amp;lang=en"><img src="docs/assets/readme/hero.gif" alt="CUSTODIA. Keep the base alive. Bring everyone home. Ten days. Four systems. One crew." width="100%"></a>
+
+<sub>[Static cover / Portada estática](docs/assets/readme/hero.svg)</sub>
 
 **[English](#english) · [Español](#espanol)**
 
