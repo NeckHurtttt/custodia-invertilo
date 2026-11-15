@@ -3,14 +3,15 @@
 // Opcional: emergencias de REFLEJOS (meteoritos, sobrecargas…) que se disparan al hacer mantenimiento y matan si no las atiendes.
 // Lógica pura (sin pantalla): todo vive en s.sys y se guarda con la partida.
 import * as C from './core.js';
+import { T } from './i18n.js';
 import { missionFlares, STORM_DAYS, STORM_MIN, STORM_SECONDS, warnSeconds, SHELTER, stormDose, SHELTER_FACTOR, SHELTER_ENERGY, classText, sourceText } from './clima.js';
 
 /** Los 4 sistemas. decay = puntos que baja por día sin mantenimiento (Normal ×0.7). */
 export const SYS = {
-  vida: { name: 'SOPORTE VITAL', task: 'Cambiar el filtro de CO₂', short: 'Filtro de CO₂', decay: 30, restore: 55 },
-  energia: { name: 'ENERGÍA', task: 'Orientar los paneles solares', short: 'Paneles solares', decay: 26, restore: 55 },
-  rad: { name: 'RADIACIÓN', task: 'Revisar el blindaje y el dosímetro', short: 'Blindaje y dosímetro', decay: 28, restore: 55 },
-  comida: { name: 'COMIDA', task: 'Regar y cosechar el invernadero', short: 'Invernadero', decay: 28, restore: 50 },
+  vida: { get name() { return T('SOPORTE VITAL', 'LIFE SUPPORT'); }, task: 'Cambiar el filtro de CO₂', get short() { return T('Filtro de CO₂', 'CO₂ filter'); }, decay: 30, restore: 55 },
+  energia: { get name() { return T('ENERGÍA', 'POWER'); }, task: 'Orientar los paneles solares', get short() { return T('Paneles solares', 'Solar panels'); }, decay: 26, restore: 55 },
+  rad: { get name() { return T('RADIACIÓN', 'RADIATION'); }, task: 'Revisar el blindaje y el dosímetro', get short() { return T('Blindaje y dosímetro', 'Shielding and dosimeter'); }, decay: 28, restore: 55 },
+  comida: { get name() { return T('COMIDA', 'FOOD'); }, task: 'Regar y cosechar el invernadero', get short() { return T('Invernadero', 'Greenhouse'); }, decay: 28, restore: 50 },
 };
 export const SYS_IDS = Object.keys(SYS);
 
@@ -18,7 +19,7 @@ export const START_LVL = 90;
 export const DOSE_DAY = 0.4;     // mSv/día con el blindaje al 100 % (en la ISS real: 0,2–0,5)
 export const DOSE_LIMIT = 8;     // "límite de la misión" del juego (el real de la NASA es 600 mSv, pero para TODA la carrera)
 export const WORK = { from: 480, to: 720 };
-export const NASA_NOTE = 'Dato NASA: en la ISS un astronauta recibe 0,2–0,5 mSv al día. Su límite para TODA la carrera es 600 mSv (NASA-STD-3001), y el lema es ALARA: tan poca radiación como sea razonable.';
+export const nasaNote = () => T('Dato NASA: en la ISS un astronauta recibe 0,2–0,5 mSv al día. Su límite para TODA la carrera es 600 mSv (NASA-STD-3001), y el lema es ALARA: tan poca radiación como sea razonable.', "NASA fact: on the ISS an astronaut receives 0.2–0.5 mSv per day. Their limit for the WHOLE career is 600 mSv (NASA-STD-3001), and the motto is ALARA: as little radiation as reasonably achievable.");
 
 const clamp = (v) => Math.max(0, Math.min(100, v));
 
@@ -244,8 +245,8 @@ export function startStorm(s) {
   const y = s.sys; const f = y.flares[y.storms] ?? y.flares[y.flares.length - 1]; const sh = shelterOf(s);
   y.storm = { flare: f, phase: 'aviso', t: warnSeconds(s.dif), total: warnSeconds(s.dif), dose: Math.round(stormDose(f.cls, s.loc) * (C.dif(s).stormK ?? 1) * 100) / 100, got: 0, inside: 0, outside: 0, paid: false, n: y.storms + 1 };
   s.sfx?.push('alarma');
-  C.flash(s, `☀️ TORMENTA SOLAR ${y.storm.n} de ${STORM_DAYS.length}. ${sourceText(f)} En ${y.storm.t} s llegan las partículas. ¿Corres al REFUGIO (${C.roomName(s, sh.room)}) o sigues con lo tuyo?`, 'bad');
-  C.say(s, `En el refugio casi no recibes radiación, pero pierdes lo que estabas haciendo y el refugio gasta energía. Afuera recibes unos ${y.storm.dose} mSv que no se borran. (${classText(f.cls)}.)`, 'warn');
+  C.flash(s, T(`☀️ TORMENTA SOLAR ${y.storm.n} de ${STORM_DAYS.length}. ${sourceText(f)} En ${y.storm.t} s llegan las partículas. ¿Corres al REFUGIO (${C.roomName(s, sh.room)}) o sigues con lo tuyo?`, `☀️ SOLAR STORM ${y.storm.n} of ${STORM_DAYS.length}. ${sourceText(f)} The particles arrive in ${y.storm.t} s. Do you run to the SHELTER (${C.roomName(s, sh.room)}) or keep doing your thing?`), 'bad');
+  C.say(s, T(`En el refugio casi no recibes radiación, pero pierdes lo que estabas haciendo y el refugio gasta energía. Afuera recibes unos ${y.storm.dose} mSv que no se borran. (${classText(f.cls)}.)`, `In the shelter you get almost no radiation, but you lose what you were doing and the shelter uses power. Outside you get about ${y.storm.dose} mSv that never go away. (${classText(f.cls)}.)`), 'warn');
   return y.storm;
 }
 function endStorm(s) {
@@ -255,8 +256,8 @@ function endStorm(s) {
   const pct = Math.round((got / DOSE_LIMIT) * 100); const sh = shelterOf(s);
   y.lastStorm = { flare: st.flare, got, pct, refugio, could: Math.round(st.dose * SHELTER_FACTOR * 100) / 100, worst: st.dose, n: st.n };
   C.say(s, refugio
-    ? `☀️ Pasó la tormenta. En el refugio recibiste solo ${got} mSv (${pct} % del límite de la misión). Costo: el tiempo perdido y ${SHELTER_ENERGY} de ENERGÍA del refugio. ${sh.why}`
-    : `☀️ Pasó la tormenta. Afuera recibiste ${got} mSv (${pct} % del límite de la misión): esa dosis no se borra. En el refugio habrían sido ${y.lastStorm.could} mSv. La NASA limita a 600 mSv la dosis de TODA la carrera de un astronauta.`, refugio ? 'ok' : 'bad');
+    ? T(`☀️ Pasó la tormenta. En el refugio recibiste solo ${got} mSv (${pct} % del límite de la misión). Costo: el tiempo perdido y ${SHELTER_ENERGY} de ENERGÍA del refugio. ${sh.why}`, `☀️ The storm has passed. In the shelter you received only ${got} mSv (${pct} % of the mission limit). Cost: the lost time and ${SHELTER_ENERGY} POWER used by the shelter. ${sh.why}`)
+    : T(`☀️ Pasó la tormenta. Afuera recibiste ${got} mSv (${pct} % del límite de la misión): esa dosis no se borra. En el refugio habrían sido ${y.lastStorm.could} mSv. La NASA limita a 600 mSv la dosis de TODA la carrera de un astronauta.`, `☀️ The storm has passed. Outside you received ${got} mSv (${pct} % of the mission limit): that dose never goes away. In the shelter it would have been ${y.lastStorm.could} mSv. NASA limits the dose of an astronaut's WHOLE career to 600 mSv.`), refugio ? 'ok' : 'bad');
 }
 
 /** Datos listos para dibujar el panel. */
@@ -265,7 +266,7 @@ export function view(s) {
   const e = y.emerg; const ed = e ? EMERGS[e.kind] : null;
   return {
     meters: SYS_IDS.map((id) => ({ id, name: SYS[id].name, v: y.lvl[id], low: y.lvl[id] < 30 })),
-    dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? NASA_NOTE, events: mods(s).map((e) => ({ name: e.name, text: e.hud })),
+    dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? nasaNote(), events: mods(s).map((e) => ({ name: e.name, text: e.hud })),
     tasks: SYS_IDS.map((id) => ({ id, name: taskName(s, id), short: taskShort(s, id), room: stationRoom(s, id), done: !!y.done[id] })),
     reflex: y.reflex, last: y.lastStorm ?? null,
     // lo que ve Control de Misión del Sol: cuántas tormentas van, cuándo llega la próxima y qué llamarada real la causa

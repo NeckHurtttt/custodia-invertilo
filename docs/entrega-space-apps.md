@@ -14,7 +14,7 @@ Team members: **[NAME 1], [NAME 2], [NAME 3], …** ← _TO COMPLETE: ask Sergio
 CUSTODIA — Keep the base alive
 
 ## Demo / final project link
-- Play (Cadet mode, ages 7–12): https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete
+- Play (Cadet mode, ages 7–12): https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete&lang=en (in English; the ES/EN switch is on the title screen and `?cadete` alone starts in Spanish)
 - Judge tour (a real solar storm arrives in seconds): https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado
 - Code: https://github.com/NeckHurtttt/proyecto-Hackaton-2.0
 - No download and no account: it runs in the browser of a computer, tablet or phone.

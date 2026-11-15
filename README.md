@@ -3,6 +3,7 @@
 > **NASA Space Apps 2026 · desafío _Build a Junior Astronaut Mission Trainer_** · equipo **#LosTiraVida** (Santa Cruz, Bolivia)
 
 **Jugar (modo Cadete, 7-12 años):** https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete
+**Play in English:** https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete&lang=en (also the ES/EN switch on the title screen; the choice is remembered)
 · sin descarga ni cuenta, en el navegador de la compu, tablet o celular.
 
 Eres un astronauta en una base de la **Estación Espacial, la Luna o Marte**. La IA que controla la base **está fallando** y la nave de rescate llega en **10 días**. Para volver a casa hay que **mantener viva la base**: hacer cada mañana el mantenimiento de **soporte vital, energía, radiación y comida**, resolver emergencias con **protocolos reales de la ISS** y decidir qué hacer cuando el **Sol real** lanza una llamarada.

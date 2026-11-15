@@ -3,7 +3,8 @@ import { ITEMS, LOOT, RECIPES, HAZARDS, DIFS, PERKS, PROTOCOLS } from './common.
 import { NOTES, TRUE_END } from './story.js';
 export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
-import { LOCS } from './locs.js';
+import { LOCS, ROOM_EN } from './locs.js';
+import { T } from './i18n.js';
 import * as V from './villains.js';
 import * as S from './sistemas.js';
 
@@ -45,7 +46,7 @@ const I = (s, x, y) => y * s.L.W + x;
 const inside = (s, x, y) => x >= 0 && y >= 0 && x < s.L.W && y < s.L.H;
 export const roomAt = (s, x, y) => { if (!inside(s, Math.floor(x), Math.floor(y))) return null; const i = s.map.room[I(s, Math.floor(x), Math.floor(y))]; return i >= 0 ? s.L.rooms[i] : null; };
 export const roomIdAt = (s, x, y) => roomAt(s, x, y)?.id ?? 'pasillo';
-export const roomName = (s, id) => s.L.rooms.find((r) => r.id === id)?.name ?? 'Pasillo';
+export const roomName = (s, id) => { const n = s.L.rooms.find((r) => r.id === id)?.name ?? 'Pasillo'; return T(n, ROOM_EN[n] ?? n); };
 const doorOf = (s, tx, ty) => { const d = s.map.doorAt[I(s, tx, ty)]; return d >= 0 ? s.map.doors[d] : null; };
 
 /** ¿Se puede pisar? who: 'p' jugador, 'd' dron/tripulación/robot (abren escotillas), 'gas' nubes y cosas que no las abren. */
@@ -901,7 +902,7 @@ export function rescueStars(s) {
 export function rescue(s) {
   const r = rescueStars(s);
   const stars = 1 + (r.cuidada ? 1 : 0) + (r.segura ? 1 : 0);
-  end(s, true, RESCUE_TITLE, `Llegó la nave de rescate y encontró la base en pie: sistemas al ${Math.round(r.avg)} % y radiación al ${Math.round(r.dose)} % del límite. ${s.L.ai} quedó desconectada para revisarla en la Tierra.`, stars);
+  end(s, true, RESCUE_TITLE, T(`Llegó la nave de rescate y encontró la base en pie: sistemas al ${Math.round(r.avg)} % y radiación al ${Math.round(r.dose)} % del límite. ${s.L.ai} quedó desconectada para revisarla en la Tierra.`, `The rescue ship arrived and found the base standing: systems at ${Math.round(r.avg)} % and radiation at ${Math.round(r.dose)} % of the limit. ${s.L.ai} was disconnected to be examined on Earth.`), stars);
   s.over.route = 'rescate';
 }
 export function end(s, won, title, text, stars = 0) { if (!s.over) s.over = { won, title, text, stars }; }

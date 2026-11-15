@@ -153,3 +153,40 @@ export const PERKS = {
   sombra: { name: 'Sombra', desc: 'Te ven 20 % menos y tus pasos casi no se oyen.', cost: 300, see: 0.8, quiet: true },
   contrabandista: { name: 'Contrabandista', desc: '+2 de espacio y empiezas con destornillador.', cost: 300, cap: 2, start: ['destornillador'] },
 };
+
+// ---------- Inglés (solo presentación; ver i18n.js). Lo que no está aquí se muestra en español. ----------
+const EN_DIFS = {
+  cadete: ['Cadet', 'For ages 7–12: following the routine and caring for the base is enough to reach the rescue.'],
+  facil: ['Easy', 'To learn: slow, short-sighted guards, less damage.'],
+  normal: ['Normal', 'The intended experience: tense but fair.'],
+  dificil: ['Terror', 'No mercy: they see far, run, and 3 threats arrive every day.'],
+  pesadilla: ['Nightmare', 'Secret (600 pts): everything faster, more villains and almost no grace.'],
+};
+for (const [k, [n, d]] of Object.entries(EN_DIFS)) if (DIFS[k]) Object.assign(DIFS[k], { nameEn: n, descEn: d });
+const EN_PERKS = {
+  novato: ['Rookie', 'No advantages. Pure talent.'], atleta: ['Athlete', '+30 strength and you run 12 % faster.'], ingeniera: ['Engineer', '+30 knowledge: you craft and hack from day 1.'],
+  sombra: ['Shadow', 'They see you 20 % less and your steps are almost silent.'], contrabandista: ['Smuggler', '+2 bag space and you start with a screwdriver.'],
+};
+for (const [k, [n, d]] of Object.entries(EN_PERKS)) if (PERKS[k]) Object.assign(PERKS[k], { nameEn: n, descEn: d });
+export const PROTO_NIVEL_EN = {
+  iss: 'Based on real ISS procedures (greatly simplified)',
+  riesgo: 'The hazard is real; the steps are a game version',
+  ficcion: 'Educational fiction inspired by real missions',
+};
+const EN_PROTO = {
+  fuego: ['FIRE · ISS protocol', 'NASA NTRS 20120002562 and 20030053429 (fire on the ISS: PBA and PFE extinguisher)'],
+  fuga: ['DEPRESSURIZATION · ISS protocol', 'NASA NTRS 20250003954 (Chen, Walker and Williams, 2025: ISS emergencies: fire, toxic spills and rapid depressurization; the game steps are greatly simplified)'],
+  amoniaco: ['AMMONIA · ISS protocol', 'NASA NTRS 20220019247 (toxic atmosphere on the ISS, including ammonia leaks)'],
+  polvo: ['LUNAR DUST · Artemis-style cleaning', 'Apollo: lunar dust irritated eyes and lungs; NASA treats it as a major risk for Artemis'],
+  perclorato: ['PERCHLORATE · Mars-style cleaning', 'GeoHealth 2025 (Wang et al., doi:10.1029/2024GH001213): perchlorate in Martian dust could slow the thyroid; it is a review hypothesis, not a case in astronauts'],
+};
+for (const [k, [t, f]] of Object.entries(EN_PROTO)) { if (PROTOCOLS[k]) PROTOCOLS[k].titleEn = t; if (PROTO_FUENTE[k]) PROTO_FUENTE[k].fuenteEn = f; }
+
+// Mantenimiento (mini-protocolo de 3 pasos) en inglés
+const EN_MANT = {
+  mant_vida: ['MAINTENANCE · life support', ['Measure the CO₂ in the air', 'Swap the dirty filter for a clean one', 'Check that the air is clean'], 'On the ISS routine life-support maintenance is real, but these steps are game steps'],
+  mant_energia: ['MAINTENANCE · power', ['Check how much charge the batteries have', 'Turn the solar panels toward the Sun', 'Confirm the charge is rising'], 'Taking care of batteries and panels is real on a base, but these steps are game steps'],
+  mant_rad: ['MAINTENANCE · radiation', ['Read the dosimeter (how much radiation you carry)', 'Check that the shielding is closed', 'Write the dose in the log'], 'Monitoring dose with dosimeters is real on the ISS, but these steps are game steps'],
+  mant_comida: ['MAINTENANCE · food', ['Check the water and light for the plants', 'Harvest what is ready', 'Store the rations in the pantry'], 'Growing food in space is real (Veggie on the ISS), but these steps are game steps'],
+};
+for (const [k, [t, st, f]] of Object.entries(EN_MANT)) { if (PROTOCOLS[k]) { PROTOCOLS[k].titleEn = t; PROTOCOLS[k].stepsEn = st; } if (PROTO_FUENTE[k]) PROTO_FUENTE[k].fuenteEn = f; }

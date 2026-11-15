@@ -1,12 +1,22 @@
 // Pantalla, controles y menús de LIFELINE: Rutina. Mundo en pixel art con cámara que sigue al jugador.
-import { ITEMS, PROTOCOLS, PROTO_FUENTE, PROTO_NIVEL, DIFS, PERKS } from './common.js';
+import { ITEMS, PROTOCOLS, PROTO_FUENTE, PROTO_NIVEL, PROTO_NIVEL_EN, DIFS, PERKS } from './common.js';
 import * as Meta from './meta.js';
 import { NOTES } from './story.js';
-import { LOCS } from './locs.js';
+import { LOCS, ROOM_EN } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
 import { fetchFlares, sourceText, missionFlares, SHELTER } from './clima.js';
-import { RESTRICCION, DOSIS_REALES, OSDR, osdUrl, ESCALA } from './datos.js';
+import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
+import { T, setLang, getLang, pickLang } from './i18n.js';
+// Idioma (ES por defecto; EN con ?lang=en, ?en o el selector del título). Solo presentación.
+try { setLang(pickLang(location.search, localStorage.getItem('lfr.lang'))); document.documentElement.lang = getLang(); } catch { /* sin almacenamiento */ }
+const nm = (o) => T(o.name, o.nameEn); const ds = (o) => T(o.desc, o.descEn); const rn = (n) => T(n, ROOM_EN[n] ?? n);
+const idiomaHTML = () => `<div class="idioma" role="group" aria-label="Language / Idioma">${['es', 'en'].map((l) => `<button data-lang="${l}" class="${getLang() === l ? 'on' : ''}" aria-pressed="${getLang() === l}">${l.toUpperCase()}</button>`).join('')}</div>`;
+const HUD_TXT = [['#c-vit h3', 'TÚ', 'YOU'], ['#ov-sis h3', 'SISTEMAS DE LA BASE', 'BASE SYSTEMS'], ['.hud-crew h3', 'TRIPULACIÓN', 'CREW'], ['.hud-inv h3.cap', 'MOCHILA', 'BACKPACK'], ['#btn-mochila', 'Mochila', 'Backpack'], ['#btn-fabricar', 'Fabricar', 'Craft'], ['#btn-usar', 'Inhibir', 'Inhibit'],
+  ['[data-panel="mant"]', 'Mantenim.', 'Upkeep'], ['[data-panel="plan"]', 'Plan', 'Plan'], ['[data-panel="amen"]', 'Amenazas', 'Threats'], ['[data-panel="reg"]', 'Avisos', 'Alerts'], ['#btn-nombres', 'Nombres', 'Names'], ['#btn-menu .txt', 'PAUSA', 'PAUSE']];
+const aplicaIdioma = () => { for (const [sel, es, en] of HUD_TXT) { const el = document.querySelector(sel); if (!el) continue; for (const n of el.childNodes) if (n.nodeType === 3 && [es, en].includes(n.nodeValue.trim())) n.nodeValue = n.nodeValue.replace(/\S(.*\S)?/, T(es, en)); } };
+const cambiaIdioma = (l, volver) => { setLang(l); try { localStorage.setItem('lfr.lang', l); } catch { /* nada */ } document.documentElement.lang = l; aplicaIdioma(); volver(); };
+aplicaIdioma();
 import { VILLAINS } from './villains.js';
 import * as M from './music.js';
 import * as Snd from './sonido.js';
@@ -580,7 +590,7 @@ function hud() {
   const p = s.p; const b = G.block(s); const L = s.L;
   if (filasS !== s) { filasS = s; filas.clear(); for (const id of ['stats', 'filas-ia', 'sis-barras']) $(id).innerHTML = ''; }
   { const cb = $('coop-badge'); cb.hidden = !coop; if (coop) { const up = coop.session.up, rec = coop.link.estado === 'reconectando'; cb.textContent = rec ? '🛰️ RECONECTANDO…' : up ? '🛰️ CONTROL: CONECTADO' : '🛰️ CONTROL: ESPERANDO…'; cb.className = up && !rec ? 'ok' : 'pend'; } }
-  $('dia').textContent = s.mode === 'noche' ? `${s.daily ? 'RETO' : 'UNA NOCHE'} · ${G.dif(s).name.toUpperCase()} · ${Meta.fmtTime(s.t)}` : `DÍA ${s.day}/${G.DAYS} · ${G.dif(s).name.toUpperCase()}`;
+  $('dia').textContent = s.mode === 'noche' ? `${s.daily ? T('RETO', 'DAILY') : T('UNA NOCHE', 'ONE NIGHT')} · ${nm(G.dif(s)).toUpperCase()} · ${Meta.fmtTime(s.t)}` : `${T('DÍA', 'DAY')} ${s.day}/${G.DAYS} · ${nm(G.dif(s)).toUpperCase()}`;
   { const d = $('ic-dest'); if (d.dataset.loc !== s.loc) { d.dataset.loc = s.loc; d.innerHTML = ic(s.loc); } }
   $('reloj').textContent = G.clock(s.min);
   const late = b.room && s.checked && G.playerRoom(s) !== b.room;
@@ -590,13 +600,13 @@ function hud() {
   const vit = $('stats');
   // Cadete (7-12): menos barras a la vista; fuerza y saber vuelven si abres el PLAN (la ruta extra de escape)
   document.body.classList.toggle('cadete', s.dif === 'cadete'); document.body.classList.toggle('ver-plan', !!ui.plan);
-  ponFila(fila(vit, 'salud', 'salud', 'SALUD'), p.salud, UI.nivel('salud', p.salud));
-  ponFila(fila(vit, 'energia', 'energia', 'ENERGÍA'), p.energia, UI.nivel('energia', p.energia));
-  ponFila(fila(vit, 'fuerza', 'fuerza', 'FUERZA', { neutro: true }), p.fuerza, 'ok');
-  ponFila(fila(vit, 'saber', 'saber', 'SABER', { neutro: true }), p.conoc, 'ok');
-  if (L.rooms.some((r) => r.outside)) ponFila(fila(vit, 'o2', 'vida', 'OXÍGENO'), p.o2, UI.nivel('o2', p.o2));
+  ponFila(fila(vit, 'salud', 'salud', T('SALUD', 'HEALTH')), p.salud, UI.nivel('salud', p.salud));
+  ponFila(fila(vit, 'energia', 'energia', T('ENERGÍA', 'ENERGY')), p.energia, UI.nivel('energia', p.energia));
+  ponFila(fila(vit, 'fuerza', 'fuerza', T('FUERZA', 'STRENGTH'), { neutro: true }), p.fuerza, 'ok');
+  ponFila(fila(vit, 'saber', 'saber', T('SABER', 'KNOWLEDGE'), { neutro: true }), p.conoc, 'ok');
+  if (L.rooms.some((r) => r.outside)) ponFila(fila(vit, 'o2', 'vida', T('OXÍGENO', 'OXYGEN')), p.o2, UI.nivel('o2', p.o2));
   // vigilancia de la IA e integridad de la base
-  $('t-alerta').textContent = `${L.ai} · VIGILANCIA`;
+  $('t-alerta').textContent = T(`${L.ai} · VIGILANCIA`, `${L.ai} · SURVEILLANCE`);
   const ia = $('filas-ia'); const al = s.iaOn ? s.alert : 0;
   ponFila(fila(ia, 'alerta', 'alerta', 'ALERTA'), al, UI.nivel('alerta', al), { sube: true, umbral: 6, texto: s.iaOn ? String(Math.floor(al)) : 'OFF' });
   ponFila(fila(ia, 'integ', 'integ', 'INTEGRIDAD'), Math.max(0, s.integ), UI.nivel('integ', s.integ));
@@ -604,20 +614,20 @@ function hud() {
   if (sv) {
     for (const m of sv.meters) {
       const f = fila($('sis-barras'), `sis-${m.id}`, SIS_ICONO[m.id], m.name, { sub: m.id === 'rad' });
-      if (m.id === 'rad') ponFila(f, sv.dosePct, UI.nivel('rad', sv.dosePct), { sube: true, umbral: Infinity, texto: `${Math.floor(sv.dosePct)}%`, sub: `dosis ${sv.dose.toFixed(1)}/${sv.limit} mSv · blindaje ${Math.floor(sv.blind)}%` });
+      if (m.id === 'rad') ponFila(f, sv.dosePct, UI.nivel('rad', sv.dosePct), { sube: true, umbral: Infinity, texto: `${Math.floor(sv.dosePct)}%`, sub: T(`dosis ${sv.dose.toFixed(1)}/${sv.limit} mSv · blindaje ${Math.floor(sv.blind)}%`, `dose ${sv.dose.toFixed(1)}/${sv.limit} mSv · shielding ${Math.floor(sv.blind)}%`) });
       else ponFila(f, m.v, UI.nivel(SIS_UMBRAL[m.id], m.v), { texto: `${Math.floor(m.v)}%` });
     }
     const evs = sv.events.map((e) => `<li class="evento">${ic('warn')} ${e.name}: ${e.text}</li>`).join('');
-    const tareas = evs + `<li class="enc">REVISIONES DE HOY · 08:00–12:00</li>` + sv.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}" title="${k.name}">${k.short} <small>→ ${k.room}</small></li>`).join('');
-    const nd = sv.tasks.filter((k) => k.done).length; const rv = $('rev'); rv.hidden = b.id !== 'trabajo'; rv.textContent = `REVISIONES ${nd}/${sv.tasks.length} [1]`; rv.className = nd < sv.tasks.length ? 'pend' : 'ok';
+    const tareas = evs + `<li class="enc">${T('REVISIONES DE HOY · 08:00–12:00', 'TODAY\'S CHECKS · 08:00–12:00')}</li>` + sv.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}" title="${k.name}">${k.short} <small>→ ${k.room}</small></li>`).join('');
+    const nd = sv.tasks.filter((k) => k.done).length; const rv = $('rev'); rv.hidden = b.id !== 'trabajo'; rv.textContent = T(`REVISIONES ${nd}/${sv.tasks.length} [1]`, `CHECKS ${nd}/${sv.tasks.length} [1]`); rv.className = nd < sv.tasks.length ? 'pend' : 'ok';
     if ($('sistemas').dataset.h !== tareas) { $('sis-tareas').innerHTML = tareas; $('sistemas').dataset.h = tareas; $('sis-nota').textContent = sv.note; }
   }
   const em = sv?.emerg; const sm = !em && sv?.storm; $('emerg').hidden = !em && !sm;
   $('emerg').classList.toggle('tormenta', !!sm); $('emerg').classList.toggle('a-salvo', !!sm && sm.inShelter);
   if (em) $('emerg').innerHTML = `${ic('warn')} <b>${em.name}</b><br>${em.verb} → ${em.room} · <b>${Math.ceil(em.t)} s</b><div class="cuenta"><i style="width:${Math.max(0, em.t / em.total * 100)}%"></i></div>`;
-  else if (sm) $('emerg').innerHTML = `${ic('rad')} <b>TORMENTA SOLAR ${sm.n}/3 · clase ${sm.cls}</b><br>${sm.phase === 'aviso'
-    ? (sm.inShelter ? `Estás en el refugio (${sm.shelter}). Llegan en <b>${Math.ceil(sm.t)} s</b>` : `¿Refugio (${sm.shelter}) o sigues? Llegan en <b>${Math.ceil(sm.t)} s</b> · afuera: ${sm.dose} mSv`)
-    : (sm.inShelter ? `Partículas afuera: quédate en el refugio <b>${Math.ceil(sm.t)} s</b>` : `¡Te están llegando partículas! Refugio: ${sm.shelter} · <b>${Math.ceil(sm.t)} s</b>`)}<div class="cuenta"><i style="width:${Math.max(0, sm.t / sm.total * 100)}%"></i></div><small>${sm.source}</small>`;
+  else if (sm) $('emerg').innerHTML = `${ic('rad')} ${T(`<b>TORMENTA SOLAR ${sm.n}/3 · clase ${sm.cls}</b>`, `<b>SOLAR STORM ${sm.n}/3 · class ${sm.cls}</b>`)}<br>${sm.phase === 'aviso'
+    ? (sm.inShelter ? T(`Estás en el refugio (${sm.shelter}). Llegan en <b>${Math.ceil(sm.t)} s</b>`, `You are in the shelter (${sm.shelter}). They arrive in <b>${Math.ceil(sm.t)} s</b>`) : T(`¿Refugio (${sm.shelter}) o sigues? Llegan en <b>${Math.ceil(sm.t)} s</b> · afuera: ${sm.dose} mSv`, `Shelter (${sm.shelter}) or keep going? They arrive in <b>${Math.ceil(sm.t)} s</b> · outside: ${sm.dose} mSv`))
+    : (sm.inShelter ? T(`Partículas afuera: quédate en el refugio <b>${Math.ceil(sm.t)} s</b>`, `Particles outside: stay in the shelter <b>${Math.ceil(sm.t)} s</b>`) : T(`¡Te están llegando partículas! Refugio: ${sm.shelter} · <b>${Math.ceil(sm.t)} s</b>`, `Particles are reaching you! Shelter: ${sm.shelter} · <b>${Math.ceil(sm.t)} s</b>`))}<div class="cuenta"><i style="width:${Math.max(0, sm.t / sm.total * 100)}%"></i></div><small>${sm.source}</small>`;
   if (sv?.last && sv.last.n !== stormShown && !menu && !s.over) { stormShown = sv.last.n; stormCard(sv.last); }
   // actividad actual: siempre a la vista (lo que toca hacer ahora y dónde)
   { const falta = Math.max(0, Math.round(b.to - s.min)); const enSala = !b.room || G.playerRoom(s) === b.room; let txt;
@@ -649,7 +659,7 @@ function amenazasHTML() {
 const logHTML = (n) => s.log.slice(-n).reverse().map((l) => `<li class="${l.kind}">${l.kind === 'day' ? '' : G.clock(l.min) + ' '}${l.text}</li>`).join('');
 function mantHTML() {
   const sv = Sys.view(s); if (!sv) return '<li>Este destino no tiene sistemas que mantener.</li>';
-  return sv.events.map((e) => `<li class="evento">⚠ ${e.name}: ${e.text}</li>`).join('') + `<li class="enc">REVISIONES DE HOY · 08:00–12:00</li>` + sv.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}" title="${k.name}">${k.name} <small>→ ${k.room}</small></li>`).join('') + `<li class="nota">${sv.note}</li>`;
+  return sv.events.map((e) => `<li class="evento">⚠ ${e.name}: ${e.text}</li>`).join('') + `<li class="enc">${T('REVISIONES DE HOY · 08:00–12:00', 'TODAY\'S CHECKS · 08:00–12:00')}</li>` + sv.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}" title="${k.name}">${k.name} <small>→ ${k.room}</small></li>`).join('') + `<li class="nota">${sv.note}</li>`;
 }
 
 // ---------- paneles con tecla y avisos flotantes ----------
@@ -725,48 +735,49 @@ function titleScreen() {
   if (!Meta.difUnlocked(mt, getDif())) setDif('normal');
   const reflejos = getOpt('reflejos', '0') === '1'; const sel = LOCS[getOpt('dest', 'estacion')] ? getOpt('dest', 'estacion') : 'estacion';
   const dd = Meta.daily(); const dy = { done: mt.daily[dd.key]?.best ?? null };
-  const cards = Object.values(LOCS).map((L) => { const st = best(L.id); return `<button class="tarjeta ${L.id === sel ? 'sel' : ''}" data-loc="${L.id}" aria-pressed="${L.id === sel}"><svg class="arte" aria-hidden="true"><use href="#a-${L.id}"/></svg><span class="txt"><span class="nombre">${L.name.toUpperCase()}</span><span class="tag">${L.tag}</span><span class="ia">IA: ${L.ai}</span><span class="est" title="Tus estrellas aquí">${'★'.repeat(st)}${'☆'.repeat(3 - st)}</span></span><span class="marca">${ic('ok')} ELEGIDO</span></button>`; }).join('');
+  const cards = Object.values(LOCS).map((L) => { const st = best(L.id); return `<button class="tarjeta ${L.id === sel ? 'sel' : ''}" data-loc="${L.id}" aria-pressed="${L.id === sel}"><svg class="arte" aria-hidden="true"><use href="#a-${L.id}"/></svg><span class="txt"><span class="nombre">${nm(L).toUpperCase()}</span><span class="tag">${T(L.tag, L.tagEn)}</span><span class="ia">${T('IA', 'AI')}: ${L.ai}</span><span class="est" title="${T('Tus estrellas aquí', 'Your stars here')}">${'★'.repeat(st)}${'☆'.repeat(3 - st)}</span></span><span class="marca">${ic('ok')} ${T('ELEGIDO', 'SELECTED')}</span></button>`; }).join('');
   const sv = load(sel); const hayGuardada = !!(sv && !sv.over);
   open(`<div class="inicio">
-    <p class="kicker">ENTRENAMIENTO DE CADETES ASTRONAUTA</p>
+    ${idiomaHTML()}<p class="kicker">${T('ENTRENAMIENTO DE CADETES ASTRONAUTA', 'ASTRONAUT CADET TRAINING')}</p>
     <h1 class="logo-grande">LIFELINE<b>:RUTINA</b></h1>
-    <p class="lema">Mantén viva la base hasta que llegue el rescate: cumple la rutina, cuida los sistemas y esquiva a la IA que falla.</p>
-    <p class="puntos">${ic('estrella')} ${mt.pts} PUNTOS · racha ${mt.streak} (mejor ${mt.bestStreak}) · medallas ${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length}</p>
-    <h2 class="paso">1 · ELIGE TU DESTINO</h2>
+    <p class="lema">${T(`Mantén viva la base hasta que llegue el rescate: cumple la rutina, cuida los sistemas y esquiva a la IA que falla.`, `Keep the base alive until the rescue arrives: follow the routine, take care of the systems and dodge the AI that is malfunctioning.`)}</p>
+    <p class="puntos">${ic('estrella')} ${T(`${mt.pts} PUNTOS · racha ${mt.streak} (mejor ${mt.bestStreak}) · medallas ${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length}`, `${mt.pts} POINTS · streak ${mt.streak} (best ${mt.bestStreak}) · medals ${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length}`)}</p>
+    <h2 class="paso">${T(`1 · ELIGE TU DESTINO`, `1 · CHOOSE YOUR DESTINATION`)}</h2>
     <div class="tarjetas">${cards}</div>
     <div class="ajustes-rapidos">
-      <div class="grupo"><span class="lbl">NIVEL</span><div class="seg">${Object.entries(DIFS).map(([k, d]) => Meta.difUnlocked(mt, k) ? `<button data-dif="${k}" class="${k === getDif() ? 'on' : ''}" title="${d.desc}">${d.name.toUpperCase()}</button>` : `<button data-comprar="dif:${k}" class="bloq" title="${d.desc}">${ic('info')} ${d.name.toUpperCase()} · ${d.locked}</button>`).join('')}</div></div>
-      ${interruptor('t-reflejos', 'energia', 'REFLEJOS', reflejos, 'Cuenta atrás en la Estación', 'data-reflejos')}
+      <div class="grupo">${T(`<span class="lbl">NIVEL</span>`, `<span class="lbl">LEVEL</span>`)}<div class="seg">${Object.entries(DIFS).map(([k, d]) => Meta.difUnlocked(mt, k) ? `<button data-dif="${k}" class="${k === getDif() ? 'on' : ''}" title="${ds(d)}">${nm(d).toUpperCase()}</button>` : `<button data-comprar="dif:${k}" class="bloq" title="${ds(d)}">${ic('info')} ${nm(d).toUpperCase()} · ${d.locked}</button>`).join('')}</div></div>
+      ${interruptor('t-reflejos', 'energia', T('REFLEJOS', 'REFLEXES'), reflejos, T('Cuenta atrás en la Estación', 'Countdown on the Station'), 'data-reflejos')}
     </div>
-    <p class="desc-nivel">${DIFS[getDif()].desc}</p>
+    <p class="desc-nivel">${ds(DIFS[getDif()])}</p>
     <div class="accion">
-      <button id="t-jugar" class="grande">${ic('jugar')} ${hayGuardada ? 'NUEVA PARTIDA' : 'JUGAR'}</button>
-      ${hayGuardada ? `<button id="t-cont" class="sec" data-cont="${sel}">${ic('reintentar')} CONTINUAR · DÍA ${sv.day}</button>` : ''}
+      <button id="t-jugar" class="grande">${ic('jugar')} ${hayGuardada ? T('NUEVA PARTIDA', 'NEW GAME') : T('JUGAR', 'PLAY')}</button>
+      ${hayGuardada ? `<button id="t-cont" class="sec" data-cont="${sel}">${ic('reintentar')} ${T(`CONTINUAR · DÍA ${sv.day}`, `CONTINUE · DAY ${sv.day}`)}</button>` : ''}
     </div>
     <div class="secundarios">
-      <button id="t-coop" class="reto" title="Dos computadoras: un astronauta en la base y Control de Misión que lo ayuda">${ic('tripulacion')} COOPERATIVO</button>
-      <button id="t-reto" class="reto">${ic('dia')} RETO DEL DÍA${dy.done ? ' · ' + Meta.fmtTime(dy.done) : ''}</button>
-      <button id="t-medallas">${ic('medalla')} MEDALLAS</button><button id="t-archivo">${ic('archivo')} ARCHIVO</button><button id="t-ayuda">${ic('ayuda')} CÓMO SE JUEGA</button><button id="t-datos" class="reto">${ic('rad')} DATOS NASA</button>
+      <button id="t-coop" class="reto" title="${T('Dos computadoras: un astronauta en la base y Control de Misión que lo ayuda', 'Two computers: an astronaut in the base and Mission Control helping')}">${ic('tripulacion')} ${T('COOPERATIVO', 'COOPERATIVE')}</button>
+      <button id="t-reto" class="reto">${ic('dia')} ${T('RETO DEL DÍA', 'DAILY CHALLENGE')}${dy.done ? ' · ' + Meta.fmtTime(dy.done) : ''}</button>
+      <button id="t-medallas">${ic('medalla')} ${T('MEDALLAS', 'MEDALS')}</button><button id="t-archivo">${ic('archivo')} ${T('ARCHIVO', 'ARCHIVE')}</button><button id="t-ayuda">${ic('ayuda')} ${T('CÓMO SE JUEGA', 'HOW TO PLAY')}</button><button id="t-datos" class="reto">${ic('rad')} ${T('DATOS NASA', 'NASA DATA')}</button>
     </div>
-    <details class="mas" id="t-mas" ${masAbierto ? 'open' : ''}><summary>MÁS OPCIONES · modo de juego, personaje, sonido y vista</summary>
-      <div class="bloque-op"><span class="lbl">MODO</span><div class="seg">${[['campana', 'CAMPAÑA · 10 días'], ['noche', 'UNA NOCHE · 7 min']].map(([k, n]) => `<button data-modo="${k}" class="${k === mode ? 'on' : ''}">${n}</button>`).join('')}</div></div>
-      <div class="bloque-op"><span class="lbl">PERSONAJE</span><div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${d.desc}">${d.name.toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${d.desc}">${ic('info')} ${d.name.toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${PERKS[perk].desc}</small></div>
+    <details class="mas" id="t-mas" ${masAbierto ? 'open' : ''}><summary>${T(`MÁS OPCIONES · modo de juego, personaje, sonido y vista`, `MORE OPTIONS · game mode, character, sound and view`)}</summary>
+      <div class="bloque-op">${T(`<span class="lbl">MODO</span>`, `<span class="lbl">MODE</span>`)}<div class="seg">${[['campana', T('CAMPAÑA · 10 días', 'CAMPAIGN · 10 days')], ['noche', T('UNA NOCHE · 7 min', 'ONE NIGHT · 7 min')]].map(([k, n]) => `<button data-modo="${k}" class="${k === mode ? 'on' : ''}">${n}</button>`).join('')}</div></div>
+      <div class="bloque-op">${T(`<span class="lbl">PERSONAJE</span>`, `<span class="lbl">CHARACTER</span>`)}<div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${ds(d)}">${nm(d).toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${ds(d)}">${ic('info')} ${nm(d).toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${ds(PERKS[perk])}</small></div>
       <div class="bloque-op">${ajustesHTML(['musica', 'sfx', 'suave'])}</div>
     </details>
-    <p class="pie">UN JUEGO DE #LosTiraVida · NASA Space Apps 2026 · desafío Junior Astronaut Mission Trainer</p>
+    <p class="pie">${T(`UN JUEGO DE #LosTiraVida · NASA Space Apps 2026 · desafío Junior Astronaut Mission Trainer`, `A GAME BY #LosTiraVida · NASA Space Apps 2026 · Junior Astronaut Mission Trainer challenge`)}</p>
   </div>`, 'pant-titulo');
   const V = $('ventana');
   $('t-mas').ontoggle = () => { masAbierto = $('t-mas').open; };
   cableaAjustes(['musica', 'sfx', 'suave']);
   $('t-coop').onclick = () => coopUI.roles();
   $('t-datos').onclick = () => datos(titleScreen);
+  V.querySelectorAll('[data-lang]').forEach((b) => (b.onclick = () => cambiaIdioma(b.dataset.lang, titleScreen)));
   const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { ...opts, flares: liveFlares }); base = null; close(); intro(); };
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
   V.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { setOpt('dest', b.dataset.loc); titleScreen(); }));
   V.querySelectorAll('[data-modo]').forEach((b) => (b.onclick = () => { setOpt('modo', b.dataset.modo); titleScreen(); }));
   V.querySelectorAll('[data-reflejos]').forEach((b) => (b.onclick = () => { setOpt('reflejos', reflejos ? '0' : '1'); titleScreen(); }));
   V.querySelectorAll('[data-perk]').forEach((b) => (b.onclick = () => { setOpt('perk', b.dataset.perk); titleScreen(); }));
-  V.querySelectorAll('[data-comprar]').forEach((b) => (b.onclick = () => { const id = b.dataset.comprar; if (Meta.buy(id)) { M.ui('ok'); if (id.startsWith('dif:')) setDif(id.slice(4)); else setOpt('perk', id); } else { M.ui('error'); b.textContent = 'FALTAN PUNTOS'; setTimeout(titleScreen, 700); return; } titleScreen(); }));
+  V.querySelectorAll('[data-comprar]').forEach((b) => (b.onclick = () => { const id = b.dataset.comprar; if (Meta.buy(id)) { M.ui('ok'); if (id.startsWith('dif:')) setDif(id.slice(4)); else setOpt('perk', id); } else { M.ui('error'); b.textContent = T('FALTAN PUNTOS', 'NOT ENOUGH POINTS'); setTimeout(titleScreen, 700); return; } titleScreen(); }));
   $('t-reto').onclick = () => { M.start(); s = G.newGame(dd.loc, dd.seed, dd.dif, { mode: dd.mode, perk: dd.perk, daily: true, seen: Meta.seenNotes(dd.loc) }); base = null; close(); intro(); };
   $('t-medallas').onclick = medalsScreen; $('t-archivo').onclick = () => archiveScreen(null);
   V.querySelectorAll('[data-dif]').forEach((b) => (b.onclick = () => { setDif(b.dataset.dif); titleScreen(); }));
@@ -814,31 +825,31 @@ if (!liveFlares) pedirDonki();
 // Pantalla DATOS NASA: qué es real, de dónde sale y qué es escala de juego.
 function datos(back) {
   menu = 'datos'; const fl = missionFlares(liveFlares); const enVivo = fl.some((f) => f.source === 'donki');
-  open(`<h2>${ic('rad', 'g')} DATOS NASA</h2>
-    <p class="grande-txt"><b>La restricción real que enseña el juego:</b> ${RESTRICCION}</p>
-    <h3>☀️ Clima espacial: NASA DONKI ${enVivo ? '(EN VIVO, último mes)' : '(sin conexión: llamaradas reales archivadas)'}</h3>
-    <div class="llave"><label for="llave-nasa">Llave de api.nasa.gov</label>
-      <input id="llave-nasa" type="text" autocomplete="off" spellcheck="false" placeholder="pega tu llave (gratis en api.nasa.gov)" value="${nasaKey() === 'DEMO_KEY' ? '' : nasaKey()}">
-      <button id="llave-ok" class="sec">USAR LLAVE</button>
-      <small id="llave-est">${nasaKey() === 'DEMO_KEY' ? 'Usando la llave de prueba DEMO_KEY: se agota rápido y entonces salen llamaradas archivadas. Saca una gratis en <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.' : 'Usando tu llave propia (guardada solo en este navegador).'}</small></div>
-    <ul class="datos-lista">${fl.map((f, i) => `<li>Tormenta ${i + 1} · día ${[2, 5, 8][i]}: clase <b>${f.cls}</b> · ${f.date} · ${f.source === 'donki' ? 'DONKI en vivo' : 'archivo DONKI'}</li>`).join('')}</ul>
-    <p><small>Refugios: ${Object.entries(SHELTER).map(([k, v]) => `<b>${LOCS[k].name}</b>: ${LOCS[k].rooms.find((r) => r.id === v.room)?.name}. ${v.why}`).join(' ')}</small></p>
-    <h3>☢ Radiación medida de verdad</h3>
-    <ul class="datos-lista">${DOSIS_REALES.map((d) => `<li><b>${d.donde}:</b> ${d.valor} <small>(${d.fuente})</small></li>`).join('')}</ul>
-    <h3>🧬 Salud de astronautas: estudios del repositorio OSDR de NASA</h3>
-    <ul class="datos-lista">${OSDR.map((o) => `<li><a href="${osdUrl(o.id)}" target="_blank" rel="noopener">${o.id}</a>: ${o.texto}</li>`).join('')}</ul>
-    <h3>🚨 Protocolos de emergencia</h3>
-    <ul class="datos-lista">${Object.entries(PROTO_FUENTE).filter(([, f]) => f.nivel !== 'ficcion').map(([k, f]) => `<li><b>${PROTOCOLS[k].title}</b> — ${PROTO_NIVEL[f.nivel]}. <small>${f.fuente}</small></li>`).join('')}</ul>
-    <p><small>Los demás protocolos del juego están marcados como ficción dentro del minijuego.</small></p>
-    <h3>🎮 Escala de juego (no es dato real)</h3>
-    <ul class="datos-lista">${ESCALA.map((t) => `<li>${t}</li>`).join('')}</ul>
-    <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} VOLVER</button></div>`, 'pant-datos');
+  open(`<h2>${ic('rad', 'g')} ${T('DATOS NASA', 'NASA DATA')}</h2>
+    <p class="grande-txt"><b>${T('La restricción real que enseña el juego:', 'The real constraint the game teaches:')}</b> ${restriccion()}</p>
+    <h3>☀️ ${T('Clima espacial', 'Space weather')}: NASA DONKI ${enVivo ? T('(EN VIVO, último mes)', '(LIVE, last month)') : T('(sin conexión: llamaradas reales archivadas)', '(offline: real archived flares)')}</h3>
+    <div class="llave">${T(`<label for="llave-nasa">Llave de api.nasa.gov</label>`, `<label for="llave-nasa">api.nasa.gov key</label>`)}
+      <input id="llave-nasa" type="text" autocomplete="off" spellcheck="false" placeholder="${T('pega tu llave (gratis en api.nasa.gov)', 'paste your key (free at api.nasa.gov)')}" value="${nasaKey() === 'DEMO_KEY' ? '' : nasaKey()}">
+      <button id="llave-ok" class="sec">${T(`USAR LLAVE`, `USE KEY`)}</button>
+      <small id="llave-est">${nasaKey() === 'DEMO_KEY' ? T('Usando la llave de prueba DEMO_KEY: se agota rápido y entonces salen llamaradas archivadas. Saca una gratis en <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.', 'Using the DEMO_KEY test key: it runs out quickly and then archived flares are used. Get a free one at <a href="https://api.nasa.gov" target="_blank" rel="noopener">api.nasa.gov</a>.') : T('Usando tu llave propia (guardada solo en este navegador).', 'Using your own key (saved only in this browser).')}</small></div>
+    <ul class="datos-lista">${fl.map((f, i) => `<li>${T(`Tormenta ${i + 1} · día ${[2, 5, 8][i]}: clase <b>${f.cls}</b>`, `Storm ${i + 1} · day ${[2, 5, 8][i]}: class <b>${f.cls}</b>`)} · ${f.date} · ${f.source === 'donki' ? T('DONKI en vivo', 'DONKI live') : T('archivo DONKI', 'DONKI archive')}</li>`).join('')}</ul>
+    <p><small>${T('Refugios', 'Shelters')}: ${Object.entries(SHELTER).map(([k, v]) => `<b>${nm(LOCS[k])}</b>: ${rn(LOCS[k].rooms.find((r) => r.id === v.room)?.name)}. ${v.why}`).join(' ')}</small></p>
+    ${T(`<h3>☢ Radiación medida de verdad</h3>`, `<h3>☢ Radiation measured for real</h3>`)}
+    <ul class="datos-lista">${dosisReales().map((d) => `<li><b>${d.donde}:</b> ${d.valor} <small>(${d.fuente})</small></li>`).join('')}</ul>
+    ${T(`<h3>🧬 Salud de astronautas: estudios del repositorio OSDR de NASA</h3>`, `<h3>🧬 Astronaut health: studies from NASA's OSDR repository</h3>`)}
+    <ul class="datos-lista">${osdr().map((o) => `<li><a href="${osdUrl(o.id)}" target="_blank" rel="noopener">${o.id}</a>: ${o.texto}</li>`).join('')}</ul>
+    ${T(`<h3>🚨 Protocolos de emergencia</h3>`, `<h3>🚨 Emergency protocols</h3>`)}
+    <ul class="datos-lista">${Object.entries(PROTO_FUENTE).filter(([, f]) => f.nivel !== 'ficcion').map(([k, f]) => `<li><b>${T(PROTOCOLS[k].title, PROTOCOLS[k].titleEn)}</b> — ${T(PROTO_NIVEL[f.nivel], PROTO_NIVEL_EN[f.nivel])}. <small>${T(f.fuente, f.fuenteEn)}</small></li>`).join('')}</ul>
+    ${T(`<p><small>Los demás protocolos del juego están marcados como ficción dentro del minijuego.</small></p>`, `<p><small>The other protocols in the game are marked as fiction inside the minigame.</small></p>`)}
+    ${T(`<h3>🎮 Escala de juego (no es dato real)</h3>`, `<h3>🎮 Game scale (not real data)</h3>`)}
+    <ul class="datos-lista">${escala().map((t) => `<li>${t}</li>`).join('')}</ul>
+    <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} ${T('VOLVER', 'BACK')}</button></div>`, 'pant-datos');
   $('ok').onclick = () => (back ? back() : close());
   $('llave-ok').onclick = () => {
     const k = $('llave-nasa').value.trim();
     try { if (k) localStorage.setItem('lfr.nasaKey', k); else localStorage.removeItem('lfr.nasaKey'); localStorage.removeItem('lfr.flares'); } catch { /* sin almacenamiento */ }
-    $('llave-est').textContent = 'Consultando NASA DONKI…'; M.ui('click');
-    pedirDonki().then((ok) => { if (ok) datos(back); else $('llave-est').textContent = 'NASA no respondió (llave inválida o sin internet). Se siguen usando las llamaradas archivadas.'; });
+    $('llave-est').textContent = T('Consultando NASA DONKI…', 'Asking NASA DONKI…'); M.ui('click');
+    pedirDonki().then((ok) => { if (ok) datos(back); else $('llave-est').textContent = T('NASA no respondió (llave inválida o sin internet). Se siguen usando las llamaradas archivadas.', 'NASA did not answer (invalid key or no internet). The archived flares are still used.'); });
   };
 }
 
@@ -846,42 +857,43 @@ function datos(back) {
 let stormShown = 0;
 function stormCard(l) {
   menu = 'tormenta'; const lim = Sys.DOSE_LIMIT; const pctBar = (v) => Math.min(100, Math.round((v / lim) * 100));
-  open(`<h2>${ic('rad', 'g')} LA RESTRICCIÓN REAL · TORMENTA ${l.n}/3</h2>
+  open(`<h2>${ic('rad', 'g')} ${T(`LA RESTRICCIÓN REAL · TORMENTA ${l.n}/3`, `THE REAL CONSTRAINT · STORM ${l.n}/3`)}</h2>
     <p class="fuente">${sourceText(l.flare)}</p>
-    <p class="grande-txt">${l.refugio ? 'Te refugiaste: <b>casi sin radiación</b>, pero perdiste lo que estabas haciendo y el refugio gastó energía.' : 'Te quedaste afuera: avanzaste en lo tuyo, pero <b>esa radiación ya no se borra</b>.'}</p>
+    <p class="grande-txt">${l.refugio ? T('Te refugiaste: <b>casi sin radiación</b>, pero perdiste lo que estabas haciendo y el refugio gastó energía.', 'You sheltered: <b>almost no radiation</b>, but you lost what you were doing and the shelter used power.') : T('Te quedaste afuera: avanzaste en lo tuyo, pero <b>esa radiación ya no se borra</b>.', 'You stayed outside: you made progress on your own tasks, but <b>that radiation never goes away</b>.')}</p>
     <div class="dosis-comp">
-      <div><span>Recibiste</span><i style="width:${pctBar(l.got)}%" class="${l.refugio ? 'ok' : 'bad'}"></i><b>${l.got} mSv</b></div>
-      <div><span>En el refugio</span><i style="width:${pctBar(l.could)}%" class="ok"></i><b>${l.could} mSv</b></div>
-      <div><span>Afuera</span><i style="width:${pctBar(l.worst)}%" class="bad"></i><b>${l.worst} mSv</b></div>
+      <div>${T(`<span>Recibiste</span>`, `<span>You received</span>`)}<i style="width:${pctBar(l.got)}%" class="${l.refugio ? 'ok' : 'bad'}"></i><b>${l.got} mSv</b></div>
+      <div>${T(`<span>En el refugio</span>`, `<span>In the shelter</span>`)}<i style="width:${pctBar(l.could)}%" class="ok"></i><b>${l.could} mSv</b></div>
+      <div>${T(`<span>Afuera</span>`, `<span>Outside</span>`)}<i style="width:${pctBar(l.worst)}%" class="bad"></i><b>${l.worst} mSv</b></div>
     </div>
-    <p><small>Barras sobre el límite de esta misión del juego (${lim} mSv, una escala chica para 10 días). En la vida real, la NASA permite como máximo <b>600 mSv en TODA la carrera</b> de un astronauta, y trabaja con el lema ALARA: tan poca radiación como sea razonable.</small></p>
-    <p><b>Así lo hacen de verdad:</b> ${Sys.shelterOf(s).why} En la Estación, en una tormenta solar la tripulación se va a los módulos con más blindaje.</p>
-    <p><small>Estudio real de NASA (OSDR · OSD-340): ratones expuestos a radiación como la del espacio profundo tuvieron más riesgo de cáncer de la sangre. Por eso se limita la dosis.</small></p>
-    <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} ENTENDIDO</button></div>`, 'tormenta-card');
+    ${T(`<p><small>Barras sobre el límite de esta misión del juego (${lim} mSv, una escala chica para 10 días). En la vida real, la NASA permite como máximo <b>600 mSv en TODA la carrera</b> de un astronauta, y trabaja con el lema ALARA: tan poca radiación como sea razonable.</small></p>`, `<p><small>Bars over this game mission's limit (${lim} mSv, a small scale for 10 days). In real life, NASA allows at most <b>600 mSv in an astronaut's WHOLE career</b>, and works with the motto ALARA: as little radiation as reasonably achievable.</small></p>`)}
+    ${T(`<p><b>Así lo hacen de verdad:</b> ${Sys.shelterOf(s).why} En la Estación, en una tormenta solar la tripulación se va a los módulos con más blindaje.</p>`, `<p><b>This is how it is done for real:</b> ${Sys.shelterOf(s).why} On the Station, during a solar storm the crew goes to the modules with the most shielding.</p>`)}
+    ${T(`<p><small>Estudio real de NASA (OSDR · OSD-340): ratones expuestos a radiación como la del espacio profundo tuvieron más riesgo de cáncer de la sangre. Por eso se limita la dosis.</small></p>`, `<p><small>Real NASA study (OSDR · OSD-340): mice exposed to deep-space-like radiation had a higher risk of blood cancer. That is why the dose is limited.</small></p>`)}
+    <div class="fila fila-fija"><button id="ok" class="grande">${ic('ok')} ${T('ENTENDIDO', 'GOT IT')}</button></div>`, 'tormenta-card');
   $('ok').onclick = close;
 }
 
 function intro() {
   menu = 'intro'; const L = s.L;
   const night = s.mode === 'noche';
-  open(`<h2>${ic(s.loc, 'g')} ${L.name.toUpperCase()} · ${s.daily ? 'RETO DEL DÍA' : night ? 'UNA NOCHE' : 'DÍA 1'}</h2>${night ? `<p>Son las 21:00. Llevas semanas preparando el escape y esta es la noche. Tienes hasta las <b>06:00</b> (unos 7 minutos): si te descubren en el pase de lista, se acabó.</p>` : L.intro.map((t) => `<p>${t}</p>`).join('')}
+  open(`<h2>${ic(s.loc, 'g')} ${nm(L).toUpperCase()} · ${s.daily ? T('RETO DEL DÍA', 'DAILY CHALLENGE') : night ? T('UNA NOCHE', 'ONE NIGHT') : T('DÍA 1', 'DAY 1')}</h2>${night ? T(`<p>Son las 21:00. Llevas semanas preparando el escape y esta es la noche. Tienes hasta las <b>06:00</b> (unos 7 minutos): si te descubren en el pase de lista, se acabó.</p>`, `<p>It is 21:00. You have spent weeks preparing your escape and tonight is the night. You have until <b>06:00</b> (about 7 minutes): if they catch you at roll call, it is over.</p>`) : T(L.intro, L.introEn).map((t) => `<p>${t}</p>`).join('')}
     <div class="pasos3">
-      <div><b>${ic('reloj')} 1 · CUMPLE LA RUTINA</b><p>Arriba dice dónde ir y una flecha te guía. Faltar sube la alerta de ${L.ai}.</p></div>
-      <div><b>${ic('alerta')} 2 · ESQUIVA A LA IA</b><p>El cono amarillo es lo que ve; rojo, te persigue. Agáchate (Shift) y escóndete (F).</p></div>
-      <div><b>${ic('mant')} 3 · CUIDA LA BASE</b><p>De 08:00 a 12:00 haz las 4 revisiones (tecla 1). Si un sistema baja, la base sufre. Extra: el PLAN para volver antes (tecla 2).</p></div>
+      <div><b>${ic('reloj')} ${T(`1 · CUMPLE LA RUTINA`, `1 · FOLLOW THE ROUTINE`)}</b><p>${T(`Arriba dice dónde ir y una flecha te guía. Faltar sube la alerta de ${L.ai}.`, `The top says where to go and an arrow guides you. Missing it raises the alert of ${L.ai}.`)}</p></div>
+      <div><b>${ic('alerta')} ${T(`2 · ESQUIVA A LA IA`, `2 · DODGE THE AI`)}</b><p>${T(`El cono amarillo es lo que ve; rojo, te persigue. Agáchate (Shift) y escóndete (F).`, `The yellow cone is what it sees; red means it is chasing you. Crouch (Shift) and hide (F).`)}</p></div>
+      <div><b>${ic('mant')} ${T(`3 · CUIDA LA BASE`, `3 · CARE FOR THE BASE`)}</b><p>${T(`De 08:00 a 12:00 haz las 4 revisiones (tecla 1). Si un sistema baja, la base sufre. Extra: el PLAN para volver antes (tecla 2).`, `From 08:00 to 12:00 do the 4 checks (key 1). If a system drops, the base suffers. Extra: the PLAN to return sooner (key 2).`)}</p></div>
     </div>
-    <div class="basico"><span><kbd>WASD</kbd> o <kbd>flechas</kbd> moverse</span><span><kbd>E</kbd> usar / hablar</span><span><kbd>Shift</kbd> agacharse</span><span><kbd>Esc</kbd> pausa y ajustes</span></div>
-    <details class="mas-info"><summary>MÁS DETALLES</summary>
-      ${night ? '<p>En tu escondite ya tienes parte del plan.</p>' : ''}
-      <p><b>3 formas de escapar:</b> el PLAN (4 piezas), el SABOTAJE (apaga la IA: código + llave) o el MOTÍN (gánate a los 3 compañeros: código + combustible). Personaje: <b>${G.perk(s).name}</b>.</p>
-      <p>De día cumple el horario. Si faltas o te ven haciendo algo raro, sube la <span style="color:var(--amber)">alerta</span>. A 100: bloqueo y te quitan lo que llevas.</p>
-      <p>Tus 3 compañeros te piden piezas: ayúdalos y te devuelven favores. Los problemas se resuelven con protocolos de la NASA.</p>
+    <div class="basico">${T(`<span><kbd>WASD</kbd> o <kbd>flechas</kbd> moverse</span><span><kbd>E</kbd> usar / hablar</span><span><kbd>Shift</kbd> agacharse</span><span><kbd>Esc</kbd> pausa y ajustes</span>`, `<span><kbd>WASD</kbd> or <kbd>arrows</kbd> move</span><span><kbd>E</kbd> use / talk</span><span><kbd>Shift</kbd> crouch</span><span><kbd>Esc</kbd> pause and settings</span>`)}</div>
+    <details class="mas-info">${T(`<summary>MÁS DETALLES</summary>`, `<summary>MORE DETAILS</summary>`)}
+      ${night ? T('<p>En tu escondite ya tienes parte del plan.</p>', '<p>You already have part of the plan in your hiding place.</p>') : ''}
+      ${T(`<p><b>3 formas de escapar:</b> el PLAN (4 piezas), el SABOTAJE (apaga la IA: código + llave) o el MOTÍN (gánate a los 3 compañeros: código + combustible). Personaje: <b>${nm(G.perk(s))}</b>.</p>`, `<p><b>3 ways to escape:</b> the PLAN (4 pieces), SABOTAGE (shut down the AI: code + key) or MUTINY (win over the 3 crewmates: code + fuel). Character: <b>${nm(G.perk(s))}</b>.</p>`)}
+      ${T(`<p>De día cumple el horario. Si faltas o te ven haciendo algo raro, sube la <span style="color:var(--amber)">alerta</span>. A 100: bloqueo y te quitan lo que llevas.</p>`, `<p>By day, follow the schedule. If you miss it or they see you doing something strange, the <span style="color:var(--amber)">alert</span> rises. At 100: lockdown and they take what you carry.</p>`)}
+      ${T(`<p>Tus 3 compañeros te piden piezas: ayúdalos y te devuelven favores. Los problemas se resuelven con protocolos de la NASA.</p>`, `<p>Your 3 crewmates ask you for parts: help them and they return the favor. Problems are solved with NASA protocols.</p>`)}
     </details>
-    <div class="fila fila-fija"><button id="ok" class="grande">${ic('jugar')} EMPEZAR</button><button id="ay" class="sec">${ic('ayuda')} CONTROLES</button></div>`);
+    <div class="fila fila-fija"><button id="ok" class="grande">${ic('jugar')} ${T('EMPEZAR', 'START')}</button><button id="ay" class="sec">${ic('ayuda')} ${T('CONTROLES', 'CONTROLS')}</button></div>`);
   $('ok').onclick = close; $('ay').onclick = () => help(intro);
 }
 
 function help(back) {
+  if (getLang() === 'en') return helpEn(back);
   menu = 'ayuda';
   const sec = (titulo, cuerpo, abierta = false) => `<details class="mas-info" ${abierta ? 'open' : ''}><summary>${titulo}</summary>${cuerpo}</details>`;
   open(`<h2>${ic('ayuda', 'g')} CÓMO SE JUEGA</h2>
@@ -898,7 +910,7 @@ function help(back) {
       <p><b>Mejora:</b> la cinta del Gimnasio sube la <b>fuerza</b> (cargas más y mueves cosas pesadas). Las terminales del Laboratorio suben el <b>conocimiento</b> (desbloquean recetas).</p>
       <p><b>Cajones</b> con luz amarilla tienen piezas (se llenan cada mañana). Guarda herramientas en tu <b>escondite</b>: en el pase de lista te revisan si llevas 2 o más.</p>`)}
     ${sec('LA BASE Y LA RUTINA', `<p><b>Rutina:</b> 06:00 pase de lista · 07:00 desayuno · 08:00 trabajo · 12:00 almuerzo · 13:00 ejercicio · 15:00 libre · 18:00 pase de lista · 19:00 cena · 20:00 libre · 22:00 luces apagadas.</p>
-      <p><b>Sistemas de la Estación:</b> soporte vital, energía, radiación y comida bajan solos cada día. De 08:00 a 12:00 haz las 4 <b>revisiones</b> (E sobre cada panel de color, 3 s quieto): lo que omitas te cuesta nivel, integridad y alerta. Con poca energía todo lo demás se degrada más rápido. La radiación se mide como % del límite de la misión: si llega a 100 %, pierdes. Con <b>⚡ REFLEJOS</b> (en el título), al terminar una revisión puede sonar una emergencia: corre al punto rojo y pulsa E antes de que se acabe la cuenta o la misión termina.</p>
+      <p><b>Sistemas de la Estación:</b> soporte vital, energía, radiación y comida bajan solos cada día. De 08:00 a 12:00 haz las 4 <b>revisiones</b> (E sobre cada panel de color: un mini-protocolo de 3 pasos en orden): lo que omitas te cuesta nivel, integridad y alerta. Con poca energía todo lo demás se degrada más rápido. La radiación se mide como % del límite de la misión: si llega a 100 %, pierdes. Con <b>⚡ REFLEJOS</b> (en el título), al terminar una revisión puede sonar una emergencia: corre al punto rojo y pulsa E antes de que se acabe la cuenta o la misión termina.</p>
       <p><b>Afuera</b> (Luna y Marte) solo se sobrevive con el traje: mira el oxígeno.</p>`)}
     <div class="fila fila-fija"><button id="volver" class="grande">VOLVER</button></div>`);
   $('volver').onclick = () => (back ? back() : close());
@@ -968,10 +980,10 @@ function breathGame() {
 // Minijuego 1: protocolo NASA, tocar los pasos en orden.
 function protocolGame(id) {
   menu = 'protocolo';
-  const pr = PROTOCOLS[id]; const order = pr.steps; const shuffled = order.map((x, i) => [x, i]).sort(() => Math.random() - 0.5);
+  const pr = PROTOCOLS[id]; const order = T(pr.steps, pr.stepsEn); const shuffled = order.map((x, i) => [x, i]).sort(() => Math.random() - 0.5);
   const total = pr.time ?? 16; let next = 0; let time = total;
-  open(`<h2>${pr.title}</h2><p>Toca los pasos <b>en orden</b>. ${pr.mant ? 'Sin prisa: si te equivocas solo pierdes unos segundos.' : 'Error = −2 s.'}</p><p class="fuente"><b>${PROTO_NIVEL[(PROTO_FUENTE[id]||{}).nivel] || ''}</b><br>${(PROTO_FUENTE[id]||{}).fuente || ''}</p><div class="tiempo"><i id="pt"></i></div>
-    <div class="pasos" id="pasos">${shuffled.map(([x, i]) => `<button data-i="${i}">${x}</button>`).join('')}</div>${pr.mant ? '<div class="fila"><button id="pc" class="sec">AHORA NO</button></div>' : ''}`);
+  open(`<h2>${T(pr.title, pr.titleEn)}</h2><p>${T('Toca los pasos <b>en orden</b>.', 'Tap the steps <b>in order</b>.')} ${pr.mant ? T('Sin prisa: si te equivocas solo pierdes unos segundos.', 'No rush: if you make a mistake you only lose a few seconds.') : T('Error = −2 s.', 'Mistake = −2 s.')}</p><p class="fuente"><b>${T(PROTO_NIVEL[(PROTO_FUENTE[id]||{}).nivel] || '', PROTO_NIVEL_EN[(PROTO_FUENTE[id]||{}).nivel])}</b><br>${T((PROTO_FUENTE[id]||{}).fuente || '', (PROTO_FUENTE[id]||{}).fuenteEn)}</p><div class="tiempo"><i id="pt"></i></div>
+    <div class="pasos" id="pasos">${shuffled.map(([x, i]) => `<button data-i="${i}">${x}</button>`).join('')}</div>${pr.mant ? `<div class="fila"><button id="pc" class="sec">${T('AHORA NO', 'NOT NOW')}</button></div>` : ''}`);
   const tick = setInterval(() => { time -= 0.1; const el = $('pt'); if (el) el.style.width = `${Math.max(0, time / total * 100)}%`; if (time <= 0) done(false); }, 100);
   function done(ok) { clearInterval(tick); M.ui(ok ? 'ok' : 'error'); G.resolveProtocol(s, ok); close(); }
   if (pr.mant) $('pc').onclick = () => { clearInterval(tick); M.ui('cerrar'); G.resolveProtocol(s, false); close(); }; // el mantenimiento se puede dejar para después, sin castigo
@@ -1028,17 +1040,17 @@ function endScreen() {
   const r = Meta.finish(s); const dr = r.daily; const R_ = UI.resumenFin(s);
   const share = s.daily ? `LIFELINE:RUTINA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}× · https://neckhurtttt.github.io/Custodia/` : '';
   open(`<div class="fin ${o.won ? 'gana' : 'pierde'}">
-    <div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? '¡VOLVISTE A CASA!' : 'MISIÓN PERDIDA'}</p><h2>${o.title}</h2></div></div>
-    ${o.won ? `<div class="estrellas" aria-label="${o.stars} de 3 estrellas">${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}</div>` : ''}
-    <section class="bloque"><h3>QUÉ PASÓ</h3><p>${o.text}</p></section>
-    <section class="bloque aprende"><h3>QUÉ APRENDER</h3><p>${R_.aprende}</p>${R_.pistas.length ? `<ul>${R_.pistas.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}</section>
-    ${o.won ? `<section class="bloque"><h3>TUS ESTRELLAS</h3><ul class="crit">${R_.estrellas.map((e) => `<li class="${e.ok ? 'si' : 'no'}">${ic(e.ok ? 'estrella' : 'bad')} ${e.txt}${e.ok ? '' : ' (pendiente)'}</li>`).join('')}</ul></section>` : ''}
-    <div class="datos">${R_.datos.map((d) => `<span>${ic(d.ic)} ${d.txt}</span>`).join('')}${s.sys ? `<span>${ic('rad')} Radiación ${Math.round(Sys.dosePct(s))} % del límite</span><span>${ic('alerta')} Emergencias salvadas ${s.sys.st.saved}</span>` : ''}</div>
-    <div class="premio">+${r.pts} PUNTOS (total ${r.total})${r.streak > 1 ? ` · RACHA ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} nota(s) nueva(s)` : ''}</div>
+    <div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? T('¡VOLVISTE A CASA!', 'YOU MADE IT HOME!') : T('MISIÓN PERDIDA', 'MISSION LOST')}</p><h2>${R_.titulo}</h2></div></div>
+    ${o.won ? `<div class="estrellas" aria-label="${o.stars} ${T('de 3 estrellas', 'of 3 stars')}">${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}</div>` : ''}
+    <section class="bloque">${T(`<h3>QUÉ PASÓ</h3>`, `<h3>WHAT HAPPENED</h3>`)}<p>${o.text}</p></section>
+    <section class="bloque aprende">${T(`<h3>QUÉ APRENDER</h3>`, `<h3>WHAT TO LEARN</h3>`)}<p>${R_.aprende}</p>${R_.pistas.length ? `<ul>${R_.pistas.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}</section>
+    ${o.won ? `<section class="bloque">${T(`<h3>TUS ESTRELLAS</h3>`, `<h3>YOUR STARS</h3>`)}<ul class="crit">${R_.estrellas.map((e) => `<li class="${e.ok ? 'si' : 'no'}">${ic(e.ok ? 'estrella' : 'bad')} ${e.txt}${e.ok ? '' : T(' (pendiente)', ' (pending)')}</li>`).join('')}</ul></section>` : ''}
+    <div class="datos">${R_.datos.map((d) => `<span>${ic(d.ic)} ${d.txt}</span>`).join('')}${s.sys ? `<span>${ic('rad')} ${T(`Radiación ${Math.round(Sys.dosePct(s))} % del límite`, `Radiation ${Math.round(Sys.dosePct(s))} % of the limit`)}</span><span>${ic('alerta')} ${T(`Emergencias salvadas ${s.sys.st.saved}`, `Emergencies saved ${s.sys.st.saved}`)}</span>` : ''}</div>
+    <div class="premio">${T(`+${r.pts} PUNTOS (total ${r.total})${r.streak > 1 ? ` · RACHA ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} nota(s) nueva(s)` : ''}`, `+${r.pts} POINTS (total ${r.total})${r.streak > 1 ? ` · STREAK ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} new note(s)` : ''}`)}</div>
     ${r.medals.map((id) => `<div class="medalla si nueva"><b>${ic('medalla')} ${Meta.MEDALS[id][0]}</b><small>${Meta.MEDALS[id][1]}</small></div>`).join('')}
-    ${dr ? `<p>${dr.isNew ? '¡NUEVO RÉCORD DEL DÍA!' : dr.best ? `Tu récord de hoy: ${Meta.fmtTime(dr.best)}` : ''}</p>` : ''}
-    ${!o.won ? `<p style="color:var(--dim)">Siguiente desbloqueo: ${nextUnlock(r.total)}</p>` : ''}
-    <div class="fila">${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} COMPARTIR RESULTADO</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? 'JUGAR OTRA VEZ' : 'REINTENTAR'}</button>`}<button id="menu" class="sec">${ic('menu')} MENÚ</button></div></div>`);
+    ${dr ? `<p>${dr.isNew ? T('¡NUEVO RÉCORD DEL DÍA!', 'NEW RECORD OF THE DAY!') : dr.best ? T(`Tu récord de hoy: ${Meta.fmtTime(dr.best)}`, `Your record today: ${Meta.fmtTime(dr.best)}`) : ''}</p>` : ''}
+    ${!o.won ? `<p style="color:var(--dim)">${T(`Siguiente desbloqueo: ${nextUnlock(r.total)}`, `Next unlock: ${nextUnlock(r.total)}`)}</p>` : ''}
+    <div class="fila">${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')}</button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
   if (s.daily) $('compartir').onclick = () => { navigator.clipboard?.writeText(share).then(() => ($('compartir').textContent = '✓ COPIADO'), () => prompt('Copia tu resultado:', share)); };
   else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
   $('menu').onclick = titleScreen;
@@ -1175,3 +1187,25 @@ document.fonts?.load('16px VT323').finally(() => {
   if (sala && /^[A-Za-z0-9]{3,12}$/.test(sala)) coopUI.unirse(sala.toUpperCase());
 });
 window.lfr = { get s() { return s; }, get base() { return base; }, G, Sys, A, fx: FX, perf, setFx: FX.setFx, cam, get zoom() { return ZOOM; } }; // para depurar y para los bots de prueba
+
+// Ayuda en inglés (misma estructura que help()).
+function helpEn(back) {
+  menu = 'ayuda';
+  const sec = (titulo, cuerpo, abierta = false) => `<details class="mas-info" ${abierta ? 'open' : ''}><summary>${titulo}</summary>${cuerpo}</details>`;
+  open(`<h2>${ic('ayuda', 'g')} HOW TO PLAY</h2>
+    <div class="basico esencial"><span>${ic('reloj')} Follow the schedule: the top says <b>where to go now</b></span><span>${ic('alerta')} Dodge the AI: <b>yellow cone</b> = it sees you, <b>red</b> = it chases you</span><span>${ic('salud')} Watch the bars: <b>«!»</b> means something is wrong</span><span>${ic('mochila')} Collect the 4 pieces of the PLAN to escape (key <kbd>2</kbd>)</span></div>
+    ${sec('KEYS', `<p><kbd>WASD</kbd>/<kbd>arrows</kbd> move · <kbd>Shift</kbd> crouch (quiet) · <kbd>E</kbd> use / talk · <kbd>N</kbd> show/hide object and room names · <kbd>F</kbd> hide · <kbd>T</kbd> throw a part (noise) · <kbd>G</kbd> drop the last item (or DROP in the bag) · ${s && G.dif(s).noBetray ? '' : '<kbd>B</kbd> betray a crewmate · '}<kbd>I</kbd> bag · <kbd>C</kbd> craft · <kbd>Q</kbd> inhibitor · <kbd>M</kbd> music · <kbd>1</kbd> maintenance · <kbd>2</kbd> plan · <kbd>3</kbd> threats · <kbd>4</kbd> latest alerts (each key opens and closes its panel) · <kbd>V</kbd> full screen · <kbd>Esc</kbd> pause, settings (music, sound effects, soft effects, names) and the full history</p>`, true)}
+    ${sec('THE BASE AND THE ROUTINE', `<p><b>Routine:</b> 06:00 roll call · 07:00 breakfast · 08:00 work · 12:00 lunch · 13:00 exercise · 15:00 free · 18:00 roll call · 19:00 dinner · 20:00 free · 22:00 lights out.</p>
+      <p><b>Station systems:</b> life support, power, radiation and food drop by themselves every day. From 08:00 to 12:00 do the 4 <b>checks</b> (E on each colored panel: a mini-protocol of 3 steps in order): what you skip costs you level, integrity and alert. With low power everything else degrades faster. Radiation is measured as a % of the mission limit: if it reaches 100 %, you lose. With <b>⚡ REFLEXES</b> (on the title screen), when you finish a check an emergency may sound: run to the red dot and press E before the countdown ends or the mission is over.</p>
+      <p><b>Outside</b> (Moon and Mars) you only survive with the suit: watch the oxygen.</p>`)}
+    ${sec('STEALTH AND CREWMATES', `<p><b>Stealth:</b> if a drone or guard <b>touches</b> you while you carry something suspicious, you are caught. Walking makes noise: crouch. Hide in <b>lockers</b> or under the beds; if they saw you go in, they will come to check and you will have to <b>hold your breath</b>. Throw parts to distract them.</p>
+      <p><b>Manipulate:</b> when a crewmate is happy (you already did them a favor), ask them to distract a drone or guard for 30 s. Bribe the Snitch, unmask the Double, keep Volkov busy.</p>
+      <p><b>Surveillance:</b> the yellow cone is what it sees; red = it chases you. The <b>ducts</b> (grates) dodge them: you need a screwdriver.</p>
+      <p><b>Villains:</b> each destination has 10. The AI is always there; the others are drawn every day (see "Today's threats"). <b>Radio missions</b> have a clock and give rewards.</p>
+      <p><b>Emergencies:</b> the drones get distracted going to the problem. That is your moment.</p>`)}
+    ${sec('ESCAPE AND PROGRESS', `<p><b>3 escape routes:</b> PLAN (4 pieces) · SABOTAGE (AI off + code + key) · MUTINY (the 3 crewmates with ♥♥ + code + fuel).${s && G.dif(s).noBetray ? '' : ' <b>Betraying</b> (B) lowers your alert and gives you a card, but that crewmate will hate you and report you.'}</p>
+      <p><b>Notes:</b> in the drawers there are notes that tell what happened. Collect the 6 of a destination for the <b>true ending</b>.</p>
+      <p><b>Between games:</b> you earn points (more if you win, streaks, medals and notes) to unlock characters and the Nightmare level. <b>One night</b> = a short 7-minute game. <b>Daily challenge</b> = the same game for everyone: compare your time.</p>`)}
+    <div class="fila fila-fija"><button id="volver" class="grande">BACK</button></div>`);
+  $('volver').onclick = () => (back ? back() : close());
+}

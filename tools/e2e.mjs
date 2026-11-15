@@ -313,6 +313,57 @@ try {
   }
   ok('responsive (1024×600 y 375×812 táctil): JUGAR visible, HUD dentro de la ventana, nada tapa al jugador, botones táctiles ≥ 44 px, pausa completa');
 
+  // 10. Inglés para el jurado: ?lang=en, selector ES/EN en el título (se guarda), DATOS NASA, intro, mantenimiento, tormenta y final en inglés.
+  {
+    const c = await navegador.newContext({ viewport: { width: 1280, height: 760 } }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`inglés: error de JavaScript: ${e.message}`));
+    pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`inglés: consola: ${m.text()}`); });
+    await pg.goto(`${url}?lang=en`); await pg.waitForSelector('#t-jugar', { timeout: 10000 });
+    let tit = await pg.textContent('#ventana');
+    for (const frag of ['CHOOSE YOUR DESTINATION', 'ASTRONAUT CADET TRAINING', 'STATION', 'AI: CUSTODIA', 'NASA DATA', 'HOW TO PLAY', 'DAILY CHALLENGE']) assert.ok(tit.includes(frag), `el título en inglés debe decir "${frag}"`);
+    assert.match(await pg.textContent('#t-jugar'), /PLAY|NEW GAME/); assert.equal(await pg.getAttribute('[data-lang="en"]', 'aria-pressed'), 'true');
+    assert.ok(!tit.includes('ELIGE TU DESTINO'), 'en inglés no queda el título en español');
+    await pg.screenshot({ path: join(salida, '8-ingles-titulo.png') });
+    // el selector cambia de idioma y se recuerda al recargar sin ?lang
+    await pg.click('[data-lang="es"]'); await pg.waitForSelector('#t-jugar'); assert.ok((await pg.textContent('#ventana')).includes('ELIGE TU DESTINO'));
+    await pg.click('[data-lang="en"]'); await pg.waitForSelector('#t-jugar'); await pg.reload(); await pg.waitForSelector('#t-jugar');
+    assert.ok((await pg.textContent('#ventana')).includes('CHOOSE YOUR DESTINATION'), 'el idioma elegido se recuerda al recargar');
+    // DATOS NASA en inglés
+    await pg.click('#t-datos'); await pg.waitForSelector('.pant-datos, #ventana .datos-lista');
+    const dat = await pg.textContent('#ventana');
+    for (const frag of ['NASA DATA', 'The real constraint the game teaches', 'Radiation measured for real', 'Space weather', 'NASA DONKI', '600 mSv', 'OSD-340', 'Game scale (not real data)', 'api.nasa.gov key']) assert.ok(dat.includes(frag), `DATOS NASA en inglés debe decir "${frag}"`);
+    assert.ok(!/La restricción real|Radiación medida/.test(dat), 'DATOS NASA no queda en español');
+    await pg.screenshot({ path: join(salida, '8-ingles-datos.png') }); await pg.click('#ok'); await pg.waitForSelector('#t-jugar');
+    // intro y partida
+    await pg.click('#t-jugar'); await pg.waitForSelector('#ok');
+    const intro = await pg.textContent('#ventana');
+    for (const frag of ['STATION', 'DAY 1', 'FOLLOW THE ROUTINE', 'DODGE THE AI', 'CARE FOR THE BASE', 'keep the base alive']) assert.ok(intro.includes(frag), `la intro en inglés debe decir "${frag}"`);
+    await pg.screenshot({ path: join(salida, '8-ingles-intro.png') }); await pg.click('#ok');
+    await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden, null, { timeout: 5000 });
+    // el HUD también habla inglés
+    const vit = await pg.textContent('#c-vit'); assert.ok(vit.includes('YOU') && vit.includes('HEALTH') && vit.includes('ENERGY'), `HUD de vitales en inglés: ${vit}`);
+    const barra = await pg.textContent('#teclas'); assert.ok(/Craft/.test(barra) && /Threats/.test(barra) && /Upkeep/.test(barra), `botones de paneles en inglés: ${barra}`);
+    assert.match(await pg.textContent('#dia'), /DAY 1\/10/); assert.match(await pg.textContent('#t-alerta'), /SURVEILLANCE/);
+    // mantenimiento: mini-protocolo en inglés
+    await pg.evaluate(() => { const { s, Sys } = lfr; s.min = 500; s.crew.forEach((q) => { q.x = 3.5; q.y = 3.5; q.goal = null; q.path = null; }); const o = Sys.station(s, 'vida'); Object.assign(s.p, { x: o.x + 0.5, y: o.y + 0.5, inDuct: false, hidden: null }); s.grace = 9999; });
+    await pg.waitForTimeout(200); await pg.keyboard.press('e'); await pg.waitForSelector('#pasos button', { timeout: 3000 });
+    const mini = await pg.textContent('#ventana');
+    for (const frag of ['MAINTENANCE · life support', 'Tap the steps', 'Measure the CO₂ in the air', 'NOT NOW', 'Educational fiction']) assert.ok(mini.includes(frag), `el mantenimiento en inglés debe decir "${frag}"`);
+    await pg.click('#pc'); await pg.waitForTimeout(300);
+    // tormenta solar: cartel del HUD en inglés
+    await pg.evaluate(() => { const { s, Sys } = lfr; Object.assign(s.p, { x: 5.5, y: 13.5 }); Sys.startStorm(s); s.grace = 9999; });
+    await pg.waitForFunction(() => /SOLAR STORM 1\/3/.test(document.getElementById('emerg')?.textContent ?? ''), null, { timeout: 4000 });
+    const hud = await pg.textContent('#emerg'); assert.match(hud, /class X|class M|class C/); assert.match(hud, /Shelter|shelter/); assert.match(hud, /arrive in/);
+    await pg.screenshot({ path: join(salida, '8-ingles-tormenta.png') });
+    // final: el rescate llega
+    await pg.evaluate(() => { lfr.s.sys.storm = null; lfr.G.rescue(lfr.s); });
+    await pg.waitForSelector('.fin', { timeout: 4000 }); const fin = await pg.textContent('#ventana');
+    for (const frag of ['YOU MADE IT HOME!', 'Rescue: mission accomplished', 'WHAT HAPPENED', 'WHAT TO LEARN', 'YOUR STARS', 'The rescue ship arrived', 'POINTS', 'PLAY AGAIN', 'MENU']) assert.ok(fin.includes(frag), `el final en inglés debe decir "${frag}"`);
+    assert.ok(!/QUÉ PASÓ|QUÉ APRENDER|VOLVISTE/.test(fin), 'el final no queda en español');
+    await pg.screenshot({ path: join(salida, '8-ingles-final.png') }); await c.close();
+    ok('inglés: ?lang=en y el selector ES/EN (se recuerda) traducen el título, DATOS NASA, la intro, el mantenimiento, el cartel de la tormenta y el final');
+  }
+
   assert.deepEqual(problemas, [], `errores durante la prueba:\n  - ${problemas.join('\n  - ')}`);
   ok('sin errores de JavaScript ni de red');
   console.log(`\nTodo bien (${paso} pasos). Capturas en ${salida}`);

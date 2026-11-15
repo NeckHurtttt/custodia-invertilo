@@ -203,3 +203,38 @@ export const LOCS = {
     win: ['Apagaste a ARES y el MAV despegó con toda la colonia a bordo.', 'ARES nunca vio el MAV encenderse. En 7 meses estás en casa.', 'Despegaste con la tormenta encima y los drones golpeando el casco.'],
   },
 };
+
+// ---------- Inglés (solo presentación; ver i18n.js). Lo que no está aquí se muestra en español. ----------
+Object.assign(LOCS.estacion, {
+  nameEn: 'Station', tagEn: 'Rogue AI in orbit',
+  introEn: [
+    'Earth lost the signal. <b class=r>CUSTODIA</b>, the station\'s AI, is malfunctioning: it says the crew "is not fit to return" and watches them with drones.',
+    'The rescue ship arrives in 10 days: <b>keep the base alive</b> (life support, power, radiation and food) until then.',
+    'Extra route: with the code, the fuel, the Sokol suit and the undocking key you can return sooner in the <b>Soyuz capsule</b>.',
+  ],
+});
+Object.assign(LOCS.luna, {
+  nameEn: 'Moon', tagEn: 'Shackleton Base, south pole',
+  introEn: [
+    'The Shackleton mining base was cut off. <b class=r>SELENE</b>, the company\'s AI, wants them to keep mining ice "a few more months" and will not let anyone take off.',
+    'Rescue arrives in 10 days: <b>keep the base alive</b> until then.',
+    'Extra route: with the code, the tank, the EVA suit and the ignition key you can return sooner in the <b>ascent module</b>.',
+    'Careful: solar radiation, dust and the cold of the lunar night are unforgiving.',
+  ],
+});
+Object.assign(LOCS.marte, {
+  nameEn: 'Mars', tagEn: 'Jezero crater colony',
+  introEn: [
+    'The Jezero colony is 20 light-minutes from Earth: nobody can help you live. <b class=r>ARES</b>, the colony\'s AI, declared a "quarantine" nobody asked for.',
+    'The rescue ship arrives in 10 days: <b>keep the colony alive</b> until then.',
+    'Extra route: with the code, the ISRU fuel, the Mars suit and the anchor key you can return sooner in the <b>MAV</b>.',
+    'Watch out for the red dust: dust devils, perchlorate and a storm that covers everything.',
+  ],
+});
+/** Nombre de sala en inglés, por su nombre en español (lo usan los avisos y el HUD vía core.roomName). */
+export const ROOM_EN = {
+  'Dormitorios': 'Dormitories', 'Comedor': 'Mess hall', 'Gimnasio': 'Gym', 'Laboratorio': 'Laboratory', 'Nodo central': 'Central hub', 'Taller': 'Workshop', 'Invernadero': 'Greenhouse',
+  'Núcleo de CUSTODIA': 'CUSTODIA core', 'Bodega': 'Storage', 'Esclusa': 'Airlock', 'Cápsula Soyuz': 'Soyuz capsule', 'Enfermería': 'Infirmary', 'Observatorio': 'Observatory',
+  'Sala de recreo': 'Recreation room', 'Módulo de antena': 'Antenna module', 'Centro de mando': 'Command center', 'Planta de energía': 'Power plant', 'Refugio de radiación': 'Radiation shelter',
+  'Servidores de SELENE': 'SELENE servers', 'Superficie lunar': 'Lunar surface', 'Núcleo de ARES': 'ARES core', 'Superficie marciana': 'Martian surface', 'Pasillo': 'Corridor',
+};
