@@ -3,7 +3,7 @@
 //  · Después usa «red primero»: si hay conexión siempre baja la versión más nueva (y la guarda); si no hay red, o la red tarda más de 4 s, usa lo guardado.
 //  · Solo toca archivos de esta misma página. NASA DONKI, el servidor del cooperativo (la ruta /coop/…, no el archivo src/coop.js) y todo lo de otros sitios siguen yendo por la red.
 // Si se agrega o quita un archivo del juego: actualizar PRECACHE (tests/offline.test.js lo comprueba) y subir el número de VERSION.
-const VERSION = 'custodia-v8';
+const VERSION = 'custodia-v9';
 const PRECACHE = [
   './',
   'index.html',
@@ -61,7 +61,7 @@ self.addEventListener('fetch', (e) => {
 async function redPrimero(r) {
   const c = await caches.open(VERSION); const clave = r.mode === 'navigate' ? INICIO : r; // todas las variantes (?boot, ?lang=en…) comparten la misma página guardada
   try {
-    const resp = await Promise.race([fetch(r), new Promise((_, no) => setTimeout(() => no(new Error('lento')), 4000))]);
+    const resp = await Promise.race([fetch(r, { cache: 'no-cache' }), new Promise((_, no) => setTimeout(() => no(new Error('lento')), 4000))]);
     if (resp && resp.ok) c.put(clave, resp.clone());
     return resp;
   } catch {
