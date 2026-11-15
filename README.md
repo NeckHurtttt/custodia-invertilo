@@ -2,7 +2,21 @@
 
 ![CUSTODIA: Mantén viva la base. Vuelve a casa.](docs/assets/custodia-cover.svg)
 
-**Un juego de supervivencia espacial donde cuidar la base es tu camino de regreso.**
+**EL SOL NO NEGOCIA. LA BASE NO SE MANTIENE SOLA. VOS TENÉS DIEZ DÍAS.**
+
+Supervivencia espacial, sigilo y mantenimiento bajo presión. Una IA que empieza a fallar, una tripulación que depende de vos y una nave de rescate que todavía está demasiado lejos.
+
+```text
+CUSTODIA OS // EXPEDIENTE DE MISIÓN
+─────────────────────────────────────────
+DESTINO       ESTACIÓN / LUNA / MARTE
+RESCATE       DÍA 10
+SISTEMAS      SOPORTE VITAL · ENERGÍA
+              BLINDAJE · COMIDA
+DIRECTIVA     MANTENER VIVA LA BASE
+─────────────────────────────────────────
+CONTROL: «¿ME RECIBÍS?»
+```
 
 [![Jugar](https://img.shields.io/badge/JUGAR-Abrir_misión-70dfc8?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?cadete)
 [![Demo](https://img.shields.io/badge/DEMO-Tormenta_solar-e4b577?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?jurado)
@@ -14,26 +28,26 @@ Sin cuenta ni instalación · funciona sin internet tras la primera visita · [P
 NASA Space Apps 2026 · desafío **Space Mission Design Game** · equipo **#EraConTuto** · Santa Cruz, Bolivia
 
 [![Repositorio](https://img.shields.io/badge/CÓDIGO-invertilo%2Fcustodia-8fb4ff?style=for-the-badge&labelColor=101c2e&logo=github)](https://github.com/invertilo/custodia)
-![Pruebas](https://img.shields.io/badge/PRUEBAS-236_en_verde-4fe08a?style=for-the-badge&labelColor=101c2e)
+[![Pruebas](https://img.shields.io/badge/PRUEBAS-node%20--test-4fe08a?style=for-the-badge&labelColor=101c2e)](#pruebas-y-simulaciones)
 ![Idiomas](https://img.shields.io/badge/IDIOMAS-ES_·_EN_·_עב-ffc23d?style=for-the-badge&labelColor=101c2e)
 
-[La misión](#la-misión) · [Cómo jugar](#cómo-jugar) · [Para aprender](#pensado-para-aprender) · [Idiomas](#idiomas-y-voces) · [La IA](#una-ia-que-aprende-tus-rutinas) · [Ciencia](#del-sol-real-a-tu-partida) · [Cooperativo](#dos-computadoras-una-tripulación) · [Desarrollo](#ejecutar-en-local) · [Equipo](#equipo) · [English](#english-summary)
+[Tu orden de misión](#tu-orden-de-misión) · [Cómo jugar](#cómo-jugar) · [Para aprender](#pensado-para-aprender) · [Idiomas](#idiomas-y-voces) · [La IA](#una-ia-que-aprende-tus-rutinas) · [Ciencia](#del-sol-real-a-tu-partida) · [Cooperativo](#dos-computadoras-una-tripulación) · [Desarrollo](#ejecutar-en-local) · [Equipo](#equipo) · [English](#english-summary)
 
 </div>
 
 ---
 
-## La misión
+## Tu orden de misión
 
-Estás lejos de la Tierra. La inteligencia artificial de tu base empieza a fallar y la nave de rescate tardará **diez días** en llegar.
+La Tierra queda lejos. La IA de la base empieza a fallar. La nave **ESPERANZA** viene por ustedes, pero llega al **día diez**. Hasta entonces, el turno es tuyo.
 
-Tu misión es mantener a la tripulación con vida: revisar los sistemas, administrar recursos, atender emergencias y decidir cuándo dejar lo que estás haciendo para buscar refugio. Mientras tanto, la vigilancia aprende de tus movimientos y la base guarda secretos que puedes descubrir.
+Revisá los sistemas. Administrá lo que queda. Atendé emergencias. Cuando suene la alerta solar, decidí qué tarea dejás a medias para llegar al refugio. La vigilancia recuerda por dónde pasaste; entre una revisión y otra, podés encontrar notas, secretos y piezas para un regreso anticipado.
 
-**Llegar al rescate es la victoria principal.** Preparar una huida antes de tiempo es una ruta alternativa.
+**Ganás manteniendo viva la base hasta el rescate.** Escapar antes es una ruta alternativa. Acá la épica también es acordarte del filtro de oxígeno.
 
-> La energía sostiene el soporte vital. El blindaje reduce la exposición. El mantenimiento consume tiempo. En CUSTODIA, cada decisión afecta a las demás.
+> **Doctrina de vuelo:** la energía sostiene el soporte vital; el blindaje reduce la exposición; el mantenimiento consume tiempo. Hacete el toro con la lista de revisiones. El Sol va a hacer lo suyo.
 
-## Elige dónde resistir
+## Elegí tu frente
 
 | Destino | IA de la base | El reto |
 | :--- | :--- | :--- |
@@ -41,19 +55,21 @@ Tu misión es mantener a la tripulación con vida: revisar los sistemas, adminis
 | **Luna · Shackleton** | SELENE | Cuida una base lunar entre polvo, radiación y peligros en la superficie. |
 | **Marte · Jezero** | ARES | Administra una colonia con tormentas, robots averiados y recursos que se deterioran. |
 
-Cada destino tiene su mapa, amenazas y refugio. Salir a la superficie sin un traje tiene consecuencias.
+Tres destinos, tres inteligencias a cargo: **CUSTODIA, SELENE y ARES**. Cada uno tiene su mapa, amenazas y refugio. Si vas a pisar la superficie, llevá traje. Las ganas no cuentan como blindaje.
 
 En cada base hay **6 notas escondidas en los cajones**. Reunirlas todas, en una o varias partidas, desbloquea el **final verdadero** de ese destino.
 
 ## Cómo jugar
 
-Abre la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), elige un destino y pulsa **JUGAR**. No necesitas cuenta ni instalación; hay controles táctiles para teléfono y tablet.
+Abrí la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), elegí un destino y pulsá **JUGAR**. Entrás desde el navegador, sin cuenta ni instalación obligatoria; en teléfono y tablet tenés controles táctiles.
 
-1. **Sigue la rutina.** La base tiene horarios de comida, trabajo, ejercicio y descanso.
-2. **Haz el mantenimiento.** Durante el turno de 08:00 a 12:00, revisa los cuatro sistemas en sus paneles.
-3. **Responde a las emergencias.** Busca la herramienta necesaria y resuelve el protocolo del peligro.
-4. **Vigila el Sol.** Cuando llegue una tormenta, decide si vas al refugio o continúas tu tarea.
-5. **Llega al día 10.** El rescate valora cómo cuidaste los sistemas, la base y tu exposición a radiación.
+**¿Viniste a ver de qué está hecho?** La [demo de tormenta solar](https://custodia-six-phi.vercel.app/?jurado) te deja en el día 2, a minutos del evento. Alarma, refugio y decisiones: directo al asunto.
+
+1. **Cumplí la rutina.** La base tiene horarios de comida, trabajo, ejercicio y descanso.
+2. **Ganate el rescate.** De 08:00 a 12:00, revisá los cuatro sistemas en sus paneles. Ese es tu turno de mantenimiento.
+3. **Respondé a las emergencias.** Buscá la herramienta necesaria y resolvé el protocolo del peligro.
+4. **Respetá la alerta solar.** Refugiarte corta tu tarea; seguir afuera aumenta tu exposición. Elegí con esa cuenta clara.
+5. **Llegá al día 10.** El rescate valora cómo cuidaste los sistemas, la base y tu exposición a radiación. Volver con todos es la misión.
 
 ### Enlaces directos
 
@@ -62,7 +78,7 @@ Abre la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), e
 | [`?cadete`](https://custodia-six-phi.vercel.app/?cadete) | Empieza en el nivel Cadete, para 7–12 años. |
 | [`?jurado`](https://custodia-six-phi.vercel.app/?jurado) | Demo: entra en el día 2, poco antes de la tormenta solar. |
 | `?lang=en` · `?lang=he` | Cambia el idioma a inglés o hebreo. |
-| `?sala=CÓDIGO` | Entra directo como Control de Misión en una sala cooperativa. |
+| `?sala=CÓDIGO` | Entra como Tripulante en una sala cooperativa; agregá `&rol=mcc` para Control de Misión. |
 | `?boot` · `?noboot` | Fuerza o quita el arranque animado «CUSTODIA OS». |
 
 Se pueden combinar: `?cadete&lang=en`.
@@ -76,9 +92,9 @@ Se pueden combinar: `?cadete&lang=en`.
 | **Blindaje contra radiación** | Reducir la dosis que acumulas durante la misión. |
 | **Comida** | Conservar el abastecimiento para resistir hasta el rescate. |
 
-También puedes explorar, ayudar a tus compañeros, fabricar herramientas, usar conductos y reunir las piezas de un regreso anticipado.
+Entre turnos podés explorar, ayudar a tus compañeros, fabricar herramientas, usar conductos y reunir las piezas de un regreso anticipado. La base sigue necesitando mantenimiento mientras armás tu plan.
 
-### Un nivel para cada tripulación
+### Elegí cuánto aprieta la misión
 
 | Nivel | Experiencia |
 | :--- | :--- |
@@ -87,7 +103,9 @@ También puedes explorar, ayudar a tus compañeros, fabricar herramientas, usar 
 | **Normal** | Gestión y sigilo con una vigilancia que se vuelve más exigente. |
 | **Terror** | Una escalada de vigilancia más intensa y menos margen de error. |
 
-Hay campaña, modo **UNA NOCHE**, reto diario y emergencias de **REFLEJOS** opcionales. Puedes ajustar música, sonidos y efectos visuales suaves; también se respeta la preferencia del sistema de reducir movimiento.
+Hay campaña, modo **UNA NOCHE**, reto diario y emergencias de **REFLEJOS** opcionales. Podés ajustar música, sonidos y efectos visuales suaves; también se respeta la preferencia del sistema de reducir movimiento.
+
+**Primer vuelo: Cadete.** Para subir la tensión tenés Normal y Terror. El nivel cambia el margen de error; la orden sigue siendo volver a casa.
 
 ### Controles
 
@@ -104,7 +122,9 @@ Hay campaña, modo **UNA NOCHE**, reto diario y emergencias de **REFLEJOS** opci
 
 ## Pensado para aprender
 
-CUSTODIA no explica la radiación: hace que el jugador decida, y después le muestra qué pasó.
+Aprendés tomando decisiones y viendo sus consecuencias. ¿Seguiste trabajando durante la tormenta? La dosis queda en la cuenta. ¿Dejaste caer la energía? Los otros sistemas lo sienten. La bitácora de la misión conecta lo que hiciste con lo que pasó.
+
+El modo **Cadete** está pensado para **7–12 años**: entrenamiento guiado, ayuda de la tripulación y herramientas para aprender sin perderse en la primera alarma.
 
 | Ayuda | Para qué sirve |
 | :--- | :--- |
@@ -127,9 +147,9 @@ El idioma se elige con los botones **ES · EN · עב** del inicio o con `?lang=
 
 ## Una IA que aprende tus rutinas
 
-Al principio tienes más margen para conocer la base. Conforme avanzan los días, los drones **se mueven más rápido, ven más lejos y mantienen la búsqueda durante más tiempo**. Las cámaras y los guardias también confirman antes sus sospechas.
+**Tu escondite favorito puede dejar de serlo.** Al principio tenés más margen para conocer la base. Conforme avanzan los días, los drones **se mueven más rápido, ven más lejos y mantienen la búsqueda durante más tiempo**. Las cámaras y los guardias también confirman antes sus sospechas.
 
-La IA recuerda lugares por los que te vio pasar y escondites donde vio tu entrada. Si repites un recorrido, puede enviar patrullas a investigarlo. Cambiar de hábitos ayuda: los recuerdos antiguos pierden peso con el tiempo.
+La IA recuerda lugares por los que te vio pasar y escondites donde vio tu entrada. Si repetís un recorrido, puede enviar patrullas a investigarlo. Cambiar de hábitos ayuda: los recuerdos antiguos pierden peso con el tiempo. El pasillo de siempre empieza a costar más.
 
 - **Observación:** respeta paredes, conos de visión, oscuridad, escondites y conductos.
 - **Progresión:** la intensidad depende del nivel; en Cadete es suave y solo aprende recorridos si hay conducta sospechosa.
@@ -142,7 +162,7 @@ En **Normal, al día 10**, los drones tienen un **27 % más de velocidad**, **22
 
 ## Del Sol real a tu partida
 
-El juego consulta llamaradas solares de los últimos 30 días en **NASA DONKI** y las utiliza para seleccionar tres tormentas durante la misión. Si la consulta falla, utiliza eventos reales archivados e indica que los datos no son en vivo.
+**El Sol pone los datos. Vos tomás la decisión.** El juego consulta llamaradas solares de los últimos 30 días en **NASA DONKI** y las utiliza para seleccionar tres tormentas durante la misión. Si la consulta falla, utiliza eventos reales archivados e indica que los datos no son en vivo.
 
 La decisión es jugable: **refugiarte reduce la dosis de la tormenta, pero interrumpe tu tarea y consume energía; continuar permite seguir trabajando, con mayor exposición**.
 
@@ -158,19 +178,26 @@ La decisión es jugable: **refugiarte reduce la dosis de la tormenta, pero inter
 <details>
 <summary><strong>Configurar una llave de NASA — opcional</strong></summary>
 
-1. Solicita una llave en [api.nasa.gov](https://api.nasa.gov/).
-2. En el inicio del juego, abre **DATOS NASA**.
-3. Pega la llave en **Llave de api.nasa.gov** y pulsa **USAR LLAVE**.
+1. Solicitá una llave en [api.nasa.gov](https://api.nasa.gov/).
+2. En el inicio del juego, abrí **DATOS NASA**.
+3. Pegá la llave en **Llave de api.nasa.gov** y pulsá **USAR LLAVE**.
 
-La llave se guarda en ese navegador. No debes subirla al repositorio. Sin una llave propia se intenta consultar con `DEMO_KEY`; si el servicio no responde, la misión sigue con llamaradas archivadas.
+La llave se guarda en ese navegador. No debés subirla al repositorio. Sin una llave propia se intenta consultar con `DEMO_KEY`; si el servicio no responde, la misión sigue con llamaradas archivadas.
 
 </details>
 
 ## Dos computadoras, una tripulación
 
-Una persona es el **Astronauta** y otra es **Control de Misión**. Control ve el mapa y los sistemas, y puede reasignar recursos, abrir escotillas sin candado, marcar un punto y enviar avisos prefabricados.
+**«Control, acá la base. Nos vendría bien una mano.»**
 
-Las órdenes tienen retraso según el destino: inmediato en la Estación y retrasado en Luna y Marte, a escala de juego. **Son dos roles cooperando con un astronauta en el mapa.**
+Una persona lleva al **Astronauta**. La segunda entra desde **SEGUNDO JUGADOR** y elige su puesto:
+
+| Puesto | Qué hacés |
+| :--- | :--- |
+| **Tripulante** | Manejás a un compañero en el mismo mapa: revisás sistemas, atendés emergencias de reflejos, distraés vigilancia, buscás suministros y se los pasás al astronauta. |
+| **Control de Misión** | Ves el mapa, los sistemas y el clima espacial. Podés reasignar recursos, abrir escotillas sin candado, marcar un punto y enviar avisos prefabricados. |
+
+Las órdenes de Control tienen retraso según el destino: inmediato en la Estación y retrasado en Luna y Marte, a escala de juego. Avisá con tiempo: la radio también juega.
 
 <details>
 <summary><strong>Conectarse en la misma red</strong></summary>
@@ -181,9 +208,9 @@ Desde la carpeta del proyecto:
 npm run coop
 ```
 
-El servidor muestra las direcciones de red. Abre el juego, entra en **COOPERATIVO**, crea una sala como Astronauta y comparte con Control el enlace que aparece. Ambas computadoras deben poder comunicarse por esa red.
+El servidor muestra las direcciones de red. Abrí el juego, entrá en **COOPERATIVO**, creá una sala como Astronauta y compartí el enlace que aparece. La otra persona puede entrar como Tripulante o elegir Control de Misión desde **SEGUNDO JUGADOR**. Ambas computadoras deben poder comunicarse por esa red.
 
-Si no conecta, comprueba que estén en la misma WiFi y que el firewall permita el servidor en redes privadas. Algunas redes escolares aíslan los dispositivos; prueba con otra red o un hotspot. El enlace local intenta reconectarse si se corta.
+Si no conecta, comprobá que estén en la misma WiFi y que el firewall permita el servidor en redes privadas. Algunas redes escolares aíslan los dispositivos; probá con otra red o un hotspot. El enlace local intenta reconectarse si se corta.
 
 </details>
 
@@ -196,7 +223,7 @@ Funciona desde un sitio estático como GitHub Pages: el Astronauta genera una in
 
 ## Ejecutar en local
 
-Necesitas **Git y una versión moderna de Node.js**. El juego y el servidor local no requieren instalar dependencias ni compilar.
+**Abrí tu propia base.** Necesitás Git y una versión moderna de Node.js. El juego y el servidor local arrancan sin instalar dependencias ni compilar.
 
 ```bash
 git clone https://github.com/invertilo/custodia.git
@@ -204,9 +231,9 @@ cd custodia
 node tools/serve.mjs 8000
 ```
 
-Abre [localhost:8000](http://localhost:8000/). Usa [modo Cadete](http://localhost:8000/?cadete) para empezar o la [demo de tormenta](http://localhost:8000/?jurado) para entrar en el día 2, poco antes del evento solar.
+Abrí [localhost:8000](http://localhost:8000/). Usá [modo Cadete](http://localhost:8000/?cadete) para empezar o la [demo de tormenta](http://localhost:8000/?jurado) para entrar en el día 2, poco antes del evento solar.
 
-Los módulos de JavaScript requieren un servidor: abrir `index.html` directamente con `file://` no basta. Si tienes Python, también puedes usar `python -m http.server 8000` para jugar en solitario.
+Los módulos de JavaScript requieren un servidor: abrir `index.html` directamente con `file://` no basta. Si tenés Python, también podés usar `python -m http.server 8000` para jugar en solitario.
 
 ### Pruebas y simulaciones
 
@@ -217,7 +244,7 @@ node tools/sim.mjs luna 4 cadete 11
 node tools/sim.mjs marte 4 cadete 11
 ```
 
-Hay **236 pruebas** de lógica y servidor. Las simulaciones ayudan a detectar problemas de equilibrio; sus bots no sustituyen pruebas con jugadores. Los resultados y limitaciones están en el [análisis técnico](docs/analisis/ia-progresiva.md).
+`npm test` ejecuta las pruebas de lógica y servidor con el runner de Node.js. Las simulaciones ayudan a detectar problemas de equilibrio; sus bots no sustituyen pruebas con jugadores. Los resultados y limitaciones están en el [análisis técnico](docs/analisis/ia-progresiva.md).
 
 <details>
 <summary><strong>Pruebas en navegador con Playwright</strong></summary>
@@ -231,7 +258,7 @@ npm run e2e
 npm run e2e:coop
 ```
 
-Las capturas se guardan en `e2e-out/`. Puedes indicar un navegador instalado mediante `CHROME_PATH`. La instalación de Chromium descarga el navegador de prueba.
+Las capturas se guardan en `e2e-out/`. Podés indicar un navegador instalado mediante `CHROME_PATH`. La instalación de Chromium descarga el navegador de prueba.
 
 </details>
 
@@ -255,19 +282,21 @@ Las capturas se guardan en `e2e-out/`. Puedes indicar un navegador instalado med
 | [`sw.js`](sw.js) · [`manifest.webmanifest`](manifest.webmanifest) | Modo sin internet e instalación. |
 | [`tests/`](tests/) · [`tools/`](tools/) | Pruebas, servidor y simuladores. |
 
-La lógica funciona sin pantalla, usa azar con semilla y puede serializarse. El juego está hecho con **HTML, CSS y JavaScript**, sin un motor externo. Antes de contribuir, consulta [`CONTEXTO.md`](CONTEXTO.md) y las [reglas del proyecto](CLAUDE.md); `referencias/` contiene copias de consulta.
+La lógica funciona sin pantalla, usa azar con semilla y puede serializarse. El juego está hecho con **HTML, CSS y JavaScript**, sin un motor externo. Antes de contribuir, consultá [`CONTEXTO.md`](CONTEXTO.md) y las [reglas del proyecto](CLAUDE.md); `referencias/` contiene copias de consulta.
 
 ## English summary
 
 **CUSTODIA** is a browser game about keeping a space base alive until rescue arrives in ten days. Players maintain life support, power, radiation shielding and food while responding to emergencies on a Space Station, the Moon or Mars.
 
-Solar events from NASA DONKI inspire the mission's storms. Players choose between sheltering and continuing their tasks, balancing exposure, time and energy. Cadet mode supports younger players; higher difficulties introduce stronger surveillance and an AI that remembers observed routes. Two players can cooperate as Astronaut and Mission Control, with simulated communication delays.
+Solar events from NASA DONKI inspire the mission's storms. Players choose between sheltering and continuing their tasks, balancing exposure, time and energy. Cadet mode supports younger players; higher difficulties introduce stronger surveillance and an AI that remembers observed routes. A second player can control a crewmate on the same map or join as Mission Control; Mission Control commands use simulated communication delays.
 
 The project addresses **Space Mission Design Game**. Scientific sources, simplified mechanics and fictional elements are identified separately. [Play in Cadet mode](https://custodia-six-phi.vercel.app/?cadete) · [Try the solar storm demo](https://custodia-six-phi.vercel.app/?jurado).
 
 ## Equipo
 
-**#EraConTuto** · Santa Cruz, Bolivia. Hecho para explorar cómo aprender ciencia espacial tomando decisiones.
+**#EraConTuto · Santa Cruz, Bolivia.**
+
+Desde Santa Cruz hasta Jezero, con escala en un panel de mantenimiento. Hicimos CUSTODIA para aprender ciencia espacial tomando decisiones, cuidar a la tripulación y tener una buena historia que contar al volver.
 
 <table>
 <tr>
@@ -294,7 +323,11 @@ The project addresses **Space Mission Design Game**. Scientific sources, simplif
 
 <div align="center">
 
-**Diez días. Cuatro sistemas. Tu camino de regreso.**
+**DIEZ DÍAS. CUATRO SISTEMAS. TODA TU TRIPULACIÓN.**
+
+La nave viene. Que encuentre la base en pie.
+
+**Hecho en Bolivia. Se juega con aguante. Se gana cuidando. 🐂**
 
 [Empezar la misión →](https://custodia-six-phi.vercel.app/?cadete)
 
