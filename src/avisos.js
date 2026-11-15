@@ -10,6 +10,7 @@ const prio = (k) => PRIO[k] ?? 1;
 /**
  * Decide qué hacer con un aviso nuevo.
  * visibles: [{ id, kind, text }] en orden de llegada (el más viejo primero). nuevo: { kind, text, quiet }.
+ * ctx.max: tope propio (teléfono = 1). ctx.minPrio: prioridad mínima para subir a pantalla.
  * ctx.emergencia: hay un cartel de emergencia en pantalla → solo pasan avisos de prioridad 3 o más.
  * Devuelve { mostrar: boolean, quitar: [id…] } (avisos viejos que hay que retirar para hacerle lugar).
  */
@@ -19,7 +20,9 @@ export function admite(visibles, nuevo, ctx = {}) {
   if (visibles.some((v) => v.text === nuevo.text)) return no; // ya está en pantalla
   const p = prio(nuevo.kind);
   if (ctx.emergencia && p < 3) return no; // en una emergencia no se estorba con información menor
-  if (visibles.length < MAX_AVISOS) return { mostrar: true, quitar: [] };
+  if (ctx.minPrio && p < ctx.minPrio) return no; // teléfono: lo menor queda solo en el historial
+  const tope = ctx.max ?? MAX_AVISOS;
+  if (visibles.length < tope) return { mostrar: true, quitar: [] };
   // sin lugar: se retira el más viejo de los que valen igual o menos; si todos valen más, el nuevo no entra
   const candidato = visibles.filter((v) => prio(v.kind) <= p).sort((a, b) => prio(a.kind) - prio(b.kind))[0];
   return candidato ? { mostrar: true, quitar: [candidato.id] } : no;
