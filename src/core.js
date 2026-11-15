@@ -536,8 +536,8 @@ export function spawnHazard(s, kind = pick(s, s.L.hazards), roomId) {
   else if (def.type === 'robot') Object.assign(h, { stun: 0, cd: 0, dir: 0, path: null, chasing: false, goal: null });
   else V.initHazard(s, h, r);
   s.hazards.push(h);
-  const tool = def.tool ? (dif(s).kit ? `Ve y pulsa E: el armario de emergencia tiene ${ITEMS[def.tool].name}.` : `Necesitas: ${ITEMS[def.tool].name}.`) : def.hint ? def.hint : def.type === 'robot' ? 'Inhíbelo (Q) y desármalo con el destornillador.' : def.outside ? 'Métete a la base.' : '';
-  flash(s, def.msg ?? `¡${def.name} en ${roomName(s, h.room)}! ${tool}`, 'bad');
+  const tool = def.tool ? (dif(s).kit ? T(`Ve y pulsa E: el armario de emergencia tiene ${ITEMS[def.tool].name}.`, `Go and press E: the emergency cabinet has the ${ITEMS[def.tool].name}.`) : T(`Necesitas: ${ITEMS[def.tool].name}.`, `You need: ${ITEMS[def.tool].name}.`)) : def.hint ? def.hint : def.type === 'robot' ? T('Inhíbelo (Q) y desármalo con el destornillador.', 'Inhibit it (Q) and disarm it with the screwdriver.') : def.outside ? T('Métete a la base.', 'Get inside the base.') : '';
+  flash(s, def.msg ?? T(`¡${def.name} en ${roomName(s, h.room)}! ${tool}`, `${def.name} in ${roomName(s, h.room)}! ${tool}`), 'bad');
   return h;
 }
 

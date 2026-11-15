@@ -1,17 +1,20 @@
 // Los tres destinos. Cada uno tiene su mapa (salas + pasillos), su IA, su tripulación, sus problemas y su final.
 
+import { T } from './i18n.js';
+
+const WORK_EN = { 'Mantenimiento de la estación': 'Station maintenance', 'Mantenimiento de la base lunar': 'Lunar base maintenance', 'Mantenimiento de la colonia': 'Colony maintenance' };
 const sched = (work, workName) => [
-  { from: 0, to: 360, id: 'dormir', name: 'Dormir', room: 'dorm' },
-  { from: 360, to: 420, id: 'lista', name: 'Pase de lista', room: 'nodo' },
-  { from: 420, to: 480, id: 'comer', name: 'Desayuno', room: 'comedor' },
-  { from: 480, to: 720, id: 'trabajo', name: workName, room: work },
-  { from: 720, to: 780, id: 'comer', name: 'Almuerzo', room: 'comedor' },
-  { from: 780, to: 900, id: 'ejercicio', name: 'Ejercicio (2 h, como en la ISS)', room: 'gimnasio' },
-  { from: 900, to: 1080, id: 'libre', name: 'Tiempo libre', room: null },
-  { from: 1080, to: 1140, id: 'lista', name: 'Pase de lista', room: 'nodo' },
-  { from: 1140, to: 1200, id: 'comer', name: 'Cena', room: 'comedor' },
-  { from: 1200, to: 1320, id: 'libre', name: 'Tiempo libre', room: null },
-  { from: 1320, to: 1440, id: 'dormir', name: 'Luces apagadas', room: 'dorm' },
+  { from: 0, to: 360, id: 'dormir', get name() { return T('Dormir', 'Sleeping'); }, room: 'dorm' },
+  { from: 360, to: 420, id: 'lista', get name() { return T('Pase de lista', 'Roll call'); }, room: 'nodo' },
+  { from: 420, to: 480, id: 'comer', get name() { return T('Desayuno', 'Breakfast'); }, room: 'comedor' },
+  { from: 480, to: 720, id: 'trabajo', get name() { return T(workName, WORK_EN[workName] ?? workName); }, room: work },
+  { from: 720, to: 780, id: 'comer', get name() { return T('Almuerzo', 'Lunch'); }, room: 'comedor' },
+  { from: 780, to: 900, id: 'ejercicio', get name() { return T('Ejercicio (2 h, como en la ISS)', 'Exercise (2 h, like on the ISS)'); }, room: 'gimnasio' },
+  { from: 900, to: 1080, id: 'libre', get name() { return T('Tiempo libre', 'Free time'); }, room: null },
+  { from: 1080, to: 1140, id: 'lista', get name() { return T('Pase de lista', 'Roll call'); }, room: 'nodo' },
+  { from: 1140, to: 1200, id: 'comer', get name() { return T('Cena', 'Dinner'); }, room: 'comedor' },
+  { from: 1200, to: 1320, id: 'libre', get name() { return T('Tiempo libre', 'Free time'); }, room: null },
+  { from: 1320, to: 1440, id: 'dormir', get name() { return T('Luces apagadas', 'Lights out'); }, room: 'dorm' },
 ];
 
 // Lo que se repite en las tres bases: dormitorio, comedor, gimnasio, laboratorio, mando y taller (lado izquierdo).
@@ -238,3 +241,9 @@ export const ROOM_EN = {
   'Sala de recreo': 'Recreation room', 'Módulo de antena': 'Antenna module', 'Centro de mando': 'Command center', 'Planta de energía': 'Power plant', 'Refugio de radiación': 'Radiation shelter',
   'Servidores de SELENE': 'SELENE servers', 'Superficie lunar': 'Lunar surface', 'Núcleo de ARES': 'ARES core', 'Superficie marciana': 'Martian surface', 'Pasillo': 'Corridor',
 };
+// Tareas de mantenimiento de la Luna y de Marte en inglés: se agregan como 3.º y 4.º elemento de cada par [nombre, corto].
+const EN_TASKS = {
+  luna: { vida: ['Swap the CO₂ and dust filters', 'Air filters'], energia: ['Warm the batteries for the lunar night', 'Batteries'], rad: ['Cover the shielding with regolith', 'Regolith shielding'], comida: ['Tend the hydroponic crop', 'Hydroponic crop'] },
+  marte: { vida: ['Swap the CO₂ and red-dust filters', 'Air filters'], energia: ['Clean the dust off the solar panels', 'Solar panels'], rad: ['Check the shielding and the dosimeter', 'Shielding and dosimeter'], comida: ['Tend the greenhouse crops', 'Greenhouse'] },
+};
+for (const [loc, tasks] of Object.entries(EN_TASKS)) for (const [id, en] of Object.entries(tasks)) { const t = LOCS[loc].sysFlavor?.tasks?.[id]; if (t) { t[2] = en[0]; t[3] = en[1]; } }

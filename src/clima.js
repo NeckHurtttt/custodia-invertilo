@@ -70,18 +70,32 @@ export const sourceText = (f) => (f.source === 'donki'
   ? T(`Llamarada REAL de NASA DONKI: clase ${f.cls}, ${f.date} (último mes).`, `REAL solar flare from NASA DONKI: class ${f.cls}, ${f.date} (last month).`)
   : T(`Llamarada REAL archivada de NASA DONKI: clase ${f.cls}, ${f.date}. (Sin conexión con NASA: no es en vivo.)`, `REAL archived solar flare from NASA DONKI: class ${f.cls}, ${f.date}. (No connection to NASA: this is not live.)`));
 
-/** Pide a NASA DONKI las llamaradas de los últimos 30 días (api.nasa.gov y, si falla, el servidor CCMC sin llave). */
-export async function fetchFlares({ fetchImpl = globalThis.fetch, key = 'DEMO_KEY', now = new Date(), timeoutMs = 6000 } = {}) {
+/** Por qué falló la última consulta a DONKI: 'limite' (la llave agotó su cupo, error 429), 'servidor' (404/5xx), 'red' (sin conexión o bloqueada) o null si fue bien. Lo lee la pantalla DATOS NASA. */
+export const donkiEstado = { error: null };
+
+/**
+ * Pide a NASA DONKI las llamaradas de los últimos 30 días (api.nasa.gov y, si falla, el servidor CCMC sin llave).
+ * Un 404 o 5xx se reintenta una vez (el 15/11/2026 api.nasa.gov dio 404 un rato); un 429 no (la llave DEMO_KEY es de unas 30 consultas por hora por red).
+ */
+export async function fetchFlares({ fetchImpl = globalThis.fetch, key = 'DEMO_KEY', now = new Date(), timeoutMs = 6000, retryMs = 800 } = {}) {
   const d = (x) => x.toISOString().slice(0, 10);
   const q = `startDate=${d(new Date(now.getTime() - 30 * 86400000))}&endDate=${d(now)}`;
+  donkiEstado.error = 'red';
   for (const url of [`https://api.nasa.gov/DONKI/FLR?${q}&api_key=${key}`, `https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/FLR?${q}`]) {
-    try {
-      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
-      const r = await fetchImpl(url, { signal: ctl.signal }); clearTimeout(t);
-      if (!r || r.ok === false) continue;
-      const list = await r.json(); if (!Array.isArray(list)) continue;
-      return strongestFlares(list, 3);
-    } catch { /* probar el siguiente */ }
+    for (let intento = 0; intento < 2; intento++) {
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
+        const r = await fetchImpl(url, { signal: ctl.signal }); clearTimeout(t);
+        if (!r || r.ok === false) {
+          const st = r?.status;
+          if (st === 429) { donkiEstado.error = 'limite'; break; }
+          if (st === 404 || st >= 500) { if (donkiEstado.error !== 'limite') donkiEstado.error = 'servidor'; if (intento === 0) { await new Promise((ok) => setTimeout(ok, retryMs)); continue; } }
+          break;
+        }
+        const list = await r.json(); if (!Array.isArray(list)) break;
+        donkiEstado.error = null; return strongestFlares(list, 3);
+      } catch { break; /* probar el siguiente */ }
+    }
   }
   return null;
 }

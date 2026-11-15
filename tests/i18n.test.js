@@ -5,7 +5,7 @@ import * as Sys from '../src/sistemas.js';
 import * as UI from '../src/ui.js';
 import { T, setLang, getLang, pickLang } from '../src/i18n.js';
 import { LOCS, ROOM_EN } from '../src/locs.js';
-import { DIFS, PERKS, PROTOCOLS, PROTO_FUENTE, PROTO_NIVEL, PROTO_NIVEL_EN } from '../src/common.js';
+import { DIFS, PERKS, PROTOCOLS, PROTO_FUENTE, PROTO_NIVEL, PROTO_NIVEL_EN, HAZARDS, ITEMS } from '../src/common.js';
 import { restriccion, dosisReales, osdr, escala } from '../src/datos.js';
 import { SHELTER, classText, sourceText } from '../src/clima.js';
 
@@ -68,4 +68,16 @@ test('idioma: el resumen del final (qué pasó / qué aprender / estrellas) sale
   assert.equal(enIngles(() => UI.tituloFin('CUSTODIA ganó')), 'CUSTODIA won'); assert.equal(UI.tituloFin('Base perdida'), 'Base perdida');
   const sf = G.newGame('estacion', 2); sf.over = { won: false, title: 'Base perdida', text: 'x', stars: 0 };
   assert.match(enIngles(() => UI.resumenFin(sf).aprende), /INTEGRITY drops/);
+});
+
+test('idioma: peligros, objetos, protocolos, horario y tareas de mantenimiento tienen inglés (getters, sin cambiar los puntos de uso)', () => {
+  const conGetter = (o, p) => typeof Object.getOwnPropertyDescriptor(o, p)?.get === 'function';
+  for (const [k, h] of Object.entries(HAZARDS)) assert.ok(conGetter(h, 'name'), `peligro ${k} sin nombre en inglés`);
+  for (const [k, it] of Object.entries(ITEMS)) { assert.ok(conGetter(it, 'name'), `objeto ${k} sin nombre en inglés`); if (it.info) assert.ok(conGetter(it, 'info'), `objeto ${k} sin descripción en inglés`); }
+  for (const [k, p] of Object.entries(PROTOCOLS)) { assert.ok(p.titleEn, `protocolo ${k} sin título en inglés`); assert.equal(p.stepsEn?.length, p.steps.length, `protocolo ${k}: mismos pasos en inglés`); }
+  const es = { fuego: HAZARDS.fuego.name, cinta: ITEMS.cinta.name }; assert.deepEqual(es, { fuego: 'INCENDIO', cinta: 'Cinta adhesiva' });
+  const en = enIngles(() => { const s = G.newGame('luna', 5); const blq = (id) => s.L.schedule.find((b) => b.id === id).name; return { f: HAZARDS.fuego.name, c: ITEMS.cinta.name, i: ITEMS.extintor.info, tr: blq('trabajo'), lista: blq('lista'), t1: Sys.taskName(s, 'vida'), t2: Sys.taskShort(s, 'energia'), te: Sys.taskName(G.newGame('estacion', 5), 'rad') }; });
+  assert.deepEqual(en, { f: 'FIRE', c: 'Duct tape', i: 'Puts out a fire.', tr: 'Lunar base maintenance', lista: 'Roll call', t1: 'Swap the CO₂ and dust filters', t2: 'Batteries', te: 'Check the shielding and the dosimeter' });
+  const sp = G.newGame('luna', 5); assert.equal(Sys.taskName(sp, 'vida'), 'Cambiar los filtros de CO₂ y de polvo'); assert.equal(sp.L.schedule[0].name, 'Dormir');
+  const aviso = enIngles(() => { const s = G.newGame('estacion', 5); G.spawnHazard(s, 'fuego'); return s.log.at(-1).text; }); assert.match(aviso, /FIRE in /);
 });

@@ -5,7 +5,7 @@ import { NOTES } from './story.js';
 import { LOCS, ROOM_EN } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
-import { fetchFlares, sourceText, missionFlares, SHELTER } from './clima.js';
+import { fetchFlares, donkiEstado, sourceText, missionFlares, SHELTER } from './clima.js';
 import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang } from './i18n.js';
 // Idioma (ES por defecto; EN con ?lang=en, ?en o el selector del título). Solo presentación.
@@ -401,19 +401,19 @@ function drawFrame(t) {
   minimap();
   // carteles del mundo: se apilan justo sobre la mochila (abajo al centro), nunca bajo la barra de arriba. Pulso lento (≤1 Hz) en vez de alternar colores.
   cx.textAlign = 'center'; cartelY = (invTop || cv.height - 80) - 20; const hz = FX.suave() ? 0 : 0.8;
-  if (G.isOutside(s) && !p.inDuct) cartel(`O₂ ${Math.ceil(p.o2)}%${G.has(s, 'traje') ? '' : ' · ¡SIN TRAJE!'}`, p.o2 < 30 ? '#ff7a7a' : '#5ff6ff', 20, t, p.o2 < 30 ? hz : 0);
-  if (p.hidden) cartel('ESCONDIDO · muévete o pulsa F para salir', '#9fd4ff', 18, t, 0);
-  else if (p.crouch) cartel('agachado: silencioso y difícil de ver', '#9fd4ff', 16, t, 0);
+  if (G.isOutside(s) && !p.inDuct) cartel(`O₂ ${Math.ceil(p.o2)}%${G.has(s, 'traje') ? '' : T(' · ¡SIN TRAJE!', ' · NO SUIT!')}`, p.o2 < 30 ? '#ff7a7a' : '#5ff6ff', 20, t, p.o2 < 30 ? hz : 0);
+  if (p.hidden) cartel(T('ESCONDIDO · muévete o pulsa F para salir', 'HIDDEN · move or press F to come out'), '#9fd4ff', 18, t, 0);
+  else if (p.crouch) cartel(T('agachado: silencioso y difícil de ver', 'crouching: quiet and hard to see'), '#9fd4ff', 16, t, 0);
   // una noche: cuenta regresiva al amanecer
-  if (s.mode === 'noche' && !s.final) { const left = ((s.day >= 2 ? 360 : 1800) - s.min) / (G.MIN_PER_SEC * G.NIGHT_SPEED); cartel(`☀ AMANECE EN ${Meta.fmtTime(Math.max(0, left))}`, left < 60 ? '#ff8a8a' : '#9fd4ff', 22, t, left < 60 ? hz : 0); }
+  if (s.mode === 'noche' && !s.final) { const left = ((s.day >= 2 ? 360 : 1800) - s.min) / (G.MIN_PER_SEC * G.NIGHT_SPEED); cartel(T(`☀ AMANECE EN ${Meta.fmtTime(Math.max(0, left))}`, `☀ DAWN IN ${Meta.fmtTime(Math.max(0, left))}`), left < 60 ? '#ff8a8a' : '#9fd4ff', 22, t, left < 60 ? hz : 0); }
   const ms = s.vil?.mission; if (ms) { cartel(`📻 ${ms.verb} · ${G.roomName(s, ms.room)} · ${Math.ceil(ms.left)} s`, ms.left < 20 ? '#ff8a8a' : '#d08aff', 20, t, ms.left < 20 ? hz : 0); arrowTo(ms.x, ms.y, '#d08aff', G.roomName(s, ms.room), t); }
   for (const h of s.hazards) if (h.def.type === 'front' && h.phase === 'aviso') cartel(`⚠ ${h.def.name}: ${Math.ceil(h.t)} s`, '#ff8a6a', 26, t, hz);
   for (const h of s.hazards) if (h.def.type === 'shelter') { cartel(`⚠ ${h.def.name}: ${Math.ceil(h.t)} s → ${G.roomName(s, h.def.safe[0])}`, '#ff8a6a', 26, t, hz); const sr = s.L.rooms.find((x) => x.id === h.def.safe[0]); if (sr && G.playerRoom(s) !== sr.id) arrowTo((sr.x + sr.w / 2) * TS, (sr.y + sr.h / 2) * TS, '#4dff88', sr.name, t); }
-  if (s.final) cartel(`¡DESPEGUE! ${Math.ceil(s.final.t)} s`, '#ff6b6b', 32, t, hz);
+  if (s.final) cartel(T(`¡DESPEGUE! ${Math.ceil(s.final.t)} s`, `LIFTOFF! ${Math.ceil(s.final.t)} s`), '#ff6b6b', 32, t, hz);
   // persecución: aviso grande con el tiempo que llevas huyendo
   const hunted = (s.iaOn && s.drones.some((d) => d.mode === 'persigue')) || s.vil?.walkers.some((w) => w.mode === 'persigue' && !w.gone && !w.away);
   chaseT = hunted && !p.hidden ? chaseT + 1 / 60 : 0;
-  if (chaseT > 0 && !s.final) cartel(`¡TE VIERON! ESCÓNDETE · ${chaseT.toFixed(1)} s`, '#ff6b6b', 28, t, hz);
+  if (chaseT > 0 && !s.final) cartel(T(`¡TE VIERON! ESCÓNDETE · ${chaseT.toFixed(1)} s`, `YOU WERE SEEN! HIDE · ${chaseT.toFixed(1)} s`), '#ff6b6b', 28, t, hz);
   // alerta alta: las luces bajan y suben despacio (≈0,4 Hz; antes parpadeaban al azar, y eso cansa la vista)
   if (s.iaOn && s.alert > 70 && !FX.suave()) R(cx, `rgba(0,0,0,${(0.08 + 0.14 * (0.5 + 0.5 * Math.sin(t / 400))) * Math.min(1, (s.alert - 70) / 20)})`, 0, 0, cv.width, cv.height);
   // susto: tinte rojo que se desvanece al descubrir tu escondite (suave y corto; en modo suave, nada)
@@ -718,10 +718,10 @@ function interruptor(id, icono, etiqueta, activo, pista = '', extra = '') {
 function pintaInterruptor(id, activo) { const b = $(id); if (!b) return; b.setAttribute('aria-checked', String(!!activo)); b.querySelector('.on-off').textContent = activo ? 'SÍ' : 'NO'; }
 /** Ajustes de sonido y vista (los mismos en el título y en la pausa). get() = estado actual; set() = lo cambia. */
 const AJ = {
-  musica: { id: 'sw-musica', ico: 'musica', txt: 'MÚSICA', pista: 'Tecla M', get: () => M.on(), set: () => { M.toggle(); if (M.on()) M.ui('ok'); } },
-  sfx: { id: 'sw-sfx', ico: 'sfx', txt: 'EFECTOS DE SONIDO', pista: 'Pasos, alarmas y avisos', get: () => M.sfxOn(), set: () => M.toggleSfx() },
-  suave: { id: 'sw-suave', ico: 'suave', txt: 'EFECTOS VISUALES SUAVES', pista: 'Sin sacudidas ni destellos', get: () => FX.suave(), set: () => FX.toggleFx() },
-  nombres: { id: 'sw-nombres', ico: 'nombres', txt: 'NOMBRES DE OBJETOS', pista: 'Tecla N', get: () => vista.nombres, set: () => alternaNombres() },
+  musica: { id: 'sw-musica', ico: 'musica', get txt() { return T('MÚSICA', 'MUSIC'); }, get pista() { return T('Tecla M', 'Key M'); }, get: () => M.on(), set: () => { M.toggle(); if (M.on()) M.ui('ok'); } },
+  sfx: { id: 'sw-sfx', ico: 'sfx', get txt() { return T('EFECTOS DE SONIDO', 'SOUND EFFECTS'); }, get pista() { return T('Pasos, alarmas y avisos', 'Steps, alarms and alerts'); }, get: () => M.sfxOn(), set: () => M.toggleSfx() },
+  suave: { id: 'sw-suave', ico: 'suave', get txt() { return T('EFECTOS VISUALES SUAVES', 'SOFT VISUAL EFFECTS'); }, get pista() { return T('Sin sacudidas ni destellos', 'No shaking or flashes'); }, get: () => FX.suave(), set: () => FX.toggleFx() },
+  nombres: { id: 'sw-nombres', ico: 'nombres', get txt() { return T('NOMBRES DE OBJETOS', 'OBJECT NAMES'); }, get pista() { return T('Tecla N', 'Key N'); }, get: () => vista.nombres, set: () => alternaNombres() },
 };
 const ajustesHTML = (claves) => claves.map((k) => interruptor(AJ[k].id, AJ[k].ico, AJ[k].txt, AJ[k].get(), AJ[k].pista)).join('');
 function cableaAjustes(claves) { for (const k of claves) { const a = AJ[k]; $(a.id).onclick = () => { a.set(); pintaInterruptor(a.id, a.get()); sincBotones(); }; } }
@@ -827,7 +827,7 @@ function datos(back) {
   menu = 'datos'; const fl = missionFlares(liveFlares); const enVivo = fl.some((f) => f.source === 'donki');
   open(`<h2>${ic('rad', 'g')} ${T('DATOS NASA', 'NASA DATA')}</h2>
     <p class="grande-txt"><b>${T('La restricción real que enseña el juego:', 'The real constraint the game teaches:')}</b> ${restriccion()}</p>
-    <h3>☀️ ${T('Clima espacial', 'Space weather')}: NASA DONKI ${enVivo ? T('(EN VIVO, último mes)', '(LIVE, last month)') : T('(sin conexión: llamaradas reales archivadas)', '(offline: real archived flares)')}</h3>
+    <h3>☀️ ${T('Clima espacial', 'Space weather')}: NASA DONKI ${enVivo ? T('(EN VIVO, último mes)', '(LIVE, last month)') : donkiEstado.error === 'limite' ? T('(la llave se agotó por ahora: llamaradas reales archivadas)', '(the key ran out for now: real archived flares)') : T('(sin conexión: llamaradas reales archivadas)', '(offline: real archived flares)')}</h3>
     <div class="llave">${T(`<label for="llave-nasa">Llave de api.nasa.gov</label>`, `<label for="llave-nasa">api.nasa.gov key</label>`)}
       <input id="llave-nasa" type="text" autocomplete="off" spellcheck="false" placeholder="${T('pega tu llave (gratis en api.nasa.gov)', 'paste your key (free at api.nasa.gov)')}" value="${nasaKey() === 'DEMO_KEY' ? '' : nasaKey()}">
       <button id="llave-ok" class="sec">${T(`USAR LLAVE`, `USE KEY`)}</button>
@@ -849,7 +849,7 @@ function datos(back) {
     const k = $('llave-nasa').value.trim();
     try { if (k) localStorage.setItem('lfr.nasaKey', k); else localStorage.removeItem('lfr.nasaKey'); localStorage.removeItem('lfr.flares'); } catch { /* sin almacenamiento */ }
     $('llave-est').textContent = T('Consultando NASA DONKI…', 'Asking NASA DONKI…'); M.ui('click');
-    pedirDonki().then((ok) => { if (ok) datos(back); else $('llave-est').textContent = T('NASA no respondió (llave inválida o sin internet). Se siguen usando las llamaradas archivadas.', 'NASA did not answer (invalid key or no internet). The archived flares are still used.'); });
+    pedirDonki().then((ok) => { if (ok) datos(back); else $('llave-est').textContent = donkiEstado.error === 'limite' ? T('NASA dice que esta llave ya gastó su cupo (la de prueba, DEMO_KEY, da unas 30 consultas por hora por red). Pega tu llave gratis de api.nasa.gov o espera un rato. Mientras, se usan las llamaradas archivadas.', 'NASA says this key has used up its quota (the DEMO_KEY test key allows about 30 requests per hour per network). Paste your free api.nasa.gov key or wait a while. Meanwhile the archived flares are used.') : T('NASA no respondió (llave inválida o sin internet). Se siguen usando las llamaradas archivadas.', 'NASA did not answer (invalid key or no internet). The archived flares are still used.'); });
   };
 }
 
@@ -1080,13 +1080,13 @@ function act(k) {
 }
 /** Pausa (Esc): seguir, ajustes con etiquetas claras (música, volumen, efectos de sonido, efectos suaves, nombres) y el historial. */
 function pausa() {
-  open(`<h2>${ic('pausa', 'g')} PAUSA</h2>
-    <div class="pausa-cab"><button id="seguir" class="grande">${ic('jugar')} SEGUIR <kbd>Esc</kbd></button><button id="ay" class="sec">${ic('ayuda')} AYUDA</button><button id="salir" class="sec">${ic('menu')} SALIR AL MENÚ (se guarda)</button></div>
-    <h3>AJUSTES</h3>
+  open(`<h2>${ic('pausa', 'g')} ${T('PAUSA', 'PAUSE')}</h2>
+    <div class="pausa-cab"><button id="seguir" class="grande">${ic('jugar')} ${T('SEGUIR', 'RESUME')} <kbd>Esc</kbd></button><button id="ay" class="sec">${ic('ayuda')} ${T('AYUDA', 'HELP')}</button><button id="salir" class="sec">${ic('menu')} ${T('SALIR AL MENÚ (se guarda)', 'EXIT TO MENU (saved)')}</button></div>
+    <h3>${T('AJUSTES', 'SETTINGS')}</h3>
     <div class="ajustes">${ajustesHTML(['musica', 'sfx', 'suave', 'nombres'])}
-      <div class="vol"><span class="lbl">VOLUMEN</span><button id="vmenos" aria-label="Bajar volumen">−</button><span id="vol">${Math.round(M.volume() * 100)} %</span><button id="vmas" aria-label="Subir volumen">+</button></div>
-      <p class="nota-aj">Los efectos visuales suaves quitan sacudidas y destellos (útil si te mareas o te cansa la vista).</p></div>
-    <div class="pestanas"><button data-t="reg">HISTORIAL</button><button data-t="mant">MANTENIMIENTO</button><button data-t="plan">PLAN DE REGRESO</button><button data-t="amen">AMENAZAS</button><button data-t="crew">TRIPULACIÓN</button></div><ul id="pest" class="log pest"></ul>`);
+      <div class="vol"><span class="lbl">${T('VOLUMEN', 'VOLUME')}</span><button id="vmenos" aria-label="${T('Bajar volumen', 'Lower volume')}">−</button><span id="vol">${Math.round(M.volume() * 100)} %</span><button id="vmas" aria-label="${T('Subir volumen', 'Raise volume')}">+</button></div>
+      <p class="nota-aj">${T('Los efectos visuales suaves quitan sacudidas y destellos (útil si te mareas o te cansa la vista).', 'Soft visual effects remove shaking and flashes (useful if you feel dizzy or your eyes get tired).')}</p></div>
+    <div class="pestanas"><button data-t="reg">${T('HISTORIAL', 'HISTORY')}</button><button data-t="mant">${T('MANTENIMIENTO', 'MAINTENANCE')}</button><button data-t="plan">${T('PLAN DE REGRESO', 'RETURN PLAN')}</button><button data-t="amen">${T('AMENAZAS', 'THREATS')}</button><button data-t="crew">${T('TRIPULACIÓN', 'CREW')}</button></div><ul id="pest" class="log pest"></ul>`);
   menu = 'pausa';
   const tab = (t) => { $('pest').innerHTML = { reg: () => logHTML(50), mant: mantHTML, plan: planHTML, amen: amenazasHTML, crew: crewHTML }[t](); $('pest').className = (t === 'reg' ? 'log' : 'plan') + ' pest'; $('ventana').querySelectorAll('.pestanas button').forEach((x) => x.classList.toggle('sel', x.dataset.t === t)); };
   $('ventana').querySelectorAll('.pestanas button').forEach((x) => (x.onclick = () => tab(x.dataset.t))); tab('reg');

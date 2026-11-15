@@ -1,3 +1,4 @@
+import { T } from './i18n.js';
 // Datos compartidos por todos los destinos: piezas, recetas, protocolos NASA y problemas-enemigo.
 
 export const ITEMS = {
@@ -79,7 +80,7 @@ export const PROTO_NIVEL = {
   ficcion: 'Ficción educativa inspirada en misiones reales',
 };
 export const PROTO_FUENTE = {
-  fuego: { nivel: 'iss', fuente: 'NASA NTRS 20120002562 y 20030053429 (fuego en ISS: PBA y extintor PFE)' },
+  fuego: { nivel: 'iss', fuente: 'NASA NTRS 20030053429 (detección y extinción de incendios en la ISS: extintor portátil PFE y equipo de respiración PBA) y NTRS 20120002562 (cómo se entrena la respuesta a un incendio: reunirse en un lugar seguro y coordinar con Control)' },
   fuga: { nivel: 'iss', fuente: 'NASA NTRS 20250003954 (Chen, Walker y Williams, 2025: emergencias en la ISS: fuego, derrames tóxicos y despresurización rápida; los pasos del juego están muy simplificados)' },
   amoniaco: { nivel: 'iss', fuente: 'NASA NTRS 20220019247 (atmósfera tóxica en ISS, incluye fugas de amoníaco)' },
   polvo: { nivel: 'riesgo', fuente: 'Apolo: el polvo lunar irritó ojos y pulmones; NASA lo trata como riesgo mayor para Artemis' },
@@ -175,7 +176,7 @@ export const PROTO_NIVEL_EN = {
   ficcion: 'Educational fiction inspired by real missions',
 };
 const EN_PROTO = {
-  fuego: ['FIRE · ISS protocol', 'NASA NTRS 20120002562 and 20030053429 (fire on the ISS: PBA and PFE extinguisher)'],
+  fuego: ['FIRE · ISS protocol', 'NASA NTRS 20030053429 (fire detection and suppression on the ISS: portable fire extinguisher PFE and breathing apparatus PBA) and NTRS 20120002562 (how fire response is trained: gather in a safe haven and coordinate with Mission Control)'],
   fuga: ['DEPRESSURIZATION · ISS protocol', 'NASA NTRS 20250003954 (Chen, Walker and Williams, 2025: ISS emergencies: fire, toxic spills and rapid depressurization; the game steps are greatly simplified)'],
   amoniaco: ['AMMONIA · ISS protocol', 'NASA NTRS 20220019247 (toxic atmosphere on the ISS, including ammonia leaks)'],
   polvo: ['LUNAR DUST · Artemis-style cleaning', 'Apollo: lunar dust irritated eyes and lungs; NASA treats it as a major risk for Artemis'],
@@ -191,3 +192,43 @@ const EN_MANT = {
   mant_comida: ['MAINTENANCE · food', ['Check the water and light for the plants', 'Harvest what is ready', 'Store the rations in the pantry'], 'Growing food in space is real (Veggie on the ISS), but these steps are game steps'],
 };
 for (const [k, [t, st, f]] of Object.entries(EN_MANT)) { if (PROTOCOLS[k]) { PROTOCOLS[k].titleEn = t; PROTOCOLS[k].stepsEn = st; } if (PROTO_FUENTE[k]) PROTO_FUENTE[k].fuenteEn = f; }
+
+// ---------- Inglés de peligros, objetos y protocolos (solo presentación). Se publican como propiedades con getter. ----------
+const enGetter = (obj, prop, en) => { if (!obj || en == null) return; const es = obj[prop]; Object.defineProperty(obj, prop, { get: () => T(es, en), enumerable: true, configurable: true }); };
+const EN_HAZ = {
+  fuego: ['FIRE'], amoniaco: ['AMMONIA LEAK'], chatarra: ['LOOSE SCRAP'], fuga: ['DEPRESSURIZATION'], radiacion: ['SOLAR STORM', 'Solar particles in 20 s! Run to the RADIATION SHELTER.'],
+  polvo: ['DUST WHIRL'], rover: ['RUNAWAY ROVER'], grieta: ['QUAKE CRACK'], frio: ['COLD OF THE LUNAR NIGHT'], diablo: ['DUST DEVIL'], plaga: ['GREENHOUSE PEST'], perclorato: ['TOXIC PERCHLORATE'],
+  robot: ['FAULTY MAINTENANCE ROBOT'], cazador: ['HUNTER DRONE', null, 'It tracks you for 8 s even if it does not see you. Inhibit it (Q) or get into a duct.'], perro: ['CARGO ROBOT DOG', null, 'It sniffs out the tools you carry. Leave them in your hiding place.'],
+  robotminero: ['BROKEN MINING ROBOT', null, 'Metal attracts it: if you carry tools, it smells them.'], fuego0g: ['FIRE IN ZERO GRAVITY'], llamarada: ['SOLAR FLARE', 'Solar flare: particles in 30 s! Everyone to the shelter.'],
+  basura: ['ORBITAL DEBRIS', 'Earth Control: orbital debris in 30 s! Everyone to the CENTRAL HUB.'], canadarm: ['RUNAWAY ROBOTIC ARM', null, 'It sweeps the room from side to side: go through the gap.'],
+  hongo: ['MOLD IN THE FILTERS'], meteoritos: ['MICROMETEORITE SHOWER', 'Micrometeorite shower on the surface! If you are outside, dodge the marks.'], camara: ['SELENE CAMERA', 'SELENE installed a new camera.'],
+  apagon: ['BLACKOUT', null, 'ARES cut the power: the hatches will not open without a battery.'], cuarentena: ['QUARANTINE', null, 'Biosecurity sealed the room. Only through the ducts.'], mutacion: ['MUTANT PLANTS'],
+  tormenta: ['GLOBAL DUST STORM', 'A global dust storm is approaching. Outside it is deadly; inside the lights go out and the drones see less.'],
+};
+for (const [k, [name, msg, hint]] of Object.entries(EN_HAZ)) { const h = HAZARDS[k]; if (!h) continue; enGetter(h, 'name', name); enGetter(h, 'msg', msg); enGetter(h, 'hint', hint); }
+const EN_ITEMS = {
+  cinta: ['Duct tape'], tela: ['Nomex fabric'], tornillos: ['Screws'], placa: ['Aluminum plate'], cable: ['Cable'], tubo: ['Tube'], chip: ['Chip'], bateria: ['Battery', 'Restores the power of a frozen module.'],
+  filtro: ['Carbon filter'], sellador: ['Sealant'], cartucho: ['CO₂ cartridge'], destornillador: ['Screwdriver', 'Opens duct grates and disarms inhibited robots.'], amarra: ['Tie-down', 'Holds down loose scrap.'],
+  parche: ['Leak patch', 'Seals leaks and repairs suits.'], extintor: ['Extinguisher (PFE)', 'Puts out a fire.'], mascara: ['Mask (PBA)', 'Protects you from ammonia and smoke.'], aspiradora: ['HEPA vacuum', 'Traps lunar dust.'],
+  resina: ['Sealing resin', 'Closes cracks in the floor.'], fungicida: ['Fungicide', 'Stops the greenhouse pest.'], kit: ['Cleaning kit', 'Cleans toxic perchlorate.'], inhibidor: ['Inhibitor', 'Shuts down a drone or robot for 20 s (key Q nearby).'],
+  tarjeta: ['Cloned card', 'Opens the card hatches (AI and airlock).'], llave: ['Undocking key', 'For the return console.'], traje_roto: ['Torn suit', 'Repair it with a patch.'], traje: ['Pressure suit', 'For the return trip (and to go outside).'],
+  codigo: ['Navigation code', 'The return ship asks for it.'], celda: ['Fuel', 'Without it the ship cannot return.'],
+};
+for (const [k, [name, info]] of Object.entries(EN_ITEMS)) { const it = ITEMS[k]; if (!it) continue; enGetter(it, 'name', name); if (info) enGetter(it, 'info', info); }
+const EN_STEPS = {
+  fuego: ['Warn the crew and Houston', 'Put on the oxygen mask (PBA)', 'Shut off the module ventilation', 'Cut the power to the equipment', 'Use the extinguisher (PFE)', 'Measure the air before taking off the mask'],
+  fuga: ['Warn: "Depressurization!"', 'Work out the time left (Tres)', 'Head for the capsule closing hatches', 'Isolate module by module to find the leak', 'Apply the patch', 'Repressurize'],
+  amoniaco: ['Put on the mask (PBA)', 'Close the module hatch', 'Go to the safe segment', 'Shut off the cooling loop', 'Purge the air with the filters', 'Check your skin and eyes'],
+  polvo: ['Close the helmet visor', 'Move sensitive equipment away', 'Turn on the HEPA-filter vacuum', 'Vacuum from top to bottom', 'Store the sealed filter', 'Check the suit seals'],
+  grieta: ['Warn the crew', 'Close the neighboring hatches', 'Measure the module pressure', 'Clean the edge of the crack', 'Apply the resin', 'Wait for it to cure and measure again'],
+  plaga: ['Isolate the greenhouse', 'Put on gloves and mask', 'Remove the sick plants', 'Apply the fungicide', 'Raise ventilation and lower humidity', 'Record everything for Earth'],
+  perclorato: ['Put on gloves and mask', 'Do not eat or drink in the area', 'Vacuum the red dust', 'Clean with the kit', 'Wash your hands and suit', 'Check the drinking water'],
+  hongo: ['Put on gloves and mask', 'Turn off the duct fan', 'Remove the contaminated filter', 'Spray the fungicide', 'Put in a clean filter', 'Turn on and measure the air'],
+  ia: ['Swipe the cloned card', 'Isolate the AI from the vital systems', 'Switch life support to manual', 'Cut the surveillance drones', 'Shut down the core', 'Warn Earth'],
+  desacople: ['Put on the Sokol suit', 'Close the station hatch', 'Check the capsule pressure', 'Turn on the fuel', 'Insert the key and turn the lever', 'Confirm "Undocking!" by radio'],
+  ascenso: ['Connect the suit oxygen', 'Close the module hatch', 'Load the navigation code', 'Pressurize the tanks', 'Release the anchors with the key', 'Start the ascent engine'],
+  mav: ['Connect the suit oxygen', 'Check the ISRU plant fuel', 'Load the navigation code', 'Calculate the window with the ship in orbit', 'Release the anchors with the key', 'Start the engines'],
+};
+for (const [k, steps] of Object.entries(EN_STEPS)) { const p = PROTOCOLS[k]; if (!p) continue; if (p.steps.length !== steps.length) throw new Error('pasos distintos en ' + k); p.stepsEn = steps; }
+const EN_PTITLE = { grieta: 'CRACK · habitat protocol', plaga: 'PEST · greenhouse protocol', hongo: 'MOLD IN THE FILTERS · habitat alert', ia: 'AI SHUTDOWN', desacople: 'MANUAL UNDOCKING · Soyuz', ascenso: 'LIFTOFF · ascent module', mav: 'LIFTOFF · MAV' };
+for (const [k, t] of Object.entries(EN_PTITLE)) if (PROTOCOLS[k]) PROTOCOLS[k].titleEn = t;

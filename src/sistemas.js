@@ -26,8 +26,9 @@ const clamp = (v) => Math.max(0, Math.min(100, v));
 // Sabor y ESCASEZ propios de cada destino (L.sysFlavor en locs.js): textos de las tareas, dosis de radiación y eventos por días.
 // Un evento (p. ej. la noche lunar) cambia el ritmo de un sistema durante varios días: obliga a elegir qué cuidar primero.
 const fl = (s) => s.L.sysFlavor ?? {};
-export const taskName = (s, id) => fl(s).tasks?.[id]?.[0] ?? SYS[id].task;
-export const taskShort = (s, id) => fl(s).tasks?.[id]?.[1] ?? SYS[id].short;
+const TASK_EN = { vida: 'Swap the CO₂ filter', energia: 'Turn the solar panels', rad: 'Check the shielding and the dosimeter', comida: 'Water and harvest the greenhouse' };
+export const taskName = (s, id) => { const t = fl(s).tasks?.[id]; return t ? T(t[0], t[2] ?? t[0]) : T(SYS[id].task, TASK_EN[id]); };
+export const taskShort = (s, id) => { const t = fl(s).tasks?.[id]; return t ? T(t[1], t[3] ?? t[1]) : SYS[id].short; };
 /** Eventos de escasez activos hoy. */
 export const mods = (s) => (fl(s).events ?? []).filter((e) => s.day >= e.from && s.day <= e.to);
 const doseMul = (s) => fl(s).doseMul ?? 1;

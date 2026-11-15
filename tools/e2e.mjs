@@ -344,6 +344,9 @@ try {
     const vit = await pg.textContent('#c-vit'); assert.ok(vit.includes('YOU') && vit.includes('HEALTH') && vit.includes('ENERGY'), `HUD de vitales en inglés: ${vit}`);
     const barra = await pg.textContent('#teclas'); assert.ok(/Craft/.test(barra) && /Threats/.test(barra) && /Upkeep/.test(barra), `botones de paneles en inglés: ${barra}`);
     assert.match(await pg.textContent('#dia'), /DAY 1\/10/); assert.match(await pg.textContent('#t-alerta'), /SURVEILLANCE/);
+    await pg.keyboard.press('Escape'); await pg.waitForSelector('#seguir', { timeout: 2000 }); const paus = await pg.textContent('#ventana');
+    for (const frag of ['PAUSE', 'RESUME', 'SETTINGS', 'SOUND EFFECTS', 'SOFT VISUAL EFFECTS', 'VOLUME', 'HISTORY', 'MAINTENANCE', 'RETURN PLAN']) assert.ok(paus.includes(frag), `la pausa en inglés debe decir "${frag}"`);
+    await pg.click('#seguir'); await pg.waitForFunction(() => document.getElementById('modal').hidden, null, { timeout: 2000 });
     // mantenimiento: mini-protocolo en inglés
     await pg.evaluate(() => { const { s, Sys } = lfr; s.min = 500; s.crew.forEach((q) => { q.x = 3.5; q.y = 3.5; q.goal = null; q.path = null; }); const o = Sys.station(s, 'vida'); Object.assign(s.p, { x: o.x + 0.5, y: o.y + 0.5, inDuct: false, hidden: null }); s.grace = 9999; });
     await pg.waitForTimeout(200); await pg.keyboard.press('e'); await pg.waitForSelector('#pasos button', { timeout: 3000 });

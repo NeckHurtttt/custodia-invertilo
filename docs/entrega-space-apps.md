@@ -43,7 +43,7 @@ Plain JavaScript (ES modules), HTML/CSS, Canvas 2D and Web Audio (all sounds are
 - **NASA-STD-3001** (Vol. 1): career limit of 600 mSv and the limit of 250 mSv per solar particle event (requirement V1 4031).
 - **Measured dose rates:** ISS 0.2–0.5 mSv/day; Mars surface ≈ 0.64 mSv/day and Mars round trip ≈ 660 mSv (Curiosity RAD).
 - **NASA OSDR** studies OSD-342, OSD-417, OSD-340 and OSD-174, as cited summaries with links.
-- **NASA Technical Reports Server:** NTRS 20030053429 (ISS fire detection and suppression), 20220019247 (evolution of ISS emergency response actions) and 20250003954 (ISS ECLSS emergency operations) for the simplified ISS emergency protocols (fire, depressurization, toxic atmosphere). _Not listed here on purpose:_ NTRS 20120002562 is cited in the game for fire, but its record has no abstract and its title is about safety-critical training, so we have not confirmed it supports the fire steps.
+- **NASA Technical Reports Server:** NTRS 20030053429 (ISS fire detection and suppression: PFE extinguisher and PBA breathing apparatus), 20120002562 (how ISS fire response is trained), 20220019247 (evolution of ISS emergency response actions) and 20250003954 (ISS ECLSS emergency operations) for the simplified ISS emergency protocols (fire, depressurization, toxic atmosphere). We read the full text of 20030053429 and 20120002562 for the fire steps; for the other two we checked the record title and abstract.
 
 ## Space agency partner data
 Chang'e-4 Lunar Lander Neutrons and Dosimetry (LND) published Moon surface dose (≈ 1.4 mSv/day; CNSA mission, Zhang et al., Science Advances, 2020). JAXA hair-follicle study via OSDR (OSD-174).
