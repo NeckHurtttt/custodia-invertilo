@@ -798,6 +798,12 @@ html body.telefono .hud-izq .vr .val { margin-left: auto; }
 html body.telefono .hud-izq .vr:not(.est-ok) { background: rgba(255,90,90,.12); }
 html body.telefono .hud-centro { top: 6px; }
 html body.telefono .tactil .acciones #t-menu { display: none !important; }
+/* ---- Teléfono con el mapa abierto: el mapa ocupa todo; nada fijo a la vista (USAR, joystick, ⏸, tabla, mochila);
+   los avisos van en una columna a la izquierda, con el texto completo. Tocar en cualquier parte cierra el mapa. ---- */
+html body.telefono.mapa-on .barra, html body.telefono.mapa-on #tactil, html body.telefono.mapa-on #joy, html body.telefono.mapa-on .hud-inv, html body.telefono.mapa-on .hud-izq { visibility: hidden !important; }
+html body.telefono.mapa-on .hud-centro { visibility: visible !important; left: 6px; top: 8px; transform: none; width: min(224px, calc(28vw - 12px)); max-height: calc(100vh - 140px); font-size: 11px; }
+html body.telefono.mapa-on .hud-centro .avisos li span { white-space: normal; }
+html body.telefono.mapa-on #actividad { white-space: normal; flex-wrap: wrap; }
 /* ---- Rueda de acciones (body.rueda-on = teléfono, o tablet con la opción RUEDA DE ACCIONES): queda USAR; ---- */
 /* ---- Solo TELÉFONO (body.telefono): quedan USAR y ☰ ATAJOS; el resto va en ruedas (mantener USAR 2 s / tocar ☰). Tablet y PC no cambian ---- */
 .tactil .acciones #t-menu { display: none; }

@@ -579,7 +579,10 @@ function minimap() {
 let mapaOn = false;
 function alternaMapa(on = !mapaOn) { mapaOn = !!on && !!s; document.body.classList.toggle('mapa-on', mapaOn); $('btn-mapa')?.classList.toggle('sel', mapaOn); $('t-m')?.classList.toggle('sel', mapaOn); }
 function mapaCompleto(t) {
-  const L = s.L; const tact = !$('tactil').hidden; const g = UI.geomMapa(cv.width, cv.height, L.W, L.H, tact ? 100 : 66, tact ? 300 : 50); const k = g.k, ox = g.ox, oy = g.oy;
+  const L = s.L; const tact = !$('tactil').hidden; const tel = document.body.classList.contains('telefono');
+  // teléfono: el mapa ocupa todo, salvo una columna a la izquierda para los avisos y la leyenda (los botones se esconden)
+  const izq = tel ? Math.min(230, Math.round(cv.width * 0.28)) : 0;
+  const g = tel ? UI.geomMapa(cv.width, cv.height, L.W, L.H, 30, 8, izq) : UI.geomMapa(cv.width, cv.height, L.W, L.H, tact ? 100 : 66, tact ? 300 : 50); const k = g.k, ox = g.ox, oy = g.oy;
   R(cx, 'rgba(4,6,12,.94)', 0, 0, cv.width, cv.height);
   const goal = G.block(s).room; const aqui = G.playerRoom(s);
   const urg = new Set(); if (s.vil?.mission) urg.add(s.vil.mission.room);
@@ -614,11 +617,17 @@ function mapaCompleto(t) {
   cx.font = '24px VT323'; cx.fillStyle = '#dfe8ff'; cx.textBaseline = 'alphabetic';
   const gr = L.rooms.find((r) => r.id === goal);
   const t1 = T('MAPA DE LA BASE', 'BASE MAP'), t2 = T(`estás en ${aqui ? G.roomName(s, aqui) : 'un pasillo'}`, `you are in ${aqui ? G.roomName(s, aqui) : 'a corridor'}`) + (gr ? T(` · objetivo: ${G.roomName(s, goal)}`, ` · goal: ${G.roomName(s, goal)}`) : '');
-  if (cx.measureText(`${t1} · ${t2}`).width < cv.width - 20) cx.fillText(`${t1} · ${t2}`, cv.width / 2, oy - 14);
+  if (tel) { const mx = ox + g.w / 2; cx.font = '17px VT323'; let tt = `${t1} · ${t2}`; while (cx.measureText(tt).width > g.w && tt.length > 8) tt = tt.slice(0, -2); cx.fillText(tt === `${t1} · ${t2}` ? tt : tt + '…', mx, 20); }
+  else if (cx.measureText(`${t1} · ${t2}`).width < cv.width - 20) cx.fillText(`${t1} · ${t2}`, cv.width / 2, oy - 14);
   else { cx.fillText(t1, cv.width / 2, oy - 34); cx.font = '18px VT323'; cx.fillStyle = '#9fd4ff'; cx.fillText(t2, cv.width / 2, oy - 12); }
   // leyenda: cada color con su cuadrito (el significado también va escrito, no depende solo del color)
   cx.font = '17px VT323'; cx.textAlign = 'left';
-  const ley = [['#5ff6ff', T('tú', 'you')], ['#ffc23d', T('objetivo / tareas', 'goal / tasks')], ['#ff3b3b', T('emergencia o te persiguen', 'emergency or chasing you')], ['#d08aff', T('amenazas', 'threats')], ['#4a1c1c', T('zona prohibida', 'restricted')], [null, T('Tab o tocar para cerrar', 'Tab or tap to close')]];
+  const ley = [['#5ff6ff', T('tú', 'you')], ['#ffc23d', T('objetivo / tareas', 'goal / tasks')], ['#ff3b3b', T('emergencia o te persiguen', 'emergency or chasing you')], ['#d08aff', T('amenazas', 'threats')], ['#4a1c1c', T('zona prohibida', 'restricted')], [null, tel ? T('Toca para cerrar', 'Tap to close') : T('Tab o tocar para cerrar', 'Tab or tap to close')]];
+  if (tel) { // teléfono: leyenda en la columna izquierda, de abajo hacia arriba
+    cx.font = '14px VT323'; let ly = cv.height - 10;
+    for (const [c, x] of [...ley].reverse()) { const lx = 10; if (c) R(cx, c, lx, ly - 10, 10, 10); cx.fillStyle = c ? '#c8d2ea' : '#8a96b4'; cx.fillText(x, lx + (c ? 15 : 0), ly); ly -= 17; }
+    cx.textAlign = 'center'; cx.textBaseline = 'alphabetic'; return;
+  }
   const anchoDe = ([c, x]) => cx.measureText(x).width + (c ? 18 : 0) + 22;
   const filasL = [[]]; let acc = 0; for (const it of ley) { const a = anchoDe(it); if (acc + a > cv.width - 16 && filasL.at(-1).length) { filasL.push([]); acc = 0; } filasL.at(-1).push(it); acc += a; }
   let ly = oy + g.h + 26;
