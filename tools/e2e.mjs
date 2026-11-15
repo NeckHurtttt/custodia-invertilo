@@ -317,7 +317,7 @@ try {
     await pg.screenshot({ path: join(salida, `7-${nombre}-juego.png`) });
     await pg.keyboard.press('1'); await pg.click('#btn-menu'); await pg.waitForSelector('#seguir', { timeout: 2000 });
     assert.ok(await dentro('#seguir'), `${nombre}: SEGUIR se ve sin hacer scroll`); await pg.screenshot({ path: join(salida, `7-${nombre}-pausa.png`) });
-    const sw = await pg.evaluate(() => [...document.querySelectorAll('#ventana .sw')].map((e) => e.getBoundingClientRect().height)); assert.ok(sw.length === 4 && sw.every((h) => h >= 43.5), `${nombre}: 4 interruptores de pausa con altura táctil (${sw})`);
+    const sw = await pg.evaluate(() => [...document.querySelectorAll('#ventana .sw')].map((e) => e.getBoundingClientRect().height)); assert.ok(sw.length >= 4 && sw.every((h) => h >= 43.5), `${nombre}: 4 (o 5, con la voz) interruptores de pausa con altura táctil (${sw})`);
     await pg.click('#seguir'); await c.close();
   }
   ok('responsive (1024×600 y 375×812 táctil): JUGAR visible, HUD dentro de la ventana, nada tapa al jugador, botones táctiles ≥ 44 px, pausa completa');
@@ -413,7 +413,7 @@ try {
     pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource|ERR_INTERNET_DISCONNECTED/.test(m.text() + m.location().url)) problemas.push(`sin internet: consola: ${m.text()}`); });
     await pg.goto(`${url}?sw`); await pg.waitForSelector('#t-jugar', { timeout: 10000 });
     await pg.waitForFunction(() => /Listo para jugar sin internet/.test(document.getElementById('t-offline')?.textContent ?? ''), null, { timeout: 20000 });
-    const guardados = await pg.evaluate(async () => (await (await caches.open('custodia-v1')).keys()).length); assert.ok(guardados >= 30, `el service worker guardó ${guardados} archivos (esperaba ≥ 30)`);
+    const guardados = await pg.evaluate(async () => { const [nombre] = (await caches.keys()).filter((k) => k.startsWith('custodia-')); return nombre ? (await (await caches.open(nombre)).keys()).length : 0; }); assert.ok(guardados >= 30, `el service worker guardó ${guardados} archivos (esperaba ≥ 30)`);
     await c.setOffline(true); await pg.reload(); await pg.waitForSelector('#t-jugar', { timeout: 10000 });
     assert.ok((await pg.textContent('#ventana')).includes('CUSTODIA'), 'sin internet carga el título');
     await pg.click('#t-datos'); await pg.waitForSelector('.term'); await pg.fill('#term-cmd', 'clima'); await pg.keyboard.press('Enter');
@@ -424,6 +424,34 @@ try {
     await c.setOffline(false); await c.close();
   }
   ok('sin internet: el service worker guarda el juego (≥ 30 archivos), con la red cortada la página recarga, se puede jugar y DATOS NASA usa las llamaradas archivadas');
+
+  // 10d. Leer en voz alta (con una síntesis de voz simulada para poder comprobar qué se lee): botón LEER/PARAR, idioma, ajuste automático y avisos importantes.
+  {
+    const c = await navegador.newContext({ viewport: { width: 1280, height: 760 } }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`voz: error de JavaScript: ${e.message}`));
+    pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`voz: consola: ${m.text()}`); });
+    await pg.addInitScript(() => {
+      window.__voz = []; window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+      const s = { speaking: false, speak(u) { window.__voz.push({ text: u.text, lang: u.lang, rate: u.rate, voz: u.voice?.name ?? null }); this.ultima = u; }, cancel() { this.ultima = null; window.__vozCancel = (window.__vozCancel ?? 0) + 1; }, getVoices: () => [{ name: 'Voz es', lang: 'es-ES', localService: true }, { name: 'Voice en', lang: 'en-US', localService: true }] };
+      Object.defineProperty(window, 'speechSynthesis', { value: s, configurable: true });
+    });
+    await pg.goto(`${url}?noboot`); await pg.waitForSelector('#t-jugar'); assert.equal(await pg.locator('.btn-leer').count(), 0, 'el título no lleva botón de leer');
+    await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); assert.equal(await pg.locator('.btn-leer').count(), 1, 'la intro trae el botón LEER');
+    await pg.click('.btn-leer'); const l1 = await pg.evaluate(() => window.__voz.at(-1)); assert.ok(l1 && /La Tierra perdió la señal/.test(l1.text), `lee la intro (dijo: ${JSON.stringify(l1)})`);
+    assert.equal(l1.lang, 'es-ES'); assert.equal(l1.voz, 'Voz es'); assert.ok(!/EMPEZAR|CONTROLES|<|undefined/.test(l1.text), `no lee botones ni etiquetas: ${l1.text.slice(0, 120)}`);
+    assert.match(await pg.textContent('.btn-leer'), /PARAR/); await pg.click('.btn-leer'); assert.match(await pg.textContent('.btn-leer'), /LEER/); assert.ok(await pg.evaluate(() => window.__vozCancel >= 1), 'PARAR cancela la voz');
+    // ajuste: leer solo (ventanas importantes y avisos)
+    await pg.click('#ok'); await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden); await pg.keyboard.press('Escape'); await pg.waitForSelector('#sw-voz'); await pg.click('#sw-voz');
+    assert.equal(await pg.evaluate(() => localStorage.getItem('lfr.voz')), '1'); await pg.click('#seguir'); await pg.waitForFunction(() => document.getElementById('modal').hidden);
+    const n0 = await pg.evaluate(() => window.__voz.length); await pg.evaluate(() => { const { s, G } = lfr; s.grace = 9999; G.say(s, '¡Alerta de prueba: fuga en el módulo!', 'bad'); G.say(s, 'Dato de relleno', 'info'); });
+    await pg.waitForFunction((n) => window.__voz.length > n, n0, { timeout: 3000 }); const hablados = await pg.evaluate((n) => window.__voz.slice(n).map((x) => x.text), n0);
+    assert.ok(hablados.some((t) => /Alerta de prueba/.test(t)), 'los avisos importantes se leen solos'); assert.ok(!hablados.some((t) => /relleno/.test(t)), 'los avisos menores no');
+    // en inglés la voz y el botón cambian
+    await pg.evaluate(() => { localStorage.setItem('lfr.lang', 'en'); }); await pg.goto(`${url}?noboot&lang=en`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok');
+    await pg.waitForFunction(() => window.__voz.some((x) => x.lang === 'en-US' && /Earth lost the signal/.test(x.text)), null, { timeout: 3000 }); // con el ajuste activo la intro se lee sola
+    assert.match(await pg.textContent('.btn-leer'), /STOP|READ/); await c.close();
+  }
+  ok('leer en voz alta: botón LEER/PARAR en las ventanas (no en el título), lee sin botones ni etiquetas con la voz del idioma, el ajuste lee solo la intro y los avisos importantes, y en inglés usa la voz en-US');
 
   // 11. Reto del día con la llamarada real del día: la intro la anuncia, llega a la hora marcada y el resumen cuenta qué pasó.
   {

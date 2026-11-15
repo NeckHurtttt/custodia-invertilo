@@ -10,6 +10,7 @@ import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang } from './i18n.js';
 import { ficha } from './personajes.js';
 import * as Quiz from './quiz.js';
+import * as Voz from './voz.js';
 import { arranqueDebe, arranqueLineas, consejo, comandoDatos, SECCIONES_DATOS, nombreSeccion } from './inicio.js';
 // Idioma (ES por defecto; EN con ?lang=en, ?en o el selector del título). Solo presentación.
 try { setLang(pickLang(location.search, localStorage.getItem('lfr.lang'))); document.documentElement.lang = getLang(); } catch { /* sin almacenamiento */ }
@@ -18,7 +19,7 @@ const idiomaHTML = () => `<div class="idioma" role="group" aria-label="Language 
 const HUD_TXT = [['#c-vit h3', 'TÚ', 'YOU'], ['#ov-sis h3', 'SISTEMAS DE LA BASE', 'BASE SYSTEMS'], ['.hud-crew h3', 'TRIPULACIÓN', 'CREW'], ['.hud-inv h3.cap', 'MOCHILA', 'BACKPACK'], ['#btn-mochila', 'Mochila', 'Backpack'], ['#btn-fabricar', 'Fabricar', 'Craft'], ['#btn-usar', 'Inhibir', 'Inhibit'],
   ['[data-panel="mant"]', 'Mantenim.', 'Upkeep'], ['[data-panel="plan"]', 'Plan', 'Plan'], ['[data-panel="amen"]', 'Amenazas', 'Threats'], ['[data-panel="reg"]', 'Avisos', 'Alerts'], ['#btn-nombres', 'Nombres', 'Names'], ['#btn-menu .txt', 'PAUSA', 'PAUSE']];
 const aplicaIdioma = () => { for (const [sel, es, en] of HUD_TXT) { const el = document.querySelector(sel); if (!el) continue; for (const n of el.childNodes) if (n.nodeType === 3 && [es, en].includes(n.nodeValue.trim())) n.nodeValue = n.nodeValue.replace(/\S(.*\S)?/, T(es, en)); } };
-const cambiaIdioma = (l, volver) => { setLang(l); try { localStorage.setItem('lfr.lang', l); } catch { /* nada */ } document.documentElement.lang = l; aplicaIdioma(); volver(); };
+const cambiaIdioma = (l, volver) => { setLang(l); try { localStorage.setItem('lfr.lang', l); } catch { /* nada */ } document.documentElement.lang = l; aplicaIdioma(); Voz.parar(); volver(); };
 aplicaIdioma();
 import { VILLAINS } from './villains.js';
 import * as M from './music.js';
@@ -691,7 +692,7 @@ function toasts() {
     if ((l.id ?? 0) <= seenLog) continue; seenLog = l.id;
     const r = admite(vivos, l, { emergencia });
     for (const id of r.quitar) { const v = vivos.find((x) => x.id === id); if (v) quitaAviso(v); }
-    if (!r.mostrar) continue;
+    if (!r.mostrar) continue; if (vozAuto() && ['bad', 'ia', 'warn'].includes(l.kind)) Voz.hablar(l.text, { prio: l.kind === 'warn' ? 'baja' : 'alta' });
     const li = document.createElement('li'); li.className = l.kind; li.innerHTML = `${ic(KIND_IC[l.kind] ?? 'info')}<span>${l.text}</span>`; ul.appendChild(li);
     const v = { id: l.id, kind: l.kind, text: l.text, li }; v.timer = setTimeout(() => quitaAviso(v), TTL[l.kind] ?? 3000); vivos.push(v);
   }
@@ -713,8 +714,8 @@ const ICON = {
 function icon(id) { const [c, d] = ICON[id] ?? ['#fff', 'M4 4h8v8H4z']; return `<svg viewBox="0 0 16 16" width="22" height="22" shape-rendering="crispEdges"><path d="${d}" fill="${c}" stroke="${c}" stroke-width=".5"/></svg>`; }
 
 // ---------- ventanas ----------
-function open(html, cls = '') { $('modal').className = `modal ${cls}`.trim(); $('ventana').innerHTML = html; $('modal').hidden = false; $('ventana').scrollTop = 0; $('modal').scrollTop = 0; M.ui('abrir'); }
-function close() { if (!$('modal').hidden) M.ui('cerrar'); $('modal').hidden = true; menu = null; document.body.classList.remove('sin-juego'); }
+function open(html, cls = '') { $('modal').className = `modal ${cls}`.trim(); $('ventana').innerHTML = html; $('modal').hidden = false; $('ventana').scrollTop = 0; $('modal').scrollTop = 0; M.ui('abrir'); ponBotonLeer(); }
+function close() { Voz.parar(); if (!$('modal').hidden) M.ui('cerrar'); $('modal').hidden = true; menu = null; document.body.classList.remove('sin-juego'); }
 
 /** Interruptor accesible (role=switch): ícono + etiqueta + palanca + SÍ/NO. El estado se lee y se ve, no depende solo del color. */
 function interruptor(id, icono, etiqueta, activo, pista = '', extra = '') {
@@ -726,6 +727,7 @@ const AJ = {
   musica: { id: 'sw-musica', ico: 'musica', get txt() { return T('MÚSICA', 'MUSIC'); }, get pista() { return T('Tecla M', 'Key M'); }, get: () => M.on(), set: () => { M.toggle(); if (M.on()) M.ui('ok'); } },
   sfx: { id: 'sw-sfx', ico: 'sfx', get txt() { return T('EFECTOS DE SONIDO', 'SOUND EFFECTS'); }, get pista() { return T('Pasos, alarmas y avisos', 'Steps, alarms and alerts'); }, get: () => M.sfxOn(), set: () => M.toggleSfx() },
   suave: { id: 'sw-suave', ico: 'suave', get txt() { return T('EFECTOS VISUALES SUAVES', 'SOFT VISUAL EFFECTS'); }, get pista() { return T('Sin sacudidas ni destellos', 'No shaking or flashes'); }, get: () => FX.suave(), set: () => FX.toggleFx() },
+  voz: { id: 'sw-voz', ico: 'sfx', get txt() { return T('LEER EN VOZ ALTA', 'READ ALOUD'); }, get pista() { return T('Lee las ventanas y los avisos importantes', 'Reads windows and important alerts'); }, get: () => vozAuto(), set: () => { alternaVoz(); } },
   nombres: { id: 'sw-nombres', ico: 'nombres', get txt() { return T('NOMBRES DE OBJETOS', 'OBJECT NAMES'); }, get pista() { return T('Tecla N', 'Key N'); }, get: () => vista.nombres, set: () => alternaNombres() },
 };
 const ajustesHTML = (claves) => claves.map((k) => interruptor(AJ[k].id, AJ[k].ico, AJ[k].txt, AJ[k].get(), AJ[k].pista)).join('');
@@ -767,7 +769,7 @@ function titleScreen() {
     <details class="mas" id="t-mas" ${masAbierto ? 'open' : ''}><summary>${T(`MÁS OPCIONES · modo de juego, personaje, sonido y vista`, `MORE OPTIONS · game mode, character, sound and view`)}</summary>
       <div class="bloque-op">${T(`<span class="lbl">MODO</span>`, `<span class="lbl">MODE</span>`)}<div class="seg">${[['campana', T('CAMPAÑA · 10 días', 'CAMPAIGN · 10 days')], ['noche', T('UNA NOCHE · 7 min', 'ONE NIGHT · 7 min')]].map(([k, n]) => `<button data-modo="${k}" class="${k === mode ? 'on' : ''}">${n}</button>`).join('')}</div></div>
       <div class="bloque-op">${T(`<span class="lbl">PERSONAJE</span>`, `<span class="lbl">CHARACTER</span>`)}<div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${ds(d)}">${nm(d).toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${ds(d)}">${ic('info')} ${nm(d).toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${ds(PERKS[perk])}</small></div>
-      <div class="bloque-op">${ajustesHTML(['musica', 'sfx', 'suave'])}</div>
+      <div class="bloque-op">${ajustesHTML(conVoz(['musica', 'sfx', 'suave']))}</div>
     </details>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
     <p class="offline" id="t-offline" hidden></p>
@@ -775,7 +777,7 @@ function titleScreen() {
   </div>`, 'pant-titulo');
   const V = $('ventana');
   $('t-mas').ontoggle = () => { masAbierto = $('t-mas').open; };
-  cableaAjustes(['musica', 'sfx', 'suave']);
+  cableaAjustes(conVoz(['musica', 'sfx', 'suave']));
   $('t-coop').onclick = () => coopUI.roles();
   $('t-datos').onclick = () => datos(titleScreen);
   V.querySelectorAll('[data-lang]').forEach((b) => (b.onclick = () => cambiaIdioma(b.dataset.lang, titleScreen)));
@@ -1150,14 +1152,14 @@ function pausa() {
   open(`<h2>${ic('pausa', 'g')} ${T('PAUSA', 'PAUSE')}</h2>
     <div class="pausa-cab"><button id="seguir" class="grande">${ic('jugar')} ${T('SEGUIR', 'RESUME')} <kbd>Esc</kbd></button><button id="ay" class="sec">${ic('ayuda')} ${T('AYUDA', 'HELP')}</button><button id="salir" class="sec">${ic('menu')} ${T('SALIR AL MENÚ (se guarda)', 'EXIT TO MENU (saved)')}</button></div>
     <h3>${T('AJUSTES', 'SETTINGS')}</h3>
-    <div class="ajustes">${ajustesHTML(['musica', 'sfx', 'suave', 'nombres'])}
+    <div class="ajustes">${ajustesHTML(conVoz(['musica', 'sfx', 'suave', 'nombres']))}
       <div class="vol"><span class="lbl">${T('VOLUMEN', 'VOLUME')}</span><button id="vmenos" aria-label="${T('Bajar volumen', 'Lower volume')}">−</button><span id="vol">${Math.round(M.volume() * 100)} %</span><button id="vmas" aria-label="${T('Subir volumen', 'Raise volume')}">+</button></div>
       <p class="nota-aj">${T('Los efectos visuales suaves quitan sacudidas y destellos (útil si te mareas o te cansa la vista).', 'Soft visual effects remove shaking and flashes (useful if you feel dizzy or your eyes get tired).')}</p></div>
     <div class="pestanas"><button data-t="reg">${T('HISTORIAL', 'HISTORY')}</button><button data-t="mant">${T('MANTENIMIENTO', 'MAINTENANCE')}</button><button data-t="plan">${T('PLAN DE REGRESO', 'RETURN PLAN')}</button><button data-t="amen">${T('AMENAZAS', 'THREATS')}</button><button data-t="crew">${T('TRIPULACIÓN', 'CREW')}</button></div><ul id="pest" class="log pest"></ul>`);
   menu = 'pausa';
   const tab = (t) => { $('pest').innerHTML = { reg: () => logHTML(50), mant: mantHTML, plan: planHTML, amen: amenazasHTML, crew: crewFichas }[t](); $('pest').className = (t === 'reg' ? 'log' : 'plan') + ' pest'; $('ventana').querySelectorAll('.pestanas button').forEach((x) => x.classList.toggle('sel', x.dataset.t === t)); };
   $('ventana').querySelectorAll('.pestanas button').forEach((x) => (x.onclick = () => tab(x.dataset.t))); tab('reg');
-  cableaAjustes(['musica', 'sfx', 'suave', 'nombres']);
+  cableaAjustes(conVoz(['musica', 'sfx', 'suave', 'nombres']));
   $('vmenos').onclick = () => { $('vol').textContent = Math.round(M.volume(-0.25) * 100) + ' %'; }; $('vmas').onclick = () => { $('vol').textContent = Math.round(M.volume(0.25) * 100) + ' %'; };
   $('seguir').onclick = close; $('ay').onclick = () => help(pausa); $('salir').onclick = () => { save(); titleScreen(); };
 }
@@ -1261,6 +1263,27 @@ function registraOffline() {
 }
 addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); instalarEv = e; pintaOffline(); });
 addEventListener('appinstalled', () => { instalarEv = null; pintaOffline(); });
+// ---------- leer en voz alta (voz del navegador, ver voz.js) ----------
+// Botón 🔊 LEER en cada ventana; el ajuste «LEER EN VOZ ALTA» lee solo la intro, la tormenta y el final, y los avisos importantes.
+const vozAuto = () => { try { return localStorage.getItem('lfr.voz') === '1'; } catch { return false; } };
+const alternaVoz = () => { const v = !vozAuto(); try { localStorage.setItem('lfr.voz', v ? '1' : '0'); } catch { /* nada */ } if (!v) Voz.parar(); return v; };
+const conVoz = (lista) => (Voz.disponible() ? [...lista, 'voz'] : lista);
+const MENUS_SIN_VOZ = ['titulo', 'protocolo', 'codigo', 'cables', 'respira']; // el título son botones y el resto son minijuegos: no se leen
+/** Texto de la ventana abierta, sin botones ni cosas ocultas (por ejemplo, las secciones cerradas de DATOS NASA). */
+function textoVentana() {
+  const c = $('ventana').cloneNode(true);
+  c.querySelectorAll('button, kbd, svg, input, textarea, script, style, [hidden], .btn-leer, .term-cmds, .term-in').forEach((x) => x.remove());
+  return Voz.limpiaTexto(c.innerHTML);
+}
+function ponBotonLeer() {
+  Voz.parar();
+  if (!Voz.disponible() || MENUS_SIN_VOZ.includes(menu)) return;
+  const v = $('ventana'); const b = document.createElement('button'); b.type = 'button'; b.className = 'btn-leer'; b.setAttribute('aria-label', T('Leer en voz alta', 'Read aloud'));
+  const pinta = (habla) => { b.innerHTML = habla ? `⏹ ${T('PARAR', 'STOP')}` : `🔊 ${T('LEER', 'READ')}`; b.setAttribute('aria-pressed', String(habla)); }; pinta(false);
+  b.onclick = () => { if (Voz.estaHablando()) Voz.parar(); else Voz.hablar(textoVentana()); };
+  Voz.alCambiar(pinta); v.prepend(b);
+  if (vozAuto() && ['intro', 'tormenta', 'fin'].includes(menu)) setTimeout(() => { if (!$('modal').hidden && v.contains(b)) Voz.hablar(textoVentana()); }, 350);
+}
 /**
  * Arranque dramático «CUSTODIA OS» (una vez por sesión; ?boot lo fuerza, ?noboot o ?jurado lo quitan; nunca en pruebas automáticas).
  * Pantalla negra → una tecla enciende (y desbloquea el audio) → texto que se escribe, una sacudida breve en «SEÑAL PERDIDA» y la IA que habla →

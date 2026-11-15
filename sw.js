@@ -3,7 +3,7 @@
 //  · Después usa «red primero»: si hay conexión siempre baja la versión más nueva (y la guarda); si no hay red, o la red tarda más de 4 s, usa lo guardado.
 //  · Solo toca archivos de esta misma página. NASA DONKI, el servidor del cooperativo (la ruta /coop/…, no el archivo src/coop.js) y todo lo de otros sitios siguen yendo por la red.
 // Si se agrega o quita un archivo del juego: actualizar PRECACHE (tests/offline.test.js lo comprueba) y subir el número de VERSION.
-const VERSION = 'custodia-v1';
+const VERSION = 'custodia-v2';
 const PRECACHE = [
   './',
   'index.html',
@@ -36,6 +36,7 @@ const PRECACHE = [
   'src/story.js',
   'src/ui.js',
   'src/villains.js',
+  'src/voz.js',
 ];
 const INICIO = new URL('./', self.registration.scope).href;
 
