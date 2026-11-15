@@ -551,8 +551,10 @@ function arrowToGoal(t) {
   cx.font = '14px VT323'; cx.fillStyle = tg.c1; cx.textAlign = 'center'; cx.globalAlpha = 1; cx.fillText(tg.label, ex - Math.cos(a) * 30, ey - Math.sin(a) * 22);
 }
 
+/** Teléfono: sin barra de arriba, el minimapa sube a la esquina. */
+function miniG(g) { if (document.body.classList.contains('telefono')) g.oy = 8; return g; }
 function minimap() {
-  const L = s.L; const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height); const k = g.k; const mw = g.w, mh = g.h; const ox = cv.width - mw - g.borde, oy = g.oy;
+  const L = s.L; const g = miniG(UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height)); const k = g.k; const mw = g.w, mh = g.h; const ox = cv.width - mw - g.borde, oy = g.oy;
   R(cx, 'rgba(0,0,0,.6)', ox - 3, oy - 3, mw + 6, mh + 6); cx.strokeStyle = '#33405e'; cx.strokeRect(ox - 3.5, oy - 3.5, mw + 7, mh + 7);
   const goal = G.block(s).room;
   for (let y = 0; y < L.H; y++) for (let x = 0; x < L.W; x++) {
@@ -741,7 +743,7 @@ function hud() {
   const th = amenazasHTML();
   if ($('amenazas').dataset.h !== th) { $('amenazas').innerHTML = th; $('amenazas').dataset.h = th; }
   if (!$('c-reg').hidden) { const html = logHTML(8); if ($('log').dataset.h !== html) { $('log').innerHTML = html; $('log').dataset.h = html; } }
-  { const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
+  { const g = miniG(UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height)); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
   toasts(); paneles();
 }
 /** Retrato de un compañero (el mismo dibujo del mapa, de frente): una imagen chica por personaje y ánimo, guardada para no dibujarla cada vez. */
@@ -1577,7 +1579,9 @@ function ruedaMarca(e) { // con el dedo aún apoyado: resalta la opción que est
   rueda.querySelectorAll('.r-op').forEach((b) => b.classList.toggle('apunta', b === el)); ruedaSel = el ? +el.dataset.i : null;
 }
 const opDe = (id) => { const b = $(id); return { html: b.innerHTML, sel: b.classList.contains('sel'), run: () => b.click() }; };
-const opsAcciones = () => RUEDA_ACC.map(opDe);
+// Teléfono sin ☰: FABRICAR entra a la rueda de USAR (los paneles 1-4 y Nombres están en la pausa)
+const opFabricar = () => ({ html: `<b>🔧</b><small>${T('FABRICAR', 'CRAFT')}</small>`, sel: false, run: () => $('btn-fabricar').click() });
+const opsAcciones = () => { const o = RUEDA_ACC.map(opDe); if (document.body.classList.contains('telefono')) o.splice(o.length - 1, 0, opFabricar()); return o; };
 const opsAtajos = () => RUEDA_ATAJOS.map(([q, k]) => { const b = q.startsWith('[') ? document.querySelector(`#teclas ${q}`) : $(q); const nom = [...b.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim(); return { html: `<b>${k}</b><small>${nom}</small>`, sel: b.classList.contains('sel'), run: () => b.click() }; });
 /** Botón con toque corto + mantener: corto() al soltar rápido; largo() abre la rueda tras RUEDA_MS (con anillo de carga). */
 function conRueda(btn, corto, ops, ms) {
@@ -1627,7 +1631,7 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
   pant.addEventListener('pointerdown', (e) => {
     if (s && !menu && !e.target.closest('button, input, textarea, a')) {
       if (mapaOn) { alternaMapa(false); return; }
-      const g = UI.geomMinimapa(cv.width, ZOOM, s.L.W, s.L.H, cv.height); const r = cv.getBoundingClientRect(); const mx = (e.clientX - r.left) * (cv.width / r.width), my = (e.clientY - r.top) * (cv.height / r.height);
+      const g = miniG(UI.geomMinimapa(cv.width, ZOOM, s.L.W, s.L.H, cv.height)); const r = cv.getBoundingClientRect(); const mx = (e.clientX - r.left) * (cv.width / r.width), my = (e.clientY - r.top) * (cv.height / r.height);
       if (mx >= cv.width - g.w - g.borde - 6 && my >= g.oy - 6 && my <= g.oy + g.h + 6) { alternaMapa(true); return; }
     }
     if (e.pointerType === 'mouse' || joy.id !== null || menu || !s || vista.cruz || e.target.closest('button, input, textarea, a')) return;
