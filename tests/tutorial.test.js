@@ -42,7 +42,7 @@ test('tutorial: textos en español e inglés, distintos para compu y celular, y 
     assert.ok(es.texto.length <= 230 && en.texto.length <= 250, `${Tu.PASOS[i]}: texto largo`);
     if (['mover', 'usar', 'agachar', 'esconder', 'mapa'].includes(Tu.PASOS[i])) assert.notEqual(es.texto, esT.texto, `${Tu.PASOS[i]}: compu y celular dicen cosas distintas`);
   }
-  assert.match(Tu.texto({ ...tu, i: 0 }, false).texto, /WASD/); assert.match(Tu.texto({ ...tu, i: 0 }, true).texto, /dedo/); assert.match(Tu.texto({ ...tu, i: 4 }, false).texto, /Shift/); assert.match(Tu.texto({ ...tu, i: 4 }, true).texto, /AGACHAR/);
+  assert.match(Tu.texto({ ...tu, i: 0 }, false).texto, /WASD/); assert.match(Tu.texto({ ...tu, i: 0 }, true).texto, /joystick/); assert.match(Tu.texto({ ...tu, i: 4 }, false).texto, /Shift/); assert.match(Tu.texto({ ...tu, i: 4 }, true).texto, /AGACHAR/);
 });
 
 test('tutorial: no gasta el azar ni cambia el estado de la partida (solo lee)', () => {

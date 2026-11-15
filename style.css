@@ -782,6 +782,22 @@ body.mapa-on.tactil-on #btn-mapa { visibility: hidden; }
   body.tactil-on .hud-teclas { top: 108px; }
 }
 body.tactil-on #btn-mapa { display: none; }
+/* ---- Teléfono a pantalla completa: sin barra ni atajos; solo ⏸ + día + hora arriba a la izquierda, los indicadores en una tabla
+   debajo, el minimapa en la esquina y USAR (la rueda trae todo lo demás). Más específico (html body…) para ganar a las reglas de abajo. ---- */
+html body.telefono .barra { right: auto; top: 6px; left: 6px; padding: 0; gap: 4px; background: none; border: 0; font-size: 12px; pointer-events: none; }
+html body.telefono .barra > * { display: none !important; }
+html body.telefono .barra > #btn-menu, html body.telefono .barra > #chip-dia, html body.telefono .barra > .reloj { display: inline-flex !important; pointer-events: auto; }
+html body.telefono .barra > #btn-menu { order: -1; padding: 2px 8px; min-height: 30px; } html body.telefono #btn-menu .txt { display: none; }
+html body.telefono .barra .chip { background: rgba(8,11,18,.72); border: 1px solid rgba(110,130,175,.35); border-radius: 6px; padding: 2px 6px; }
+html body.telefono .barra #ic-dest { display: none; }
+html body.telefono .hud-izq { top: 42px; left: 6px; width: 6.2em; max-width: none; flex-direction: column; flex-wrap: nowrap; gap: 0; padding: 3px 4px;
+  background: rgba(8,11,18,.72); border: 1px solid rgba(110,130,175,.35); border-radius: 8px; font-size: 12px; }
+html body.telefono .hud-izq .vr { border: 0; border-radius: 0; background: none; padding: 2px 2px; justify-content: space-between; border-bottom: 1px solid rgba(110,130,175,.18); }
+html body.telefono .hud-izq .vr:last-child { border-bottom: 0; }
+html body.telefono .hud-izq .vr .val { margin-left: auto; }
+html body.telefono .hud-izq .vr:not(.est-ok) { background: rgba(255,90,90,.12); }
+html body.telefono .hud-centro { top: 6px; }
+html body.telefono .tactil .acciones #t-menu { display: none !important; }
 /* ---- Solo TELÉFONO (body.telefono): quedan USAR y ☰ ATAJOS; el resto va en ruedas (mantener USAR 2 s / tocar ☰). Tablet y PC no cambian ---- */
 .tactil .acciones #t-menu { display: none; }
 body.telefono .hud-teclas { display: none !important; }
