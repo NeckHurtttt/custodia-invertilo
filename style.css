@@ -798,16 +798,23 @@ html body.telefono .hud-izq .vr .val { margin-left: auto; }
 html body.telefono .hud-izq .vr:not(.est-ok) { background: rgba(255,90,90,.12); }
 html body.telefono .hud-centro { top: 6px; }
 html body.telefono .tactil .acciones #t-menu { display: none !important; }
+/* ---- Teléfono con el mapa abierto: el mapa ocupa todo; nada fijo a la vista (USAR, joystick, ⏸, tabla, mochila);
+   los avisos van en una columna a la izquierda, con el texto completo. Tocar en cualquier parte cierra el mapa. ---- */
+html body.telefono.mapa-on .barra, html body.telefono.mapa-on #tactil, html body.telefono.mapa-on #joy, html body.telefono.mapa-on .hud-inv, html body.telefono.mapa-on .hud-izq { visibility: hidden !important; }
+html body.telefono.mapa-on .hud-centro { visibility: visible !important; left: 6px; top: 8px; transform: none; width: min(224px, calc(28vw - 12px)); max-height: calc(100vh - 140px); font-size: 11px; }
+html body.telefono.mapa-on .hud-centro .avisos li span { white-space: normal; }
+html body.telefono.mapa-on #actividad { white-space: normal; flex-wrap: wrap; }
+/* ---- Rueda de acciones (body.rueda-on = teléfono, o tablet con la opción RUEDA DE ACCIONES): queda USAR; ---- */
 /* ---- Solo TELÉFONO (body.telefono): quedan USAR y ☰ ATAJOS; el resto va en ruedas (mantener USAR 2 s / tocar ☰). Tablet y PC no cambian ---- */
 .tactil .acciones #t-menu { display: none; }
 body.telefono .hud-teclas { display: none !important; }
-body.telefono .tactil .acciones { display: flex !important; align-items: flex-end; gap: 10px; }
-body.telefono .tactil .acciones button:not(#t-e):not(#t-menu) { display: none !important; }
-body.telefono .tactil .acciones #t-e { width: 92px !important; height: 92px !important; border-radius: 50%; position: relative; }
-body.telefono .tactil .acciones #t-e b { font-size: 2.6rem; }
+body.rueda-on .tactil .acciones { display: flex !important; align-items: flex-end; gap: 10px; }
+body.rueda-on .tactil .acciones button:not(#t-e):not(#t-menu) { display: none !important; }
+body.rueda-on .tactil .acciones #t-e { width: 92px !important; height: 92px !important; border-radius: 50%; position: relative; }
+body.rueda-on .tactil .acciones #t-e b { font-size: 2.6rem; }
 body.telefono .tactil .acciones #t-menu { display: flex; width: 62px !important; height: 62px !important; border-radius: 50%; }
 body.telefono .tactil .acciones #t-menu b { font-size: 1.6rem; }
-@media (max-height: 520px) and (min-width: 601px) { body.telefono .tactil .acciones #t-e { width: 80px !important; height: 80px !important; } }
+@media (max-height: 520px) and (min-width: 601px) { body.rueda-on .tactil .acciones #t-e { width: 80px !important; height: 80px !important; } }
 /* anillo que se llena mientras mantienes USAR */
 #t-e::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; opacity: 0;
   background: conic-gradient(var(--amber) calc(var(--p, 0) * 1turn), transparent 0); -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%); mask: radial-gradient(circle, transparent 62%, #000 64%); }

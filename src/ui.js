@@ -75,11 +75,12 @@ export function geomMinimapa(ancho, zoom, W, H, alto = 1000) {
   return { k, w: W * k, h: H * k, oy: esAngosta(ancho) ? 52 : 46, borde: 10 };
 }
 /** Mapa completo (tecla Tab o tocar el minimapa): ocupa casi toda la pantalla, centrado, dejando sitio a la leyenda. */
-export function geomMapa(ancho, alto, W, H, arriba = 60, abajo = 50) {
+export function geomMapa(ancho, alto, W, H, arriba = 60, abajo = 50, izq = 0) {
   const libre = alto - arriba - abajo; // alto disponible (abajo deja sitio a la leyenda y, en el teléfono, a los botones)
-  const k = Math.max(3, Math.min((ancho * 0.94) / W, libre / H));
+  const anch = ancho - izq; // izq = columna lateral reservada (teléfono: avisos y leyenda)
+  const k = Math.max(3, Math.min((anch * 0.96) / W, libre / H));
   const w = W * k, h = H * k;
-  return { k, w, h, ox: (ancho - w) / 2, oy: arriba + Math.max(0, (libre - h) / 2) };
+  return { k, w, h, ox: izq + (anch - w) / 2, oy: arriba + Math.max(0, (libre - h) / 2) };
 }
 
 import { T } from './i18n.js';
