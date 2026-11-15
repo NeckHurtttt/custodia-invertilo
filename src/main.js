@@ -31,6 +31,7 @@ import { coopScreens } from './coopui.js';
 import { admite, TTL } from './avisos.js';
 import * as UI from './ui.js';
 import { informe, estadoNivel } from './informe.js';
+import * as Cu from './cuerpos.js';
 const { ic } = UI;
 
 const TS = 16;
@@ -207,39 +208,11 @@ function drawObj(b, o, theme) {
 }
 
 // ---------- personajes ----------
-const SKINS = ['#f1c9a0', '#d9a273', '#a86d45', '#7a4b2e', '#ffdcc0'];
-const HAIRS = ['#2a1a10', '#5a3418', '#c98a3a', '#1a1a22', '#8a2a1a', '#e8d27a'];
-function looks(key) { let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return { skin: SKINS[h % SKINS.length], hair: HAIRS[(h >> 3) % HAIRS.length], pants: ['#2d3a5a', '#3a3a44', '#4a3628', '#25304a'][(h >> 6) % 4], long: (h >> 8) % 2 }; }
-function astro(ctx, x, y, dir, phase, shirt, moving, alpha = 1, key = 'yo', suit = false) {
+/** Astronauta (el dibujo vive en cuerpos.js): oficio a la vista, ojos y boca según el ánimo; `ring` marca al jugador. */
+function astro(ctx, x, y, dir, phase, shirt, moving, alpha = 1, key = 'yo', suit = false, emo = 'normal', ring = false) {
   if (suit) return suitSprite(ctx, x, y, dir, phase, shirt, moving, alpha);
-  ctx.globalAlpha = alpha;
-  const L = looks(key); const O = '#0b0d14';
-  const px = Math.round(x * TS), py = Math.round(y * TS);
   const f = Math.abs(Math.cos(dir)) > Math.abs(Math.sin(dir)) ? (Math.cos(dir) > 0 ? 'r' : 'l') : (Math.sin(dir) > 0 ? 'd' : 'u');
-  const step = moving ? Math.round(Math.sin(phase * 14)) : 0;
-  R(ctx, 'rgba(0,0,0,.3)', px - 5, py + 5, 10, 3);
-  // contorno
-  R(ctx, O, px - 5, py - 13, 10, 9); R(ctx, O, px - 6, py - 5, 12, 9); R(ctx, O, px - 4, py + 2, 8, 6);
-  // piernas y zapatos
-  R(ctx, L.pants, px - 3, py + 2 + Math.max(0, step), 3, 3); R(ctx, L.pants, px, py + 2 + Math.max(0, -step), 3, 3);
-  R(ctx, '#1a1a1f', px - 3, py + 5 + Math.max(0, step), 3, 1); R(ctx, '#1a1a1f', px, py + 5 + Math.max(0, -step), 3, 1);
-  // cuerpo (camiseta del color del personaje) y brazos
-  R(ctx, shirt, px - 4, py - 4, 8, 7);
-  R(ctx, 'rgba(255,255,255,.25)', px - 4, py - 4, 8, 1);
-  if (f === 'l' || f === 'r') { R(ctx, shirt, px - 1, py - 3 + step, 2, 4); R(ctx, L.skin, px - 1, py + 1 + step, 2, 1); }
-  else { R(ctx, shirt, px - 5, py - 3 + step, 1, 4); R(ctx, shirt, px + 4, py - 3 - step, 1, 4); R(ctx, L.skin, px - 5, py + 1 + step, 1, 1); R(ctx, L.skin, px + 4, py + 1 - step, 1, 1); }
-  // cabeza
-  R(ctx, L.skin, px - 4, py - 12, 8, 8);
-  R(ctx, L.hair, px - 4, py - 12, 8, 3);
-  if (f === 'u') R(ctx, L.hair, px - 4, py - 12, 8, 7);
-  if (f === 'l') R(ctx, L.hair, px + 1, py - 12, 3, 6);
-  if (f === 'r') R(ctx, L.hair, px - 4, py - 12, 3, 6);
-  if (L.long && f !== 'u') { R(ctx, L.hair, px - 4, py - 10, 1, 5); R(ctx, L.hair, px + 3, py - 10, 1, 5); }
-  if (L.long && f === 'u') R(ctx, L.hair, px - 4, py - 5, 8, 2);
-  if (f === 'd') { R(ctx, O, px - 2, py - 8, 1, 2); R(ctx, O, px + 1, py - 8, 1, 2); R(ctx, '#e88a8a', px - 3, py - 6, 1, 1); R(ctx, '#e88a8a', px + 2, py - 6, 1, 1); }
-  if (f === 'l') R(ctx, O, px - 3, py - 8, 1, 2);
-  if (f === 'r') R(ctx, O, px + 2, py - 8, 1, 2);
-  ctx.globalAlpha = 1;
+  Cu.dibujaCuerpo(ctx, { x: Math.round(x * TS), y: Math.round(y * TS), f, step: moving ? Math.round(Math.sin(phase * 14)) : 0, key, shirt, moving, alpha, emo, ring, anim: !FX.suave() });
 }
 function suitSprite(ctx, x, y, dir, phase, stripe, moving, alpha = 1) {
   ctx.globalAlpha = alpha;
@@ -342,7 +315,8 @@ function drawFrame(t) {
   }
   if (s.noise) { const k = (t / 400) % 1; cx.strokeStyle = `rgba(255,255,255,${0.5 * (1 - k)})`; cx.lineWidth = 1; cx.beginPath(); cx.arc(s.noise.x * TS, s.noise.y * TS, 4 + k * 30, 0, 7); cx.stroke(); }
   if (s.thrown) { const k = 1 - s.thrown.t / 0.5; R(cx, '#ffc23d', (s.thrown.x0 + (s.thrown.x - s.thrown.x0) * k) * TS - 1, (s.thrown.y0 + (s.thrown.y - s.thrown.y0) * k) * TS - 1 - Math.sin(k * Math.PI) * 10, 3, 3); }
-  for (const c of s.crew) if (vis(c.x, c.y)) astro(cx, c.x, c.y, c.dir, t / 1000, c.color, c.moving, 1, c.name);
+  const miedo = !!G.storm(s) || s.hazards.some((h) => h.def.type !== 'camera' && h.def.type !== 'blackout');
+  for (const c of s.crew) if (vis(c.x, c.y)) { astro(cx, c.x, c.y, c.dir, t / 1000, c.color, c.moving, 1, c.name, false, c.betrayed ? 'enojo' : miedo ? 'miedo' : c.say ? 'habla' : c.trust >= 2 ? 'feliz' : 'normal'); Cu.marca(cx, Math.round(c.x * TS), Math.round(c.y * TS), c.color, !FX.suave()); }
   if (s.vil) for (const w of s.vil.walkers) drawWalker(w, t, vis);
   // vigilancia (conos y drones)
   for (const d of s.drones) {
@@ -364,7 +338,7 @@ function drawFrame(t) {
   // jugador
   const blink = p.hit > 0 && Math.abs(Math.sin(t / 200)) > 0.5; // herido: se atenúa despacio (≈1,6 Hz), no centellea
   if (p.hidden) { cx.font = '9px VT323'; cx.fillStyle = '#9fd4ff'; cx.fillText('(escondido)', p.hidden.x * TS, p.hidden.y * TS - 14); R(cx, '#fff', p.hidden.x * TS - 3, p.hidden.y * TS - 2, 1, 1); R(cx, '#fff', p.hidden.x * TS + 2, p.hidden.y * TS - 2, 1, 1); }
-  else astro(cx, p.x, p.y + (p.crouch ? 0.12 : 0), p.dir, p.walk * (p.crouch ? 0.5 : 1), '#3d7bff', keys.size > 0 || touch.dx || touch.dy, p.inDuct ? 0.5 : blink ? 0.35 : p.crouch ? 0.8 : 1, 'Comandante', G.isOutside(s) && G.has(s, 'traje'));
+  else astro(cx, p.x, p.y + (p.crouch ? 0.12 : 0), p.dir, p.walk * (p.crouch ? 0.5 : 1), '#3d7bff', keys.size > 0 || touch.dx || touch.dy, p.inDuct ? 0.5 : blink ? 0.35 : p.crouch ? 0.8 : 1, 'Comandante', G.isOutside(s) && G.has(s, 'traje'), p.hit > 0 ? 'miedo' : s.final ? 'miedo' : 'normal', true);
   if (p.sleep) { cx.fillStyle = '#5ff6ff'; cx.font = '10px VT323'; cx.fillText('z', p.x * TS + 7, p.y * TS - 14 - (t / 300 % 4)); }
 
   A.senales(cx, s, t, vis); // «?» que se llena, «!», rastro y aviso de embestida (lo que dejó enemy-ai: sus, qT, alarmT, tele)
@@ -1290,6 +1264,7 @@ function audioFrame(t, dt, inp, ev) {
 // ---------- bucle ----------
 let lastMsg = null; let stepT = 0; let scareT = 0; let chaseT = 0;
 function frame(t) {
+  Cu.reloj.t = t;
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   if (s) {
     const inp = input();
