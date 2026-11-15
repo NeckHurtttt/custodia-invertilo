@@ -2,6 +2,7 @@
 // cada día se sortean otros al azar. También: misiones con reloj, huellas, votación y peligros nuevos.
 import { ITEMS, LOOT } from './common.js';
 import * as C from './core.js';
+import { tuning } from './ia.js';
 
 /*
  kind:
@@ -73,7 +74,7 @@ export const sfx = (s, k) => { (s.sfx ??= []).push(k); if (s.sfx.length > 8) s.s
 */
 export const SUS = { base: 0.35, perTile: 0.12, decay: 0.6, close: 1.5, tele: 0.6 };
 /** Segundos que tarda en confirmar que eres tú según la distancia (más cerca = más rápido; la dificultad lo escala con `react`). */
-export const susTime = (s, dist) => (SUS.base + SUS.perTile * dist) * (C.dif(s).react ?? 1);
+export const susTime = (s, dist) => (SUS.base + SUS.perTile * dist) * (C.dif(s).react ?? 1) * tuning(s).reaction;
 /** Sube o baja el medidor b.sus. Devuelve true cuando ya está seguro de que eres tú. A menos de 1,5 casillas no hay ventaja. */
 export function suspect(s, b, seen, dt) {
   const p = s.p;
