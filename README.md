@@ -7,6 +7,8 @@
 [![Jugar](https://img.shields.io/badge/JUGAR-Abrir_misión-70dfc8?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?cadete)
 [![Demo](https://img.shields.io/badge/DEMO-Tormenta_solar-e4b577?style=for-the-badge&labelColor=101c2e)](https://custodia-six-phi.vercel.app/?jurado)
 
+<img src="docs/assets/capturas/titulo.jpg" width="820" alt="Pantalla de inicio de CUSTODIA: elige destino (Estación, Luna o Marte), nivel y pulsa JUGAR">
+
 **3 destinos** · **10 días hasta el rescate** · **4 sistemas conectados** · **1 base que depende de ti**
 
 Sin cuenta ni instalación · funciona sin internet tras la primera visita · [Play in English](https://custodia-six-phi.vercel.app/?cadete&lang=en)
@@ -41,19 +43,31 @@ Tu misión es mantener a la tripulación con vida: revisar los sistemas, adminis
 | **Luna · Shackleton** | SELENE | Cuida una base lunar entre polvo, radiación y peligros en la superficie. |
 | **Marte · Jezero** | ARES | Administra una colonia con tormentas, robots averiados y recursos que se deterioran. |
 
+<table>
+<tr>
+<td align="center"><img src="docs/assets/capturas/estacion.jpg" alt="Estación espacial: mantenimiento con la vigilancia de CUSTODIA"><br><sub><b>Estación</b> · IA CUSTODIA</sub></td>
+<td align="center"><img src="docs/assets/capturas/luna.jpg" alt="Base lunar Shackleton con oxígeno y vigilancia de SELENE"><br><sub><b>Luna</b> · IA SELENE</sub></td>
+<td align="center"><img src="docs/assets/capturas/marte.jpg" alt="Colonia del cráter Jezero en Marte con la vigilancia de ARES"><br><sub><b>Marte</b> · IA ARES</sub></td>
+</tr>
+</table>
+
 Cada destino tiene su mapa, amenazas y refugio. Salir a la superficie sin un traje tiene consecuencias.
 
 En cada base hay **6 notas escondidas en los cajones**. Reunirlas todas, en una o varias partidas, desbloquea el **final verdadero** de ese destino.
 
 ## Cómo jugar
 
-Abre la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), elige un destino y pulsa **JUGAR**. No necesitas cuenta ni instalación; hay controles táctiles para teléfono y tablet.
+<img src="docs/assets/capturas/movil.jpg" width="230" align="right" alt="CUSTODIA en un teléfono: HUD compacto y botones táctiles USAR, ESCONDER, LANZAR, AGACHAR, INHIBIR y MOCHILA">
+
+Abre la [misión en modo Cadete](https://custodia-six-phi.vercel.app/?cadete), elige un destino y pulsa **JUGAR**. No necesitas cuenta ni instalación; en teléfono y tablet se juega con el dedo: deslízalo por el mapa para moverte y usa los botones de acción.
 
 1. **Sigue la rutina.** La base tiene horarios de comida, trabajo, ejercicio y descanso.
 2. **Haz el mantenimiento.** Durante el turno de 08:00 a 12:00, revisa los cuatro sistemas en sus paneles.
 3. **Responde a las emergencias.** Busca la herramienta necesaria y resuelve el protocolo del peligro.
 4. **Vigila el Sol.** Cuando llegue una tormenta, decide si vas al refugio o continúas tu tarea.
 5. **Llega al día 10.** El rescate valora cómo cuidaste los sistemas, la base y tu exposición a radiación.
+
+<br clear="right">
 
 ### Enlaces directos
 
@@ -143,6 +157,8 @@ En **Normal, al día 10**, los drones tienen un **27 % más de velocidad**, **22
 ## Del Sol real a tu partida
 
 El juego consulta llamaradas solares de los últimos 30 días en **NASA DONKI** y las utiliza para seleccionar tres tormentas durante la misión. Si la consulta falla, utiliza eventos reales archivados e indica que los datos no son en vivo.
+
+<p align="center"><img src="docs/assets/capturas/tormenta.jpg" width="820" alt="Tormenta solar en la partida: aviso de una llamarada real X8.7 de NASA DONKI con cuenta atrás hacia el refugio"></p>
 
 La decisión es jugable: **refugiarte reduce la dosis de la tormenta, pero interrumpe tu tarea y consume energía; continuar permite seguir trabajando, con mayor exposición**.
 
