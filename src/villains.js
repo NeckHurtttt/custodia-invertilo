@@ -1,6 +1,7 @@
 // Villanos de CUSTODIA. Cada destino tiene 10: el primero es la IA (siempre activa);
 // cada día se sortean otros al azar. También: misiones con reloj, huellas, votación y peligros nuevos.
 import { ITEMS, LOOT } from './common.js';
+import { T } from './i18n.js';
 import * as C from './core.js';
 
 /*
@@ -364,8 +365,8 @@ export function updateHazard(s, h, dt, dm) {
     if (!h.w10 && h.t <= 10 && h.t > 0) { h.w10 = true; sfx(s, 'aviso'); C.say(s, `${def.name}: ¡10 segundos! Corre al ${C.roomName(s, def.safe[0])}.`, 'warn'); }
     s.crew.forEach((c, i) => { const r = room(s, def.safe[0]); c.goal = [r.x + 1.5 + i, r.y + 2.5]; c.goalBlock = s.block; c.goalDay = s.day; });
     if (h.t > 0) return false;
-    if (def.safe.includes(C.playerRoom(s))) { s.stats.solved++; C.flash(s, `${def.name}: pasó rozando. Estabas a salvo.`, 'ok'); }
-    else { p.salud -= def.dmg; p.hit = 1; s.shake = 0.8; s.integ -= def.loss; C.flash(s, `${def.name}: ¡IMPACTO! No llegaste a tiempo (−${def.dmg} salud).`, 'bad'); }
+    if (def.safe.includes(C.playerRoom(s))) { s.stats.solved++; if (h.flareDay && s.dFlare) s.dFlare.result = 'refugio'; C.flash(s, T(`${def.name}: pasó rozando. Estabas a salvo.`, `${def.name}: it passed by. You were safe.`), 'ok'); }
+    else { p.salud -= def.dmg; p.hit = 1; s.shake = 0.8; s.integ -= def.loss; if (h.flareDay && s.dFlare) s.dFlare.result = 'impacto'; C.flash(s, T(`${def.name}: ¡IMPACTO! No llegaste a tiempo (−${Math.round(def.dmg * C.dif(s).dmg)} salud).`, `${def.name}: IMPACT! You did not make it in time (−${Math.round(def.dmg * C.dif(s).dmg)} health).`), 'bad'); }
     sfx(s, 'boom'); return true;
   }
   if (def.type === 'sweep') {

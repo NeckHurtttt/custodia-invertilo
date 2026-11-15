@@ -125,6 +125,7 @@ export const HAZARDS = {
   perro: { type: 'robot', name: 'PERRO-ROBOT DE CARGA', speed: 3.0, dmg: 8, color: '#c9a84a', spawn: 'esclusa', smell: 9, grab: true, hint: 'Huele las herramientas que llevas encima. Déjalas en el escondite.' },
   robotminero: { type: 'robot', name: 'ROBOT MINERO ROTO', speed: 2.7, dmg: 14, color: '#b8957a', spawn: 'bodega', smell: 7, steals: true, hint: 'Lo atrae el metal: si llevas herramientas, te huele.' },
   fuego0g: { type: 'bouncer', name: 'FUEGO EN INGRAVIDEZ', tool: 'extintor', dmg: 12, n: 4, fire: true },
+  llamarada: { type: 'shelter', name: 'LLAMARADA SOLAR', warn: 30, safe: ['dorm'], dmg: 20, loss: 6, msg: '☀️ Llamarada solar: ¡partículas en 30 s! Todos al refugio.' },
   basura: { type: 'shelter', name: 'BASURA ORBITAL', warn: 30, safe: ['nodo'], dmg: 40, loss: 10, msg: 'Control de Tierra: ¡basura orbital en 30 s! Todos al NODO CENTRAL.' },
   canadarm: { type: 'sweep', name: 'BRAZO ROBÓTICO DESCONTROLADO', life: 100, speed: 2.4, dmg: 14, hint: 'Barre la sala de lado a lado: pasa por el hueco.' },
   hongo: { type: 'mold', name: 'HONGO EN LOS FILTROS', tool: 'fungicida', proto: 'hongo', grow: 40 },

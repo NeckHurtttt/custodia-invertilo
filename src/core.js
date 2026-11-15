@@ -5,6 +5,7 @@ export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
 import { LOCS, ROOM_EN } from './locs.js';
 import { T } from './i18n.js';
+import { SHELTER, sourceText, flareHit } from './clima.js';
 import * as V from './villains.js';
 import * as S from './sistemas.js';
 
@@ -131,6 +132,7 @@ export function newGame(loc = 'estacion', seed = Date.now() & 0x7fffffff, difKey
   L.crew.forEach((c, i) => { const [bx, by] = L.beds[i]; s.crew.push({ ...c, trust: 0, betrayed: false, tellCd: 0, x: bx + 0.5, y: by + 0.5, dir: 0, path: null, goal: null, sayT: 5 + i * 7, say: null, want: null, avoid: ['ia', 'esclusa', 'capsula', 'exterior'] }); });
   const pk = perk(s); s.p.fuerza += pk.fuerza ?? 0; s.p.conoc += pk.conoc ?? 0; for (const it of pk.start ?? []) s.p.inv.push(it);
   if (s.mode === 'noche') setupNight(s);
+  if (s.mode === 'noche' && s.daily && opts.flare) s.dFlare = { flare: { cls: opts.flare.cls, date: opts.flare.date, source: opts.flare.source }, min: opts.flareMin ?? 1500, done: false, result: null }; // reto del día: llamarada real a media noche
   S.init(s, opts);
   refill(s); if (s.mode !== 'noche') planEvents(s); newWants(s); V.startDay(s);
   if (s.mode === 'noche') say(s, `UNA NOCHE en ${L.name}. Ya tienes parte del plan. Escapa antes de las 06:00 o ${L.ai} te descubre.`, 'ia');
@@ -251,6 +253,8 @@ export function update(s, dt, input = { dx: 0, dy: 0 }) {
   if (bi !== s.block) { const prevId = s.block >= 0 ? s.L.schedule[s.block]?.id : null; S.blockEnd(s, prevId); s.block = bi; s.blockStart = s.min; s.checked = false; s.ate = false; s.worked = 0; onBlockStart(s); }
   if (!s.checked && s.min - s.blockStart >= dif(s).late) { s.checked = true; checkBlock(s); }
   if (s.events.length && s.min >= s.events[0]) { if (activeHaz(s) >= dif(s).maxHaz) s.events[0] += 45; else { s.events.shift(); spawnHazard(s); V.sfx(s, 'alarma'); } }
+  // llamarada del reto: minuto corrido de la noche (pasada la medianoche empieza el día 2)
+  if (s.dFlare && !s.dFlare.done && (s.day - 1) * 1440 + s.min >= s.dFlare.min) { if (activeHaz(s) >= dif(s).maxHaz) s.dFlare.min += 45; else spawnFlare(s); }
   if (s.min >= 1260 && prevMin < 1260 && s.iaOn) say(s, `${s.L.ai}: ${s.L.aiLines[Math.min(s.day - 1, s.L.aiLines.length - 1)]}`, 'ia');
 
   p.energia = p.sleep ? Math.min(100, p.energia + dm * 0.22) : Math.max(0, p.energia - dm * 0.07);
@@ -504,6 +508,17 @@ function talk(s, c) {
 // ---------- problemas-enemigo ----------
 /** Peligros activos que cuentan para el tope por dificultad (no cámaras ni apagones). */
 export const activeHaz = (s) => s.hazards.filter((h) => !['camera', 'blackout'].includes(h.def.type)).length;
+/** Reto del día: llega la llamarada real del día. Un aviso de 30 s: ¿refugio (pierdes tiempo) o sigues con tu escape (pierdes salud)? */
+export function spawnFlare(s) {
+  const d = s.dFlare; if (!d || d.done) return null; d.done = true; const f = d.flare;
+  const r = s.L.rooms.find((x) => x.id === (SHELTER[s.loc]?.room ?? 'dorm')) ?? s.L.rooms[0]; const hit = flareHit(f.cls, s.loc); const sala = roomName(s, r.id).toUpperCase();
+  const def = { ...HAZARDS.llamarada, name: T('LLAMARADA SOLAR', 'SOLAR FLARE'), safe: [r.id], dmg: Math.round(hit / dif(s).dmg), // el daño de salud se multiplica por el nivel (dif.dmg): así el golpe real es `hit`,
+    hit,
+    msg: T(`☀️ ${sourceText(f)} ¡Sus partículas llegan en 30 s! Refugio: ${sala}. Si sigues con tu escape te costará ${hit} de salud.`, `☀️ ${sourceText(f)} Its particles arrive in 30 s! Shelter: ${sala}. If you keep going with your escape it will cost you ${hit} health.`) };
+  const h = { kind: 'llamarada', def, room: r.id, x: r.x + r.w / 2, y: r.y + r.h / 2, flareDay: true };
+  V.initHazard(s, h, r); s.hazards.push(h); flash(s, def.msg, 'bad'); V.sfx(s, 'alarma'); return h;
+}
+
 export function spawnHazard(s, kind = pick(s, s.L.hazards), roomId) {
   const def = HAZARDS[kind];
   const indoor = s.L.rooms.filter((r) => !r.restricted && !r.outside && r.id !== 'dorm');

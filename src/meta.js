@@ -2,6 +2,7 @@
 // Todo vive en localStorage ('lfr.meta'); si no hay almacenamiento, el juego funciona igual (sin guardar).
 import { PERKS, DIFS } from './common.js';
 import { NOTES } from './story.js';
+import { dailyFlare } from './clima.js';
 
 export const MEDALS = {
   primer: ['Primer regreso', 'Escapa por primera vez.'],
@@ -47,7 +48,7 @@ export const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth
 export function daily(d = new Date()) {
   const key = today(d); let h = 2166136261; for (const c of key) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   const n = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
-  return { key, seed: (h >>> 0) & 0x7fffffff, loc: ['estacion', 'luna', 'marte'][n % 3], dif: 'normal', mode: 'noche', perk: 'novato' };
+  return { key, seed: (h >>> 0) & 0x7fffffff, loc: ['estacion', 'luna', 'marte'][n % 3], dif: 'normal', mode: 'noche', perk: 'novato', flare: dailyFlare(n), flareMin: 1380 + ((h >>> 0) % 180) };
 }
 export const fmtTime = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 

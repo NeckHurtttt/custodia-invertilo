@@ -30,6 +30,12 @@ export function missionFlares(live) {
   return out;
 }
 
+/**
+ * Reto del día: la llamarada real del día, igual para todos los jugadores (rota entre las archivadas según el número de día; no usa la red,
+ * así que nadie tiene una llamarada distinta). `n` = días desde 1970 (ver meta.daily).
+ */
+export const dailyFlare = (n) => { const L = ARCHIVED_FLARES.length; return ARCHIVED_FLARES[(((n + Math.floor(n / 3)) % L) + L) % L]; };
+
 /** Días en que llega una tormenta y a qué hora (minuto del día): tarde, en tiempo libre o ejercicio. */
 export const STORM_DAYS = [2, 5, 8];
 export const STORM_MIN = 15 * 60;
@@ -53,6 +59,8 @@ export function stormDose(cls, loc) {
   const base = r >= 5 ? 2.4 : r >= 1 ? 1.6 : r >= 0.1 ? 0.8 : 0.4;
   return Math.round(base * ({ estacion: 0.5, luna: 1, marte: 0.75 }[loc] ?? 1) * 100) / 100;
 }
+/** Salud que cuesta no estar en el refugio cuando llega la llamarada del reto del día: 40 en la Luna, menos donde hay campo magnético o atmósfera. */
+export const flareHit = (cls, loc) => Math.max(5, Math.round(40 * stormDose(cls, loc) / stormDose(cls, 'luna')));
 export const SHELTER_FACTOR = 0.15;     // el refugio deja pasar ~15 %
 export const SHELTER_ENERGY = 6;        // puntos del sistema ENERGÍA que gasta el refugio (filtros y luces de emergencia)
 

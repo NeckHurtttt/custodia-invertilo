@@ -130,6 +130,7 @@ export function resumenFin(s) {
     { ic: 'integ', txt: T(`Integridad final ${Math.max(0, Math.round(s.integ ?? 0))} %`, `Final integrity ${Math.max(0, Math.round(s.integ ?? 0))} %`) },
   ];
   if (y) datos.unshift({ ic: 'mant', txt: T(`${y.done ?? 0} ${y.done === 1 ? 'revisión hecha' : 'revisiones hechas'} · ${y.skipped ?? 0} ${y.skipped === 1 ? 'omitida' : 'omitidas'}`, `${y.done ?? 0} ${y.done === 1 ? 'check done' : 'checks done'} · ${y.skipped ?? 0} skipped`) });
+  if (s.dFlare?.result) datos.push({ ic: 'rad', txt: s.dFlare.result === 'refugio' ? T(`Llamarada ${s.dFlare.flare.cls}: te refugiaste`, `Flare ${s.dFlare.flare.cls}: you sheltered`) : T(`Llamarada ${s.dFlare.flare.cls}: te alcanzó afuera`, `Flare ${s.dFlare.flare.cls}: it reached you outside`) });
   const pistas = [];
   if (y && y.skipped > 0) pistas.push(T(`Omitiste ${y.skipped} ${y.skipped === 1 ? 'revisión' : 'revisiones'} de mantenimiento: cada una cuesta nivel, integridad y alerta.`, `You skipped ${y.skipped} maintenance ${y.skipped === 1 ? 'check' : 'checks'}: each one costs level, integrity and alert.`));
   if ((st.caught ?? 0) >= 3) pistas.push(T('Te atraparon varias veces: agáchate (Shift) para ser silencioso y evita el cono amarillo de los drones.', 'You were caught several times: crouch (Shift) to be quiet and avoid the yellow cone of the drones.'));

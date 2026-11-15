@@ -778,7 +778,7 @@ function titleScreen() {
   V.querySelectorAll('[data-reflejos]').forEach((b) => (b.onclick = () => { setOpt('reflejos', reflejos ? '0' : '1'); titleScreen(); }));
   V.querySelectorAll('[data-perk]').forEach((b) => (b.onclick = () => { setOpt('perk', b.dataset.perk); titleScreen(); }));
   V.querySelectorAll('[data-comprar]').forEach((b) => (b.onclick = () => { const id = b.dataset.comprar; if (Meta.buy(id)) { M.ui('ok'); if (id.startsWith('dif:')) setDif(id.slice(4)); else setOpt('perk', id); } else { M.ui('error'); b.textContent = T('FALTAN PUNTOS', 'NOT ENOUGH POINTS'); setTimeout(titleScreen, 700); return; } titleScreen(); }));
-  $('t-reto').onclick = () => { M.start(); s = G.newGame(dd.loc, dd.seed, dd.dif, { mode: dd.mode, perk: dd.perk, daily: true, seen: Meta.seenNotes(dd.loc) }); base = null; close(); intro(); };
+  $('t-reto').onclick = () => { M.start(); s = G.newGame(dd.loc, dd.seed, dd.dif, { mode: dd.mode, perk: dd.perk, daily: true, flare: dd.flare, flareMin: dd.flareMin, seen: Meta.seenNotes(dd.loc) }); base = null; close(); intro(); };
   $('t-medallas').onclick = medalsScreen; $('t-archivo').onclick = () => archiveScreen(null);
   V.querySelectorAll('[data-dif]').forEach((b) => (b.onclick = () => { setDif(b.dataset.dif); titleScreen(); }));
   V.querySelectorAll('[data-cont]').forEach((b) => (b.onclick = () => { M.start(); s = load(b.dataset.cont); base = null; close(); }));
@@ -876,7 +876,7 @@ function intro() {
   menu = 'intro'; const L = s.L;
   const night = s.mode === 'noche';
   open(`<h2>${ic(s.loc, 'g')} ${nm(L).toUpperCase()} · ${s.daily ? T('RETO DEL DÍA', 'DAILY CHALLENGE') : night ? T('UNA NOCHE', 'ONE NIGHT') : T('DÍA 1', 'DAY 1')}</h2>${night ? T(`<p>Son las 21:00. Llevas semanas preparando el escape y esta es la noche. Tienes hasta las <b>06:00</b> (unos 7 minutos): si te descubren en el pase de lista, se acabó.</p>`, `<p>It is 21:00. You have spent weeks preparing your escape and tonight is the night. You have until <b>06:00</b> (about 7 minutes): if they catch you at roll call, it is over.</p>`) : T(L.intro, L.introEn).map((t) => `<p>${t}</p>`).join('')}
-    <div class="pasos3">
+    ${s.dFlare ? T(`<p>☀️ <b>Llamarada del día:</b> clase ${s.dFlare.flare.cls} (${s.dFlare.flare.date}, archivo real de NASA DONKI). En algún momento de la noche sonará un aviso de 30 s: <b>refugio</b> (pierdes tiempo) o <b>seguir escapando</b> (pierdes salud). Es la misma para todos.</p>`, `<p>☀️ <b>Flare of the day:</b> class ${s.dFlare.flare.cls} (${s.dFlare.flare.date}, real NASA DONKI archive). At some point during the night a 30 s warning will sound: <b>shelter</b> (you lose time) or <b>keep escaping</b> (you lose health). It is the same for everyone.</p>`) : ''}<div class="pasos3">
       <div><b>${ic('reloj')} ${T(`1 · CUMPLE LA RUTINA`, `1 · FOLLOW THE ROUTINE`)}</b><p>${T(`Arriba dice dónde ir y una flecha te guía. Faltar sube la alerta de ${L.ai}.`, `The top says where to go and an arrow guides you. Missing it raises the alert of ${L.ai}.`)}</p></div>
       <div><b>${ic('alerta')} ${T(`2 · ESQUIVA A LA IA`, `2 · DODGE THE AI`)}</b><p>${T(`El cono amarillo es lo que ve; rojo, te persigue. Agáchate (Shift) y escóndete (F).`, `The yellow cone is what it sees; red means it is chasing you. Crouch (Shift) and hide (F).`)}</p></div>
       <div><b>${ic('mant')} ${T(`3 · CUIDA LA BASE`, `3 · CARE FOR THE BASE`)}</b><p>${T(`De 08:00 a 12:00 haz las 4 revisiones (tecla 1). Si un sistema baja, la base sufre. Extra: el PLAN para volver antes (tecla 2).`, `From 08:00 to 12:00 do the 4 checks (key 1). If a system drops, the base suffers. Extra: the PLAN to return sooner (key 2).`)}</p></div>
@@ -1038,7 +1038,7 @@ function endScreen() {
   menu = 'fin'; clearSave(s.loc);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
   const r = Meta.finish(s); const dr = r.daily; const R_ = UI.resumenFin(s);
-  const share = s.daily ? `CUSTODIA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}× · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
+  const share = s.daily ? `CUSTODIA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}×${s.dFlare ? ` · ☀️ ${s.dFlare.flare.cls}: ${s.dFlare.result === 'refugio' ? 'refugio' : s.dFlare.result === 'impacto' ? 'afuera' : '—'}` : ''} · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
   open(`<div class="fin ${o.won ? 'gana' : 'pierde'}">
     <div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? T('¡VOLVISTE A CASA!', 'YOU MADE IT HOME!') : T('MISIÓN PERDIDA', 'MISSION LOST')}</p><h2>${R_.titulo}</h2></div></div>
     ${o.won ? `<div class="estrellas" aria-label="${o.stars} ${T('de 3 estrellas', 'of 3 stars')}">${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}</div>` : ''}

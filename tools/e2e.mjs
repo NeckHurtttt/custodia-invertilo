@@ -364,6 +364,23 @@ try {
     ok('inglés: ?lang=en y el selector ES/EN (se recuerda) traducen el título, DATOS NASA, la intro, el mantenimiento, el cartel de la tormenta y el final');
   }
 
+  // 11. Reto del día con la llamarada real del día: la intro la anuncia, llega a la hora marcada y el resumen cuenta qué pasó.
+  {
+    const c = await navegador.newContext({ viewport: { width: 1280, height: 760 } }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`reto: error de JavaScript: ${e.message}`));
+    pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`reto: consola: ${m.text()}`); });
+    await pg.goto(url); await pg.waitForSelector('#t-reto', { timeout: 10000 }); await pg.click('#t-reto'); await pg.waitForSelector('#ok');
+    const intro = await pg.textContent('#ventana'); assert.match(intro, /Llamarada del día:.*clase X\d\.\d/); assert.match(intro, /refugio.*seguir escapando/);
+    await pg.screenshot({ path: join(salida, '9-reto-intro.png') }); await pg.click('#ok');
+    await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden, null, { timeout: 5000 });
+    const f = await pg.evaluate(() => { const { s, G } = lfr; s.grace = 9999; const d = s.dFlare; const h = G.spawnFlare(s); return { cls: d.flare.cls, min: d.min, kind: h.kind, safe: h.def.safe, t: h.t, hit: h.def.hit, ia: s.log.some((l) => /30 s/.test(l.text)) }; });
+    assert.match(f.cls, /^X/); assert.ok(f.min >= 1380 && f.min < 1560); assert.equal(f.kind, 'llamarada'); assert.ok(f.safe.length === 1 && f.t > 29 && f.hit >= 5 && f.ia, 'la llamarada avisa 30 s y marca un refugio');
+    await pg.waitForTimeout(600); await pg.screenshot({ path: join(salida, '9-reto-llamarada.png') });
+    const fin = await pg.evaluate(() => { const { s, G } = lfr; const r = s.L.rooms.find((x) => x.id === lfr.Sys.shelterOf(s).room); Object.assign(s.p, { x: r.x + r.w / 2, y: r.y + r.h / 2, inDuct: false, hidden: null }); for (let t = 0; t < 31; t += 0.05) G.update(s, 0.05, { dx: 0, dy: 0 }); return s.dFlare.result; });
+    assert.equal(fin, 'refugio'); await c.close();
+    ok('reto del día: la intro anuncia la llamarada real del día, llega con un aviso de 30 s y refugiarse cuenta como resuelto');
+  }
+
   assert.deepEqual(problemas, [], `errores durante la prueba:\n  - ${problemas.join('\n  - ')}`);
   ok('sin errores de JavaScript ni de red');
   console.log(`\nTodo bien (${paso} pasos). Capturas en ${salida}`);
