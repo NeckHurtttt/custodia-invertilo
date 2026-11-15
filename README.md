@@ -253,7 +253,7 @@ The project addresses **Space Mission Design Game**. Scientific sources, simplif
 
 <table>
 <tr>
-<td align="center"><a href="https://github.com/invertilo"><img src="https://github.com/invertilo.png?size=160" width="110" alt="Foto de Vinicius"><br><b>Vinicius</b><br><sub>@invertilo</sub></a></td>
+<td align="center"><a href="https://github.com/invertilo"><img src="https://github.com/invertilo.png?size=160" width="110" alt="Foto de Vinicius Salazar"><br><b>Vinicius Salazar</b><br><sub>@invertilo</sub></a></td>
 <td align="center"><a href="https://github.com/alejondr3"><img src="https://github.com/alejondr3.png?size=160" width="110" alt="Foto de Alejandro Mendoza"><br><b>Alejandro Mendoza</b><br><sub>@alejondr3</sub></a></td>
 <td align="center"><a href="https://github.com/leoaguilerasc-design"><img src="https://github.com/leoaguilerasc-design.png?size=160" width="110" alt="Foto de Leonardo Aguilera"><br><b>Leonardo Aguilera</b><br><sub>@leoaguilerasc-design</sub></a></td>
 <td align="center"><a href="https://github.com/NeckHurtttt"><img src="https://github.com/NeckHurtttt.png?size=160" width="110" alt="Foto de Sergio Santiago Rioja Coca"><br><b>Sergio Santiago Rioja Coca</b><br><sub>@NeckHurtttt</sub></a></td>
