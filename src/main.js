@@ -912,28 +912,42 @@ function tutoFrame(dt) {
   if (!s || menu || crew || s.over) return;
   if (tuDe !== s) { tuDe = s; tu = tutoPermitido() && !coop && getOpt(Tu.CLAVE, '0') !== '1' && Tu.aplica(s) ? Tu.nuevo(s) : null; pintaTuto(); }
   if (!tu) return;
-  const r = Tu.tick(tu, s, dt, { crouch: !!s.p.crouch, estacion: estacionVida() });
+  const r = Tu.tick(tu, s, dt, { crouch: !!s.p.crouch, mapa: mapaOn, estacion: estacionVida() });
   if (r.salta != null) { s.min = Math.max(s.min, r.salta); G.flash(s, T('⏩ El reloj avanzó a las 08:00 para que practiques.', '⏩ The clock moved to 08:00 so you can practice.'), 'info'); }
   if (r.cambio) { M.ui('ok'); pintaTuto(); }
-  if (r.fin) tutoFin(true);
+  if (r.fin) { tutoFin(true); G.flash(s, T('🚀 ¡Bienvenido a CUSTODIA, cadete! La misión empieza ahora: mantén viva la base 10 días.', '🚀 Welcome to CUSTODIA, cadet! The mission starts now: keep the base alive for 10 days.'), 'ok'); M.ui('ok'); }
 }
 function tutoFin(guardar) { tu = null; if (guardar) setOpt(Tu.CLAVE, '1'); pintaTuto(); }
 function pintaTuto() {
   const el = $('tuto'); if (!el) return; document.body.classList.toggle('tuto-on', !!tu); // con el tutorial a la vista se esconde «AHORA» para dejar sitio (no estorba en celular)
   if (!tu) { el.hidden = true; el.innerHTML = ''; return; }
-  const e = estacionVida(); const x = Tu.texto(tu, esTactil(), e ? G.roomName(s, G.roomIdAt(s, e.x + 0.5, e.y + 0.5)) : '');
+  const e = estacionVida(); const x = Tu.texto(tu, esTactil(), e ? G.roomName(s, G.roomIdAt(s, e.x + 0.5, e.y + 0.5)) : '', document.body.classList.contains('telefono'));
   if (!x) { tutoFin(true); return; }
+  if (Tu.actual(tu) === 'finales') { el.hidden = true; finalesTuto(x); return; } // el último paso es una ventana con los finales
   el.hidden = false;
-  el.innerHTML = `<small>🎓 ${T('ENTRENAMIENTO', 'TRAINING')} · ${x.n}</small><b>${x.titulo}</b><p>${x.texto}</p><div class="tuto-bt">${Tu.pideOk(tu) ? `<button id="tuto-ok" class="grande">${ic('ok')} ${tu.i === Tu.PASOS.length - 1 ? T('A JUGAR', 'LET\'S PLAY') : T('ENTENDIDO', 'GOT IT')}</button>` : ''}<button id="tuto-salta" class="sec">${T('SALTAR', 'SKIP')}</button></div>`;
+  // Sin botón SALTAR: el entrenamiento es obligatorio la primera vez (se aprende jugando, son pocos minutos).
+  el.innerHTML = `<small>🎓 ${T('ENTRENAMIENTO', 'TRAINING')} · ${x.n}</small><b>${x.titulo}</b><p>${x.texto}</p>${Tu.pideOk(tu) ? `<div class="tuto-bt"><button id="tuto-ok" class="grande">${ic('ok')} ${T('ENTENDIDO', 'GOT IT')}</button></div>` : ''}`;
   const ok = $('tuto-ok'); if (ok) ok.onclick = () => { Tu.entendido(tu); M.ui('click'); };
-  $('tuto-salta').onclick = () => { M.ui('cerrar'); tutoFin(true); };
+}
+/** Fin del entrenamiento: los finales por descubrir (los secretos como «???» con pista; si ya ganaste la medalla, se revela) y bienvenida. */
+function finalesTuto(x) {
+  const md = Meta.load().medals ?? {};
+  const fila = (f) => { const ya = f.medalla && md[f.medalla]; return `<li class="fin-tuto${f.secreto && !ya ? ' secreto' : ''}"><span class="fi">${ya ? '🏅' : f.ico}</span><span><b>${ya ? f.revela : f.nombre}</b><br><small>${f.como}</small></span></li>`; };
+  const L = Tu.FINALES();
+  open(`<h2>🎓 ${x.titulo}</h2><p>${T('Ya sabes moverte, revisar paneles, agacharte, esconderte, usar el mapa y protegerte del Sol. Ahora empieza la misión de verdad.', 'You can now move, check panels, crouch, hide, use the map and shelter from the Sun. Now the real mission begins.')}</p>
+    <h3>${T('FINALES POR DESCUBRIR', 'ENDINGS TO DISCOVER')}</h3><ul class="fines-tuto">${L.filter((f) => !f.secreto).map(fila).join('')}</ul>
+    <h3>${T('FINALES SECRETOS', 'SECRET ENDINGS')}</h3><ul class="fines-tuto">${L.filter((f) => f.secreto).map(fila).join('')}</ul>
+    <p class="nota-aj">${T('También hay muchas formas de perder (aire, comida, radiación, incendios…): cada una te enseña algo.', 'There are also many ways to lose (air, food, radiation, fires…): each one teaches you something.')}</p>
+    <div class="dos"><button id="tuto-fin" class="grande">🚀 ${T('¡EMPEZAR LA MISIÓN!', 'START THE MISSION!')}</button></div>`, 'finales-tuto');
+  menu = 'finales';
+  $('tuto-fin').onclick = () => { close(); Tu.entendido(tu); M.ui('ok'); };
 }
 /** Aro dorado alrededor del panel (en el mundo) y flecha al borde si está fuera de la pantalla. */
 function tutoAro(t) {
   if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (!o) return;
   const k = 0.5 + 0.5 * Math.sin(t / 600); cx.strokeStyle = `rgba(255,194,61,${0.55 + 0.45 * k})`; cx.lineWidth = 2; cx.beginPath(); cx.arc(o.x * TS, o.y * TS, 10 + k * 3, 0, 7); cx.stroke();
 }
-function tutoFlecha(t) { if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (o) arrowTo(o.x, o.y, '#ffc23d', T('PANEL', 'PANEL'), t); }
+function tutoFlecha(t) { if (!tu) return; const o = Tu.objetivo(tu, estacionVida()); if (o) arrowTo(o.x, o.y, '#ffc23d', Tu.actual(tu) === 'esconder' ? T('ESCONDITE', 'HIDING SPOT') : T('PANEL', 'PANEL'), t); }
 
 // ---------- cooperativo: TRIPULANTE (la otra persona maneja a un compañero en el mismo mapa) ----------
 // El anfitrión (astronauta) manda el estado ~15 veces por segundo; aquí se copia en `s` (sin simular) y se dibuja desde el compañero elegido.
@@ -1515,7 +1529,7 @@ addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keys.add(k);
   if (k === 'shift' && s && !menu && !avisoAgachar) { avisoAgachar = true; G.flash(s, T('Agachado (Shift): haces menos ruido y te ven menos, pero caminas más lento. Suelta Shift para pararte.', 'Crouching (Shift): you make less noise and are seen less, but you walk slower. Release Shift to stand up.'), 'info'); }
-  if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
+  if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira', 'finales'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
   if (k === 'tab') { e.preventDefault(); if (s && !menu) alternaMapa(); return; }
   if (k === 'escape' && mapaOn) { alternaMapa(false); return; }
