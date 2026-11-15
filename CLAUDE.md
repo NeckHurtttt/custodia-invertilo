@@ -61,6 +61,7 @@ Si un cambio cruza fronteras (p. ej. un evento con luz y sonido), `gameplay-dev`
 - Repositorio propio del hackathon: `proyecto-Hackaton-2.0` (separado del repo del equipo y de la copia de Leo).
 - La etiqueta `base-leo` marca la versión de Leo tal como llegó: es la referencia para comparar (`git diff base-leo`).
 - Se trabaja en `main`; cada paso del plan va en su propio commit con sus pruebas pasando.
+- Remotos: `origin` = `leoaguilerasc-design/Hackaton-2.0-en-compu-de-Leo` (copia propia de Leo, aquí SÍ se hace push); `upstream` = `NeckHurtttt/proyecto-Hackaton-2.0` (el de Sergio: Leo no tiene permiso de escritura, su push está desactivado; solo `git fetch upstream` para traer lo suyo). Nunca subir al repo del equipo ni a `NeckHurtttt/Custodia`.
 
 ## Mapa de la Estación
 Tiene 44×35 casillas: fila norte (dormitorios, laboratorio, invernadero, esclusa), centro (comedor, nodo, núcleo de CUSTODIA, cápsula), taller/bodega y una fila sur nueva (Enfermería, Observatorio, Sala de recreo, Módulo de antena). Al añadir salas: corredores en `locs.js`, objetos sobre piso y ruta de patrulla alcanzable (los tests lo comprueban).
