@@ -5,6 +5,7 @@ export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
 import { LOCS, ROOM_EN } from './locs.js';
 import { T } from './i18n.js';
+import { voz } from './personajes.js';
 import { SHELTER, sourceText, flareHit } from './clima.js';
 import * as V from './villains.js';
 import * as S from './sistemas.js';
@@ -456,6 +457,8 @@ export function suspicious(s) {
 }
 
 // ---------- tripulación ----------
+/** De qué habla un compañero ahora: tormenta, noche, trabajo (la mitad de las veces) o lo de siempre. Sin azar: sale de la hora del juego. */
+const vozContexto = (s) => { if (s.sys?.storm) return 'tormenta'; const ctx = isNight(s) ? 'noche' : block(s).id === 'trabajo' ? 'trabajo' : null; return ctx && Math.floor(s.min / 7) % 2 === 0 ? ctx : 'idle'; };
 const CREW_LINES = ['¿Escuchaste ese ruido anoche?', 'Extraño la lluvia.', 'Dicen que la IA lee nuestros diarios.', 'Hoy me tocó limpiar filtros. Otra vez.', 'Mi familia no sabe nada de mí.', 'Si necesitas algo, pídemelo.', 'No confío en esos drones.', 'Hay que volver a casa. Como sea.', 'Hice 2 horas de bici. Me duelen las piernas.', '¿Probaste el café rehidratado? Horrible.'];
 function updateCrew(s, dt) {
   const b = block(s);
@@ -476,27 +479,27 @@ function updateCrew(s, dt) {
     follow(s, c, c.goal ?? [c.x, c.y], c.busyT > 0 ? 3 : 2.1, dt, 'd');
     c.sayT -= dt;
     if (c.betrayed && s.iaOn && (c.tellCd -= dt) <= 0 && suspicious(s) && !s.p.hidden && !s.p.inDuct && Math.hypot(c.x - s.p.x, c.y - s.p.y) < 6 && los(s, c.x, c.y, s.p.x, s.p.y)) { c.tellCd = 20; c.say = '¡IA! ¡Mira lo que hace!'; c.sayFor = 3; raise(s, 8, `${c.name} me contó que te vio en algo raro.`); }
-    if (danger && !c.alarmed) { c.alarmed = true; c.say = pick(s, ['¡Cuidado!', '¡Alerta! ¡Protocolo!', '¿Alguien tiene herramientas?', '¡Aléjate de eso!']); c.sayFor = 3; }
+    if (danger && !c.alarmed) { c.alarmed = true; const g0 = pick(s, ['¡Cuidado!', '¡Alerta! ¡Protocolo!', '¿Alguien tiene herramientas?', '¡Aléjate de eso!']); c.say = voz(s, c, 'peligro') ?? g0; c.sayFor = 3; }
     if (!danger) c.alarmed = false;
-    if (c.sayT <= 0) { c.sayT = 18 + rand(s) * 25; c.say = pick(s, CREW_LINES); c.sayFor = 4; }
+    if (c.sayT <= 0) { c.sayT = 18 + rand(s) * 25; const g1 = pick(s, CREW_LINES); c.say = voz(s, c, vozContexto(s)) ?? g1; c.sayFor = 4; }
     if (c.sayFor > 0 && (c.sayFor -= dt) <= 0) c.say = null;
   });
 }
 
 /** Hablar con un compañero: te pide una pieza y te devuelve un favor. */
 function talk(s, c) {
-  if (c.betrayed) return flash(s, `${c.name}: "No te hablo. Me vendiste."`, 'bad');
+  if (c.betrayed) return flash(s, `${c.name}: "${voz(s, c, 'traicion') ?? 'No te hablo. Me vendiste.'}"`, 'bad');
   if (!c.want) {
     if (c.dday === s.day) return flash(s, `${c.name}: "Ya te cubrí hoy. Mañana te ayudo otra vez."`, 'info');
     const targets = [...s.drones.filter((d) => s.iaOn && d.stun <= 0), ...(s.vil?.walkers ?? []).filter((w) => !w.away && !w.gone && w.kind === 'walker')];
     const t = nearest(targets, s.p.x, s.p.y);
     if (!t || Math.hypot(t.x - s.p.x, t.y - s.p.y) > 22) return flash(s, `${c.name}: "No veo a nadie a quien distraer."`, 'info');
     c.dday = s.day; c.distractT = t; c.busyT = 30; t.busy = 30; t.busyBy = c; t.mode = t.vid ? 'charla' : 'patrulla';
-    c.say = pick(s, ['¡Oye! ¡Mira esto!', '¡Creo que hay una fuga aquí!', 'Tengo una pregunta del reglamento…']); c.sayFor = 5;
+    const g2 = pick(s, ['¡Oye! ¡Mira esto!', '¡Creo que hay una fuga aquí!', 'Tengo una pregunta del reglamento…']); c.say = voz(s, c, 'distrae') ?? g2; c.sayFor = 5;
     return flash(s, `${c.name} va a distraer a ${t.vid ? t.name : 'un ' + s.L.watcher} durante 30 s. ¡Aprovecha!`, 'ok');
   }
   if (!has(s, c.want)) return flash(s, `${c.name}: "¿Me consigues ${ITEMS[c.want].name}? Te lo devuelvo con un favor."`, 'info');
-  take(s, c.want); c.want = null; s.stats.favors++; c.trust++;
+  take(s, c.want); c.want = null; s.stats.favors++; c.trust++; c.say = voz(s, c, 'gracias'); c.sayFor = 5;
   if (c.trust === 2) say(s, `${c.name} confía en ti por completo. (Ruta MOTÍN: ${s.crew.filter((x) => x.trust >= 2).length}/3)`, 'ok');
   const r = c.reward;
   if (r === 'conoc') { s.p.conoc = Math.min(100, s.p.conoc + 6); flash(s, `${c.name} te enseñó trucos de ingeniería (+6 conocimiento).`, 'ok'); }
@@ -919,5 +922,6 @@ export function rescue(s) {
   const stars = 1 + (r.cuidada ? 1 : 0) + (r.segura ? 1 : 0);
   end(s, true, RESCUE_TITLE, T(`Llegó la nave de rescate y encontró la base en pie: sistemas al ${Math.round(r.avg)} % y radiación al ${Math.round(r.dose)} % del límite. ${s.L.ai} quedó desconectada para revisarla en la Tierra.`, `The rescue ship arrived and found the base standing: systems at ${Math.round(r.avg)} % and radiation at ${Math.round(r.dose)} % of the limit. ${s.L.ai} was disconnected to be examined on Earth.`), stars);
   s.over.route = 'rescate';
+  for (const c of s.crew) if (!c.betrayed) { c.say = voz(s, c, 'rescate'); c.sayFor = 8; }
 }
 export function end(s, won, title, text, stars = 0) { if (!s.over) s.over = { won, title, text, stars }; }

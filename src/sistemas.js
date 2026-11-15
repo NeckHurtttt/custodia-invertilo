@@ -4,6 +4,7 @@
 // Lógica pura (sin pantalla): todo vive en s.sys y se guarda con la partida.
 import * as C from './core.js';
 import { T } from './i18n.js';
+import { voz } from './personajes.js';
 import { missionFlares, STORM_DAYS, STORM_MIN, STORM_SECONDS, warnSeconds, SHELTER, stormDose, SHELTER_FACTOR, SHELTER_ENERGY, classText, sourceText } from './clima.js';
 
 /** Los 4 sistemas. decay = puntos que baja por día sin mantenimiento (Normal ×0.7). */
@@ -248,6 +249,7 @@ export function startStorm(s) {
   s.sfx?.push('alarma');
   C.flash(s, T(`☀️ TORMENTA SOLAR ${y.storm.n} de ${STORM_DAYS.length}. ${sourceText(f)} En ${y.storm.t} s llegan las partículas. ¿Corres al REFUGIO (${C.roomName(s, sh.room)}) o sigues con lo tuyo?`, `☀️ SOLAR STORM ${y.storm.n} of ${STORM_DAYS.length}. ${sourceText(f)} The particles arrive in ${y.storm.t} s. Do you run to the SHELTER (${C.roomName(s, sh.room)}) or keep doing your thing?`), 'bad');
   C.say(s, T(`En el refugio casi no recibes radiación, pero pierdes lo que estabas haciendo y el refugio gasta energía. Afuera recibes unos ${y.storm.dose} mSv que no se borran. (${classText(f.cls)}.)`, `In the shelter you get almost no radiation, but you lose what you were doing and the shelter uses power. Outside you get about ${y.storm.dose} mSv that never go away. (${classText(f.cls)}.)`), 'warn');
+  for (const c of s.crew) if (!c.betrayed) { c.say = voz(s, c, 'tormenta'); c.sayFor = 6; } // cada compañero reacciona a su manera
   return y.storm;
 }
 function endStorm(s) {
@@ -259,6 +261,7 @@ function endStorm(s) {
   C.say(s, refugio
     ? T(`☀️ Pasó la tormenta. En el refugio recibiste solo ${got} mSv (${pct} % del límite de la misión). Costo: el tiempo perdido y ${SHELTER_ENERGY} de ENERGÍA del refugio. ${sh.why}`, `☀️ The storm has passed. In the shelter you received only ${got} mSv (${pct} % of the mission limit). Cost: the lost time and ${SHELTER_ENERGY} POWER used by the shelter. ${sh.why}`)
     : T(`☀️ Pasó la tormenta. Afuera recibiste ${got} mSv (${pct} % del límite de la misión): esa dosis no se borra. En el refugio habrían sido ${y.lastStorm.could} mSv. La NASA limita a 600 mSv la dosis de TODA la carrera de un astronauta.`, `☀️ The storm has passed. Outside you received ${got} mSv (${pct} % of the mission limit): that dose never goes away. In the shelter it would have been ${y.lastStorm.could} mSv. NASA limits the dose of an astronaut's WHOLE career to 600 mSv.`), refugio ? 'ok' : 'bad');
+  for (const c of s.crew) if (!c.betrayed) { c.say = voz(s, c, 'alivio'); c.sayFor = 5; }
 }
 
 /** Datos listos para dibujar el panel. */

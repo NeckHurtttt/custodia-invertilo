@@ -8,6 +8,8 @@ import * as Sys from './sistemas.js';
 import { fetchFlares, donkiEstado, sourceText, missionFlares, SHELTER } from './clima.js';
 import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang } from './i18n.js';
+import { ficha } from './personajes.js';
+import { arranqueDebe, arranqueLineas, consejo } from './inicio.js';
 // Idioma (ES por defecto; EN con ?lang=en, ?en o el selector del título). Solo presentación.
 try { setLang(pickLang(location.search, localStorage.getItem('lfr.lang'))); document.documentElement.lang = getLang(); } catch { /* sin almacenamiento */ }
 const nm = (o) => T(o.name, o.nameEn); const ds = (o) => T(o.desc, o.descEn); const rn = (n) => T(n, ROOM_EN[n] ?? n);
@@ -648,7 +650,9 @@ function hud() {
   { const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
   toasts(); paneles();
 }
-const crewHTML = () => s.crew.map((c) => `<li><b style="color:${c.color}">■</b> ${c.name} ${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}: ${c.betrayed ? '<span style="color:var(--bad)">te delata</span>' : c.want ? `pide <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)} ${ITEMS[c.want].name}</span>` : 'contento'}</li>`).join('');
+/** Ficha de cada compañero (pausa → TRIPULACIÓN): oficio, forma de ser, su frase y cómo está contigo. */
+const crewFichas = () => s.crew.map((c) => { const f = ficha(c.name); const estado = c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? T('pide', 'asks for') + ` ${icon(c.want)} ${ITEMS[c.want].name}` : T('contento', 'happy'); return `<li class="ficha"><b style="color:${c.color}">■ ${c.name}</b>${f ? ` · ${f.rol} · <i>${f.rasgo}</i><br><small>“${f.frase}”</small>` : ''}<br>${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))} ${estado}</li>`; }).join('');
+const crewHTML = () => s.crew.map((c) => `<li><b style="color:${c.color}">■</b> <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> ${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}: ${c.betrayed ? '<span style="color:var(--bad)">te delata</span>' : c.want ? `pide <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)} ${ITEMS[c.want].name}</span>` : 'contento'}</li>`).join('');
 
 const planHTML = (L = s.L) => G.PLAN_IDS.map((id) => `<li class="${G.has(s, id) ? 'ok' : ''}" title="${L.plan[id].hint}">${L.plan[id].name}</li>`).join('') + `<li class="${s.iaOn ? '' : 'ok'}" title="Opcional: núcleo de la IA con tarjeta y 50 de conocimiento.">(Opcional) Apagar a ${L.ai}</li>` + G.routes(s).filter((r) => r.id !== 'plan').map((r) => `<li class="ruta ${r.ok ? 'ok' : ''}" title="${r.desc}">Ruta ${r.name}${r.ok ? ' ✓' : ''}</li>`).join('');
 function amenazasHTML() {
@@ -731,6 +735,7 @@ FX.onFx((m) => document.body.classList.toggle('suave', m === 'suave')); document
 
 let masAbierto = false; // «más opciones» del título se queda abierto/cerrado al cambiar algo
 function titleScreen() {
+  document.body.classList.remove('derrota');
   coopStop(); menu = 'titulo'; document.body.classList.add('sin-juego'); M.idle(); aud.amb = ''; const mt = Meta.load(); const mode = getOpt('modo', 'campana'); let perk = getOpt('perk', 'novato'); if (!Meta.isUnlocked(mt, perk)) perk = 'novato';
   if (!Meta.difUnlocked(mt, getDif())) setDif('normal');
   const reflejos = getOpt('reflejos', '0') === '1'; const sel = LOCS[getOpt('dest', 'estacion')] ? getOpt('dest', 'estacion') : 'estacion';
@@ -763,6 +768,7 @@ function titleScreen() {
       <div class="bloque-op">${T(`<span class="lbl">PERSONAJE</span>`, `<span class="lbl">CHARACTER</span>`)}<div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${ds(d)}">${nm(d).toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${ds(d)}">${ic('info')} ${nm(d).toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${ds(PERKS[perk])}</small></div>
       <div class="bloque-op">${ajustesHTML(['musica', 'sfx', 'suave'])}</div>
     </details>
+    <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
     <p class="pie">${T(`UN JUEGO DE #LosTiraVida · NASA Space Apps 2026 · desafío Junior Astronaut Mission Trainer`, `A GAME BY #LosTiraVida · NASA Space Apps 2026 · Junior Astronaut Mission Trainer challenge`)}</p>
   </div>`, 'pant-titulo');
   const V = $('ventana');
@@ -873,6 +879,7 @@ function stormCard(l) {
 }
 
 function intro() {
+  document.body.classList.remove('derrota');
   menu = 'intro'; const L = s.L;
   const night = s.mode === 'noche';
   open(`<h2>${ic(s.loc, 'g')} ${nm(L).toUpperCase()} · ${s.daily ? T('RETO DEL DÍA', 'DAILY CHALLENGE') : night ? T('UNA NOCHE', 'ONE NIGHT') : T('DÍA 1', 'DAY 1')}</h2>${night ? T(`<p>Son las 21:00. Llevas semanas preparando el escape y esta es la noche. Tienes hasta las <b>06:00</b> (unos 7 minutos): si te descubren en el pase de lista, se acabó.</p>`, `<p>It is 21:00. You have spent weeks preparing your escape and tonight is the night. You have until <b>06:00</b> (about 7 minutes): if they catch you at roll call, it is over.</p>`) : T(L.intro, L.introEn).map((t) => `<p>${t}</p>`).join('')}
@@ -1035,7 +1042,7 @@ function nextUnlock(total) {
   return n ? `${n[1]} (${n[2]} pts, te faltan ${Math.max(0, n[2] - total)})` : 'ya tienes todo';
 }
 function endScreen() {
-  menu = 'fin'; clearSave(s.loc);
+  menu = 'fin'; clearSave(s.loc); document.body.classList.toggle('derrota', !s.over.won);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
   const r = Meta.finish(s); const dr = r.daily; const R_ = UI.resumenFin(s);
   const share = s.daily ? `CUSTODIA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}×${s.dFlare ? ` · ☀️ ${s.dFlare.flare.cls}: ${s.dFlare.result === 'refugio' ? 'refugio' : s.dFlare.result === 'impacto' ? 'afuera' : '—'}` : ''} · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
@@ -1046,11 +1053,12 @@ function endScreen() {
     <section class="bloque aprende">${T(`<h3>QUÉ APRENDER</h3>`, `<h3>WHAT TO LEARN</h3>`)}<p>${R_.aprende}</p>${R_.pistas.length ? `<ul>${R_.pistas.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}</section>
     ${o.won ? `<section class="bloque">${T(`<h3>TUS ESTRELLAS</h3>`, `<h3>YOUR STARS</h3>`)}<ul class="crit">${R_.estrellas.map((e) => `<li class="${e.ok ? 'si' : 'no'}">${ic(e.ok ? 'estrella' : 'bad')} ${e.txt}${e.ok ? '' : T(' (pendiente)', ' (pending)')}</li>`).join('')}</ul></section>` : ''}
     <div class="datos">${R_.datos.map((d) => `<span>${ic(d.ic)} ${d.txt}</span>`).join('')}${s.sys ? `<span>${ic('rad')} ${T(`Radiación ${Math.round(Sys.dosePct(s))} % del límite`, `Radiation ${Math.round(Sys.dosePct(s))} % of the limit`)}</span><span>${ic('alerta')} ${T(`Emergencias salvadas ${s.sys.st.saved}`, `Emergencies saved ${s.sys.st.saved}`)}</span>` : ''}</div>
+    <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
     <div class="premio">${T(`+${r.pts} PUNTOS (total ${r.total})${r.streak > 1 ? ` · RACHA ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} nota(s) nueva(s)` : ''}`, `+${r.pts} POINTS (total ${r.total})${r.streak > 1 ? ` · STREAK ${r.streak}` : ''}${r.newNotes ? ` · ${r.newNotes} new note(s)` : ''}`)}</div>
     ${r.medals.map((id) => `<div class="medalla si nueva"><b>${ic('medalla')} ${Meta.MEDALS[id][0]}</b><small>${Meta.MEDALS[id][1]}</small></div>`).join('')}
     ${dr ? `<p>${dr.isNew ? T('¡NUEVO RÉCORD DEL DÍA!', 'NEW RECORD OF THE DAY!') : dr.best ? T(`Tu récord de hoy: ${Meta.fmtTime(dr.best)}`, `Your record today: ${Meta.fmtTime(dr.best)}`) : ''}</p>` : ''}
     ${!o.won ? `<p style="color:var(--dim)">${T(`Siguiente desbloqueo: ${nextUnlock(r.total)}`, `Next unlock: ${nextUnlock(r.total)}`)}</p>` : ''}
-    <div class="fila">${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')}</button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
+    <div class="fila">${s.daily ? `<button id="compartir" class="sec">${ic('archivo')} ${T('COMPARTIR RESULTADO', 'SHARE RESULT')}</button>` : `<button id="otra" class="grande">${ic('reintentar')} ${o.won ? T('JUGAR OTRA VEZ', 'PLAY AGAIN') : T('REINTENTAR', 'TRY AGAIN')} <kbd>R</kbd></button>`}<button id="menu" class="sec">${ic('menu')} ${T('MENÚ', 'MENU')}</button></div></div>`);
   if (s.daily) $('compartir').onclick = () => { navigator.clipboard?.writeText(share).then(() => ($('compartir').textContent = '✓ COPIADO'), () => prompt('Copia tu resultado:', share)); };
   else $('otra').onclick = () => { s = G.newGame(s.loc, undefined, s.dif, { flares: liveFlares, mode: s.mode, perk: s.perk, reflex: !!s.sys?.reflex, seen: Meta.seenNotes(s.loc) }); base = null; close(); intro(); };
   $('menu').onclick = titleScreen;
@@ -1088,7 +1096,7 @@ function pausa() {
       <p class="nota-aj">${T('Los efectos visuales suaves quitan sacudidas y destellos (útil si te mareas o te cansa la vista).', 'Soft visual effects remove shaking and flashes (useful if you feel dizzy or your eyes get tired).')}</p></div>
     <div class="pestanas"><button data-t="reg">${T('HISTORIAL', 'HISTORY')}</button><button data-t="mant">${T('MANTENIMIENTO', 'MAINTENANCE')}</button><button data-t="plan">${T('PLAN DE REGRESO', 'RETURN PLAN')}</button><button data-t="amen">${T('AMENAZAS', 'THREATS')}</button><button data-t="crew">${T('TRIPULACIÓN', 'CREW')}</button></div><ul id="pest" class="log pest"></ul>`);
   menu = 'pausa';
-  const tab = (t) => { $('pest').innerHTML = { reg: () => logHTML(50), mant: mantHTML, plan: planHTML, amen: amenazasHTML, crew: crewHTML }[t](); $('pest').className = (t === 'reg' ? 'log' : 'plan') + ' pest'; $('ventana').querySelectorAll('.pestanas button').forEach((x) => x.classList.toggle('sel', x.dataset.t === t)); };
+  const tab = (t) => { $('pest').innerHTML = { reg: () => logHTML(50), mant: mantHTML, plan: planHTML, amen: amenazasHTML, crew: crewFichas }[t](); $('pest').className = (t === 'reg' ? 'log' : 'plan') + ' pest'; $('ventana').querySelectorAll('.pestanas button').forEach((x) => x.classList.toggle('sel', x.dataset.t === t)); };
   $('ventana').querySelectorAll('.pestanas button').forEach((x) => (x.onclick = () => tab(x.dataset.t))); tab('reg');
   cableaAjustes(['musica', 'sfx', 'suave', 'nombres']);
   $('vmenos').onclick = () => { $('vol').textContent = Math.round(M.volume(-0.25) * 100) + ' %'; }; $('vmas').onclick = () => { $('vol').textContent = Math.round(M.volume(0.25) * 100) + ' %'; };
@@ -1101,6 +1109,7 @@ addEventListener('keydown', (e) => {
   keys.add(k);
   if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
+  if (menu === 'fin' && (k === 'r' || (k === 'enter' && !e.target.closest?.('button, summary, input, textarea')))) { ($('otra') ?? $('menu'))?.click(); return; } // reintento inmediato con una tecla
   if (k === 'enter' && menu === 'titulo' && !e.target.closest?.('button, summary, input, textarea')) { $('t-jugar')?.click(); return; } // Enter = JUGAR en el título
   if (['e', 'q', 'c', 'p', 'f', 't', 'g', 'b', 'i', 'm', 'v', '1', '2', '3', '4', 'escape'].includes(k)) act(k);
 });
@@ -1172,12 +1181,53 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 addEventListener('beforeunload', save);
+let consejoN = Math.floor(Math.random() * 11);
+/**
+ * Arranque dramático «CUSTODIA OS» (una vez por sesión; ?boot lo fuerza, ?noboot o ?jurado lo quitan; nunca en pruebas automáticas).
+ * Pantalla negra → una tecla enciende (y desbloquea el audio) → texto que se escribe, una sacudida breve en «SEÑAL PERDIDA» y la IA que habla →
+ * se disuelve en el título. Cualquier tecla o toque lo salta. En modo suave (o «reducir movimiento»): el texto aparece completo, sin sacudida.
+ */
+function arranque() {
+  let visto = null; try { visto = sessionStorage.getItem('lfr.boot'); } catch { /* nada */ }
+  if (!arranqueDebe({ search: location.search, visto: visto === '1', automatizado: !!navigator.webdriver })) return;
+  try { sessionStorage.setItem('lfr.boot', '1'); } catch { /* nada */ }
+  const lineas = arranqueLineas(); const suave = FX.suave();
+  const el = document.createElement('div'); el.id = 'arranque'; el.setAttribute('role', 'status');
+  el.innerHTML = '<pre class="boot-txt" id="boot-txt"></pre><p class="boot-pie" id="boot-pie"></p>'; document.body.append(el);
+  const pre = el.querySelector('#boot-txt'); const pie = el.querySelector('#boot-pie');
+  const pieTxt = (txt) => { pie.textContent = txt + ' '; const c = document.createElement('span'); c.className = 'cursor'; c.textContent = '█'; pie.append(c); };
+  const fila = (l) => { const d = document.createElement('div'); d.className = 'bl ' + l.c; pre.append(d); return d; };
+  let fase = 'espera'; let timer = 0;
+  pieTxt('PULSA UNA TECLA PARA ENCENDER · PRESS ANY KEY TO POWER ON');
+  const fin = () => { if (fase === 'fin') return; fase = 'fin'; clearTimeout(timer); removeEventListener('keydown', entrada, true); el.removeEventListener('pointerdown', entrada); el.classList.add('fuera'); setTimeout(() => el.remove(), suave ? 50 : 800); };
+  const todo = () => { pre.textContent = ''; for (const l of lineas) fila(l).textContent = l.t; };
+  const tipea = (i = 0, ch = 0) => {
+    if (fase !== 'tipea') return;
+    if (i >= lineas.length) { fase = 'cierre'; timer = setTimeout(fin, 1800); return; }
+    const l = lineas[i]; const row = ch === 0 ? fila(l) : pre.lastChild;
+    if (ch === 0 && l.g) { el.classList.add('glitch'); setTimeout(() => el.classList.remove('glitch'), 420); M.ui('error'); }
+    ch = Math.min(l.t.length, ch + 2); row.textContent = l.t.slice(0, ch);
+    if (ch % 4 === 0 && l.t) M.tone(1500 + (ch % 7) * 60, 0.012, 'square', 0.008); // tecleo suave
+    if (ch >= l.t.length) timer = setTimeout(() => tipea(i + 1, 0), 90 + (l.p ?? 0)); else timer = setTimeout(() => tipea(i, ch), 24);
+  };
+  function entrada(e) {
+    e.preventDefault?.(); e.stopImmediatePropagation?.(); e.stopPropagation?.();
+    if (e.type === 'keydown' && (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta')) return;
+    if (fase === 'espera') {
+      fase = 'tipea'; try { M.wake(); M.tone(55, 2.8, 'sine', 0.02); } catch { /* sin audio */ }
+      pieTxt(T('toca o pulsa una tecla para saltar', 'tap or press a key to skip'));
+      if (suave) { todo(); fase = 'cierre'; timer = setTimeout(fin, 2600); } else tipea();
+    } else if (fase === 'tipea') { clearTimeout(timer); todo(); fase = 'cierre'; timer = setTimeout(fin, 900); } else fin();
+  }
+  addEventListener('keydown', entrada, true); el.addEventListener('pointerdown', entrada);
+}
+
 document.fonts?.load('16px VT323').finally(() => {
   // Enlaces para el jurado: ?cadete fija el nivel Cadete; ?jurado entra directo a la Estación (Cadete) poco antes
   // de la primera tormenta solar real, para ver la mecánica central en menos de un minuto.
   const q = new URLSearchParams(location.search);
   if (q.has('cadete') || q.has('jurado')) setDif('cadete');
-  titleScreen(); requestAnimationFrame(frame);
+  titleScreen(); requestAnimationFrame(frame); arranque();
   if (q.has('jurado')) {
     M.start(); s = G.newGame('estacion', undefined, 'cadete', { flares: liveFlares, mode: 'campana' }); base = null; close();
     s.day = 2; s.min = 14 * 60 + 52; s.p.sleep = false; G.say(s, 'Modo jurado: día 2, 14:52. En unos segundos llega la primera tormenta solar real (NASA DONKI). ¿Refugio o sigues?', 'info');

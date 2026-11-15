@@ -422,3 +422,25 @@ body.cadete:not(.ver-plan) .vr[data-f="fuerza"], body.cadete:not(.ver-plan) .vr[
 .inicio .idioma { display: flex; justify-content: flex-end; gap: .25rem; margin: 0 0 .3rem; }
 .inicio .idioma button { min-width: 44px; min-height: 36px; padding: .2rem .6rem; font-size: .95rem; letter-spacing: .08em; opacity: .75; }
 .inicio .idioma button.on { opacity: 1; border-color: var(--cyan, #5ff6ff); color: var(--cyan, #5ff6ff); }
+
+/* ---------- arranque dramático «CUSTODIA OS» ---------- */
+#arranque { position: fixed; inset: 0; z-index: 9999; background: #02060b; color: #8ff7c4; font-family: 'VT323', monospace; font-size: clamp(1.05rem, 2.7vw, 1.6rem); display: flex; flex-direction: column; justify-content: center; padding: 6vh 8vw; cursor: pointer; transition: opacity .7s ease; }
+#arranque.fuera { opacity: 0; pointer-events: none; }
+#arranque::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px); }
+.suave #arranque::after { display: none; }
+.boot-txt { margin: 0; white-space: pre-wrap; line-height: 1.4; min-height: 11em; }
+.boot-txt .bl { min-height: 1.4em; }
+.bl.ok { color: #6dff9b; } .bl.warn { color: #ffd23d; } .bl.bad { color: #ff6b6b; } .bl.ia { color: #ff9a9a; } .bl.big { color: #fff; font-size: 1.35em; letter-spacing: .08em; }
+.boot-pie { margin: 2rem 0 0; color: #7aa9c9; }
+.cursor { animation: parpadeo-lento 1s steps(2, jump-none) infinite; } @keyframes parpadeo-lento { 50% { opacity: 0; } }
+#arranque.glitch .boot-txt { animation: sacudida-senal .42s steps(3) 1; text-shadow: 2px 0 #ff3d9a, -2px 0 #3dffff; }
+@keyframes sacudida-senal { 0% { transform: translateX(0); } 34% { transform: translateX(-6px); } 67% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+
+/* ---------- consejos, entrada suave de las ventanas y final dramático ---------- */
+.consejo { margin: .2rem auto .5rem; max-width: 46rem; font-size: .95rem; color: #9fd4ff; text-align: center; opacity: .92; }
+.modal:not([hidden]) .ventana { animation: aparece-vent .3s ease-out both; }
+@keyframes aparece-vent { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+#lienzo { transition: filter 1.4s ease; }
+body.derrota #lienzo { filter: grayscale(1) brightness(.55); }
+body.derrota .fin.pierde { border-color: #ff6b6b; }
+.ficha { margin-bottom: .45rem; } .ficha small { color: #9fb3c8; } .nom { border-bottom: 1px dotted #6a7f96; cursor: help; }

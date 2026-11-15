@@ -270,7 +270,9 @@ try {
     assert.match(fin, /Despresurización/); assert.match(fin, /MISIÓN PERDIDA/);
     assert.match(fin, /QUÉ PASÓ/); assert.match(fin, /QUÉ APRENDER/); assert.match(fin, /REFLEJOS/, 'el final dice qué aprender de esta emergencia');
     assert.ok(await visible('#otra') && await visible('#menu'), 'REINTENTAR y MENÚ se ven sin hacer scroll'); assert.match(await pagina.textContent('#otra'), /REINTENTAR/);
+    assert.ok(await pagina.evaluate(() => document.body.classList.contains('derrota')), 'al perder, la pantalla se desatura (body.derrota)'); assert.ok(/¿Sabías que…?/.test(fin), 'el final trae un consejo real');
     await pagina.screenshot({ path: join(salida, '4-emergencia-fatal.png') });
+    await pagina.keyboard.press('r'); await pagina.waitForSelector('#ok', { timeout: 3000 }); assert.ok(!(await pagina.evaluate(() => document.body.classList.contains('derrota'))), 'R reintenta al instante y vuelve el color');
     ok('reflejos: si ignoras la emergencia, la partida termina con una explicación');
   }
 
@@ -320,7 +322,7 @@ try {
     pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`inglés: consola: ${m.text()}`); });
     await pg.goto(`${url}?lang=en`); await pg.waitForSelector('#t-jugar', { timeout: 10000 });
     let tit = await pg.textContent('#ventana');
-    for (const frag of ['CHOOSE YOUR DESTINATION', 'ASTRONAUT CADET TRAINING', 'STATION', 'AI: CUSTODIA', 'NASA DATA', 'HOW TO PLAY', 'DAILY CHALLENGE']) assert.ok(tit.includes(frag), `el título en inglés debe decir "${frag}"`);
+    for (const frag of ['Did you know…?', 'CHOOSE YOUR DESTINATION', 'ASTRONAUT CADET TRAINING', 'STATION', 'AI: CUSTODIA', 'NASA DATA', 'HOW TO PLAY', 'DAILY CHALLENGE']) assert.ok(tit.includes(frag), `el título en inglés debe decir "${frag}"`);
     assert.match(await pg.textContent('#t-jugar'), /PLAY|NEW GAME/); assert.equal(await pg.getAttribute('[data-lang="en"]', 'aria-pressed'), 'true');
     assert.ok(!tit.includes('ELIGE TU DESTINO'), 'en inglés no queda el título en español');
     await pg.screenshot({ path: join(salida, '8-ingles-titulo.png') });
@@ -346,6 +348,7 @@ try {
     assert.match(await pg.textContent('#dia'), /DAY 1\/10/); assert.match(await pg.textContent('#t-alerta'), /SURVEILLANCE/);
     await pg.keyboard.press('Escape'); await pg.waitForSelector('#seguir', { timeout: 2000 }); const paus = await pg.textContent('#ventana');
     for (const frag of ['PAUSE', 'RESUME', 'SETTINGS', 'SOUND EFFECTS', 'SOFT VISUAL EFFECTS', 'VOLUME', 'HISTORY', 'MAINTENANCE', 'RETURN PLAN']) assert.ok(paus.includes(frag), `la pausa en inglés debe decir "${frag}"`);
+    await pg.click('[data-t="crew"]'); const tri = await pg.textContent('#pest'); for (const frag of ['María', 'Commander', 'Calm and protective', 'Easy, cadet. One step at a time.', 'Kenji', 'Engineer', 'Joker and curious']) assert.ok(tri.includes(frag), `la ficha de la tripulación en inglés debe decir "${frag}"`);
     await pg.click('#seguir'); await pg.waitForFunction(() => document.getElementById('modal').hidden, null, { timeout: 2000 });
     // mantenimiento: mini-protocolo en inglés
     await pg.evaluate(() => { const { s, Sys } = lfr; s.min = 500; s.crew.forEach((q) => { q.x = 3.5; q.y = 3.5; q.goal = null; q.path = null; }); const o = Sys.station(s, 'vida'); Object.assign(s.p, { x: o.x + 0.5, y: o.y + 0.5, inDuct: false, hidden: null }); s.grace = 9999; });
@@ -366,6 +369,23 @@ try {
     await pg.screenshot({ path: join(salida, '8-ingles-final.png') }); await c.close();
     ok('inglés: ?lang=en y el selector ES/EN (se recuerda) traducen el título, DATOS NASA, la intro, el mantenimiento, el cartel de la tormenta y el final');
   }
+
+  // 10b. Arranque dramático «CUSTODIA OS»: pantalla negra, una tecla enciende, se escribe, se puede saltar y no arranca el juego; en «reducir movimiento» aparece completo.
+  for (const [reducido, nombre] of [[false, 'normal'], [true, 'suave']]) {
+    const c = await navegador.newContext({ viewport: { width: 1280, height: 760 }, reducedMotion: reducido ? 'reduce' : 'no-preference' }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`arranque: error de JavaScript: ${e.message}`));
+    pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text() + m.location().url)) problemas.push(`arranque: consola: ${m.text()}`); });
+    await pg.goto(`${url}?boot`); await pg.waitForSelector('#arranque', { timeout: 10000 });
+    assert.match(await pg.textContent('#arranque'), /PULSA UNA TECLA PARA ENCENDER/); await pg.screenshot({ path: join(salida, `10-arranque-${nombre}-0.png`) });
+    await pg.keyboard.press('Enter'); // Enter enciende (y NO empieza la partida)
+    if (reducido) { await pg.waitForFunction(() => /MANTÉN VIVA LA BASE/.test(document.getElementById('boot-txt')?.textContent ?? ''), null, { timeout: 2000 }); }
+    else { await pg.waitForFunction(() => /CUSTODIA OS/.test(document.getElementById('boot-txt')?.textContent ?? ''), null, { timeout: 3000 }); await pg.waitForFunction(() => /SEÑAL PERDIDA/.test(document.getElementById('boot-txt')?.textContent ?? ''), null, { timeout: 6000 }); await pg.screenshot({ path: join(salida, '10-arranque-normal-1.png') }); await pg.keyboard.press('Space'); await pg.waitForFunction(() => /MANTÉN VIVA LA BASE/.test(document.getElementById('boot-txt')?.textContent ?? ''), null, { timeout: 1500 }); }
+    await pg.screenshot({ path: join(salida, `10-arranque-${nombre}-2.png`) });
+    await pg.waitForFunction(() => !document.getElementById('arranque'), null, { timeout: 7000 });
+    assert.ok(await pg.evaluate(() => !!document.getElementById('t-jugar') && !window.lfr?.s?.day), 'después del arranque queda el título; el Enter no empezó la partida');
+    await c.close();
+  }
+  ok('arranque dramático: pantalla negra → una tecla enciende → se escribe la historia (señal perdida, la IA, rescate en 10 días) → se salta con otra tecla → título; en «reducir movimiento» sale completo y sin sacudida');
 
   // 11. Reto del día con la llamarada real del día: la intro la anuncia, llega a la hora marcada y el resumen cuenta qué pasó.
   {
