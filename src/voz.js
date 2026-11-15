@@ -72,4 +72,8 @@ export function hablar(texto, { prio = 'normal', html = false } = {}) {
   if (hablando && prio === 'baja') return false;
   parar(false); cola = partir(limpio); sigue(); return true;
 }
-export function parar(avisar = true) { const s = sint(); cola = []; actual = null; try { s?.cancel?.(); } catch { /* nada */ } if (hablando) { hablando = false; if (avisar) avisa(); } }
+export function parar(avisar = true) {
+  const s = sint(); const activo = hablando || cola.length > 0 || actual !== null; cola = []; actual = null;
+  if (activo) { try { s?.cancel?.(); } catch { /* nada */ } } // solo si había algo: close() y open() lo llaman a menudo y cancelar no es gratis
+  if (hablando) { hablando = false; if (avisar) avisa(); }
+}
