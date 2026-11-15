@@ -546,3 +546,5 @@ body.derrota .dia-nuevo { display: none; }
   .dos, .ajustes { grid-template-columns: 1fr 1fr; } .pasos3 { grid-template-columns: repeat(3, 1fr); }
   .ventana { max-height: 96vh; } .grande { font-size: 1.2rem; }
 }
+/* tablet chica (alto 521–640 px): el título deja más aire para que JUGAR siempre quepa, aunque el consejo ocupe dos líneas */
+@media (max-height: 640px) and (min-width: 601px) { .inicio { gap: .4rem; } .logo-grande { font-size: 2.3rem; } .inicio .puntos { display: none; } }
