@@ -64,7 +64,7 @@ for (const loc of locs) {
     const s = G.newGame(loc, 1000 + k, dif, { reflex: !!process.env.REFLEX }); let mx = 0, lk = 0, prevC = 0;
     for (let t = 0; t < 20 * 60 * 60 && !s.over; t++) {
       if (process.env.CALM) { s.hazards.length = 0; s.events.length = 0; s.alert = 0; if (process.env.CALM === '2') s.drones = []; for (const d of s.map.doors) if (d.lock === 'energia' || d.lock === 'cuarentena') d.lock = null; if (s.vil) { s.vil.walkers = []; s.vil.mission = null; } } // CALM=1: sin peligros ni villanos, para medir solo los sistemas
-      if (s.pending) { if (s.pending.kind === 'respira') G.resolveBreath(s, Math.random() < 0.7); else s.pending = null; }
+      if (s.pending) { if (s.pending.kind === 'respira') G.resolveBreath(s, Math.random() < 0.7); else if (['protocolo', 'cables'].includes(s.pending.kind)) G.resolveProtocol(s, true); /* mantenimiento, armario de Cadete o cables: el bot resuelve el minijuego; si no, E vuelve a abrirlo y se queda pegado */ else s.pending = null; }
       const ctx = `${G.playerRoom(s)}/${G.block(s).id}${s.checked ? '+chk' : ''}${G.isNight(s) ? ' noche' : ''}${G.suspicious(s) ? ' SOSP' : ''} fl${(s.p.fleeT ?? 0) > 0 ? 1 : 0}`; const hs = s.p.salud, ig = s.integ; G.update(s, DT, bot(s));
       const tag = s.hazards.map((h) => h.kind).sort().join(',') || '-';
       if (s.p.salud < hs) DBG['salud ' + tag] = (DBG['salud ' + tag] ?? 0) + hs - s.p.salud;

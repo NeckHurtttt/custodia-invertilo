@@ -110,7 +110,13 @@ export function useStation(s, o) {
   if (C.block(s).id !== 'trabajo') return C.flash(s, 'El mantenimiento se hace en el turno de trabajo (08:00–12:00).', 'info');
   if (y.done[o.sys]) return C.flash(s, `${SYS[o.sys].name}: ya lo revisaste hoy.`, 'info');
   if (s.p.energia < 6) return C.flash(s, 'Estás demasiado cansado para trabajar. Come o descansa.', 'warn');
-  s.action = { kind: 'mant', need: 3, t: 0, o };
+  s.pending = { kind: 'protocolo', id: `mant_${o.sys}`, mant: o }; // mini-protocolo de 3 pasos en orden (minijuego de main.js)
+}
+
+/** Resultado del mini-protocolo de mantenimiento. Éxito: la revisión cuenta igual que antes. Fallo o cancelar: sin castigo, el panel sigue pendiente. */
+export function resolveMant(s, pd, ok) {
+  if (ok) return finish(s, { kind: 'mant', o: pd.mant });
+  C.flash(s, `${SYS[pd.mant.sys].name}: revisión sin terminar. El panel sigue pendiente; vuelve a pulsar E cuando quieras.`, 'info');
 }
 
 /** Terminó una acción de mantenimiento o de emergencia. */

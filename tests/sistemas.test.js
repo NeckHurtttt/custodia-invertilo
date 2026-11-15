@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as G from '../src/core.js';
 import * as Sys from '../src/sistemas.js';
+import { PROTOCOLS } from '../src/common.js';
 
 const fresh = (opts = {}, dif = 'normal', seed = 77) => G.newGame('estacion', seed, dif, opts);
 /** Pone al jugador sobre un panel de mantenimiento, a media mañana (turno de trabajo). */
@@ -43,25 +44,38 @@ test('sistemas: con poca energía, todo lo demás se degrada más rápido', () =
   assert.ok(b.sys.lvl.comida < a.sys.lvl.comida);
 });
 
-test('mantenimiento: se hace en el turno de trabajo, tarda y restaura el sistema', () => {
+test('mantenimiento: se hace en el turno de trabajo con un mini-protocolo y restaura el sistema', () => {
   const s = fresh(); s.sys.lvl.vida = 40;
   const o = atStation(s, 'vida');
   assert.equal(G.block(s).id, 'trabajo');
   assert.match(G.label(s, G.nearby(s)[0]), /Mantenimiento/);
-  G.interact(s); assert.equal(s.action?.kind, 'mant');
-  run(s, 3.5);
+  G.interact(s); assert.equal(s.pending?.id, 'mant_vida'); assert.equal(s.action, null);
+  G.resolveProtocol(s, true);
   assert.ok(s.sys.done.vida);
   assert.ok(s.sys.lvl.vida > 90, `vida ${s.sys.lvl.vida}`);
   assert.equal(s.sys.st.done, 1);
   assert.deepEqual(Sys.pending(s).sort(), ['comida', 'energia', 'rad']);
-  G.interact(s); assert.equal(s.action, null, 'ya revisado hoy');
+  G.interact(s); assert.equal(s.pending, null, 'ya revisado hoy');
   assert.equal(o.t, 'mant');
+});
+
+test('mantenimiento: cada sistema tiene su mini-protocolo de 3 pasos y cancelar o fallar no castiga', () => {
+  for (const id of Sys.SYS_IDS) {
+    const p = PROTOCOLS[`mant_${id}`]; assert.ok(p?.mant, `falta el protocolo de ${id}`);
+    assert.equal(p.steps.length, 3); assert.ok(p.time >= 30, 'sin prisa');
+  }
+  const s = fresh(); s.sys.lvl.rad = 40; atStation(s, 'rad'); const integ = s.integ, alert = s.alert, salud = s.p.salud, energia = s.p.energia;
+  G.interact(s); assert.equal(s.pending?.id, 'mant_rad');
+  G.resolveProtocol(s, false); // "AHORA NO" o se acabó el tiempo
+  assert.equal(s.pending, null); assert.ok(!s.sys.done.rad, 'el panel sigue pendiente');
+  assert.ok(Math.abs(s.sys.lvl.rad - 40) < 0.1, 'no sube ni baja por fallar'); assert.equal(s.integ, integ); assert.equal(s.alert, alert); assert.equal(s.p.salud, salud); assert.equal(s.p.energia, energia);
+  G.interact(s); G.resolveProtocol(s, true); assert.ok(s.sys.done.rad, 'al reintentar sí cuenta');
 });
 
 test('mantenimiento: fuera del turno de trabajo no se puede', () => {
   const s = fresh(); atStation(s, 'energia', 900);
   assert.notEqual(G.block(s).id, 'trabajo');
-  G.interact(s); assert.equal(s.action, null); assert.match(s.msg.text, /turno de trabajo/);
+  G.interact(s); assert.equal(s.pending, null); assert.match(s.msg.text, /turno de trabajo/);
 });
 
 test('mantenimiento: omitir revisiones cuesta alerta, integridad y nivel; hacerlas todas baja la alerta', () => {
@@ -130,7 +144,7 @@ test('avisos: aparece PRECAUCIÓN y luego ADVERTENCIA al bajar los niveles', () 
 // ---------- emergencias de reflejos ----------
 test('reflejos: apagado por defecto no hay emergencias nunca', () => {
   const s = fresh(); assert.equal(s.sys.reflex, false);
-  for (let i = 0; i < 40; i++) { for (const id of Sys.SYS_IDS) s.sys.done[id] = false; atStation(s, 'rad', 500 + i); G.interact(s); run(s, 3.2); }
+  for (let i = 0; i < 40; i++) { for (const id of Sys.SYS_IDS) s.sys.done[id] = false; atStation(s, 'rad', 500 + i); G.interact(s); G.resolveProtocol(s, true); run(s, 0.1); }
   assert.equal(s.sys.emerg, null); assert.equal(s.sys.st.saved, 0); assert.ok(!s.over);
   assert.equal(fresh({ reflex: true, daily: true }).sys.reflex, false, 'el reto diario no usa reflejos');
 });
@@ -138,7 +152,7 @@ test('reflejos: apagado por defecto no hay emergencias nunca', () => {
 test('reflejos: al hacer mantenimiento puede saltar una emergencia con cuenta atrás', () => {
   let fired = 0;
   for (let seed = 1; seed <= 12; seed++) {
-    const s = fresh({ reflex: true }, 'normal', seed); atStation(s, 'rad'); G.interact(s); run(s, 3.2);
+    const s = fresh({ reflex: true }, 'normal', seed); atStation(s, 'rad'); G.interact(s); G.resolveProtocol(s, true); run(s, 0.1);
     if (s.sys.emerg) { fired++; assert.ok(s.sys.emerg.t > 5 && s.sys.emerg.t <= s.sys.emerg.total); assert.ok(s.sys.emToday === 1); assert.match(s.msg.text, /⚠/); }
   }
   assert.ok(fired >= 3 && fired <= 11, `saltó ${fired} de 12`);
@@ -196,7 +210,7 @@ test('guardado: los sistemas y la emergencia sobreviven a guardar y cargar', () 
 });
 
 test('determinismo: misma semilla y mismas acciones, mismas emergencias', () => {
-  const play = () => { const s = fresh({ reflex: true }, 'normal', 5); atStation(s, 'rad'); G.interact(s); run(s, 3.2); return JSON.stringify(s.sys); };
+  const play = () => { const s = fresh({ reflex: true }, 'normal', 5); atStation(s, 'rad'); G.interact(s); G.resolveProtocol(s, true); run(s, 0.1); return JSON.stringify(s.sys); };
   assert.equal(play(), play());
 });
 

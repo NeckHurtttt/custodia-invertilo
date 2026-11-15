@@ -808,6 +808,7 @@ function fixHazard(s, h) {
 /** Resultado de un minijuego (protocolo o cables). */
 export function resolveProtocol(s, ok) {
   const pd = s.pending; s.pending = null; if (!pd) return;
+  if (pd.mant) return S.resolveMant(s, pd, ok);
   if (pd.id === 'ia') {
     if (ok) { s.iaOn = false; s.alert = 0; flash(s, `¡${s.L.ai} APAGADA! La vigilancia cae al piso y las escotillas con tarjeta se abren.`, 'ok'); for (const d of s.map.doors) if (d.lock === 'tarjeta') d.open = true; }
     else raise(s, 30, 'Intento de apagado detectado.');

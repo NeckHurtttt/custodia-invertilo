@@ -76,7 +76,7 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 
 ## 5. Siguiente paso y cola de trabajo
 
-> **SIGUIENTE PASO:** E2 · completar los nombres del equipo en `docs/entrega-space-apps.md` (pedírselos a Sergio) y revisar el formulario de Space Apps; después F (mantenimiento como mini-protocolo). Pendiente menor: la cita **NTRS 20120002562** (fuego, `PROTO_FUENTE.fuego`) no se pudo confirmar: el registro no tiene resumen y su título habla de entrenamiento de operaciones críticas.
+> **SIGUIENTE PASO:** G · Control de Misión (cooperativo) ve la llamarada real y puede avisar al astronauta, con el retraso del destino. Pendientes menores: nombres del equipo en `docs/entrega-space-apps.md` (E2) y confirmar la cita NTRS 20120002562 (fuego).
 
 Cola en orden (marca `[x]` al terminar y sube):
 - [x] A · Instrucciones para el Claude que retome + bitácora (este archivo).
@@ -84,7 +84,7 @@ Cola en orden (marca `[x]` al terminar y sube):
 - [x] C · **Ocultar "delatar a un compañero" en Cadete** (público de 7-12). Tecla B en `src/main.js` y `betray()` en `src/core.js`; también el texto "[B] delatar".
 - [x] D · **Verificar 3 citas de Leo** y corregir o marcar como no verificadas: NTRS 20250003954 (despresurización, `PROTO_FUENTE.fuga`), "GeoHealth 2025, Wang et al." (`PROTO_FUENTE.perclorato`) y "250 mSv por evento" (`src/sistemas.js`, `EMERGS.llamarada.fatal`).
 - [x] E · **Adaptar la entrega de Space Apps a Custodia**: nuevo `docs/entrega-space-apps.md` en inglés (nombre, resumen, enlaces, datos NASA, uso de IA, guion de 30 s, 7 diapositivas) y la descripción del equipo. Faltan los nombres del equipo: pedírselos a Sergio.
-- [ ] F · **El mantenimiento como mini-protocolo** de 2 o 3 pasos en orden (hoy es "E y esperar 3 s"). Sin romper el bot del simulador ni `npm run e2e`.
+- [x] F · **El mantenimiento como mini-protocolo** de 2 o 3 pasos en orden (hoy es "E y esperar 3 s"). Sin romper el bot del simulador ni `npm run e2e`.
 - [ ] G · **Control de Misión (cooperativo) ve la llamarada real** y puede avisar al astronauta (con el retraso del destino).
 - [ ] H · **Inglés** en lo que ve el jurado: inicio, intro, tormenta, tarjeta de restricción, DATOS NASA y resumen final.
 - [ ] I · **Reto diario con la llamarada del día.**
@@ -133,4 +133,5 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
 | 14/11 | `1732dd0` | B · Campo para la llave de api.nasa.gov en DATOS NASA (probado con llave falsa: avisa y sigue con archivadas); e2e 18/18 | C |
 | 14/11 | `d43bfdc` | C · En Cadete no se puede delatar: `noBetray` en `DIFS.cadete`; `betray()` no hace nada, la etiqueta no ofrece [B] y la ayuda no lo menciona. Prueba nueva en `tests/meta.test.js`; 146/146 y e2e 18/18 | D |
 | 14/11 | `14ec944` | D · Citas verificadas: **NTRS 20250003954** existe (Chen, Walker y Williams 2025, emergencias ECLSS de la ISS: fuego, derrames tóxicos, despresurización rápida); se quitó la frase "el tiempo restante es el dato clave" porque el resumen no la dice. **GeoHealth 2025** es real (Wang et al., doi:10.1029/2024GH001213); el perclorato "podría frenar la tiroides" (hipótesis de la revisión), ya no "daña". **250 mSv por evento** confirmado en el Technical Brief de NASA (OCHMO-TB-020, NASA-STD-3001 Vol. 1 Rev B, requisito V1 4031); el texto ahora lo cita. 146/146 y e2e 18/18 | E |
-| 14/11 | (este commit) | E · `docs/entrega-space-apps.md` en inglés (nombre, resumen ≤150 palabras, descripción, datos NASA, uso de IA, guion de 30 s, 7 diapositivas, descripción del equipo ES/EN). Faltan los nombres del equipo. Se verificaron las citas NTRS 20030053429, 20220019247 y 20250003954; **20120002562 sin confirmar** (no se lista en la entrega). Nota: el README dice "12 de 12 rescates" y CONTEXTO "15 de 15": la entrega no cita esa cifra | E2 / F |
+| 14/11 | `e4f36e3` | E · `docs/entrega-space-apps.md` en inglés (nombre, resumen ≤150 palabras, descripción, datos NASA, uso de IA, guion de 30 s, 7 diapositivas, descripción del equipo ES/EN). Faltan los nombres del equipo. Se verificaron las citas NTRS 20030053429, 20220019247 y 20250003954; **20120002562 sin confirmar** (no se lista en la entrega). Nota: el README dice "12 de 12 rescates" y CONTEXTO "15 de 15": la entrega no cita esa cifra | E2 / F |
+| 14/11 | (este commit) | F · El mantenimiento es un mini-protocolo de 3 pasos en orden (`mant_vida`, `mant_energia`, `mant_rad`, `mant_comida` en `PROTOCOLS`, nivel `ficcion` con su fuente): E abre el minijuego de protocolo, 40 s, sin castigo; "AHORA NO" o fallar deja el panel pendiente. `S.resolveMant()` aplica el resultado y `finish()` es el mismo de antes. Simulador: el bot ahora resuelve protocolos y cables (antes se quedaba pegado: 1 de 4 partidas no terminaba); Cadete, 4 partidas por destino: 12 de 12 rescates, dosis Estación 35 %, Luna 53 %, Marte 47 %. 147/147 y e2e 18/18 (el paso 9 ahora juega el minijuego) | G |

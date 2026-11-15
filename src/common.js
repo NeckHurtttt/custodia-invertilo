@@ -65,6 +65,11 @@ export const PROTOCOLS = {
   desacople: { title: 'DESACOPLE MANUAL · Soyuz', steps: ['Ponerse el traje Sokol', 'Cerrar la escotilla de la estación', 'Revisar la presión de la cápsula', 'Encender el combustible', 'Meter la llave y girar la palanca', 'Confirmar "¡Desacople!" por radio'] },
   ascenso: { title: 'DESPEGUE · módulo de ascenso', steps: ['Conectar el oxígeno del traje', 'Cerrar la escotilla del módulo', 'Cargar el código de navegación', 'Presurizar los tanques', 'Soltar los anclajes con la llave', 'Encender el motor de ascenso'] },
   mav: { title: 'DESPEGUE · MAV', steps: ['Conectar el oxígeno del traje', 'Revisar el combustible de la planta ISRU', 'Cargar el código de navegación', 'Calcular la ventana con la nave en órbita', 'Soltar los anclajes con la llave', 'Encender los motores'] },
+  // Mantenimiento diario (08:00–12:00): mini-protocolo de 3 pasos en orden. Sin prisa y sin castigo: si falla, el panel sigue pendiente.
+  mant_vida: { title: 'MANTENIMIENTO · soporte vital', mant: true, time: 40, steps: ['Medir el CO₂ del aire', 'Cambiar el filtro sucio por uno limpio', 'Comprobar que el aire quedó limpio'] },
+  mant_energia: { title: 'MANTENIMIENTO · energía', mant: true, time: 40, steps: ['Mirar cuánta carga tienen las baterías', 'Orientar los paneles hacia el Sol', 'Confirmar que la carga sube'] },
+  mant_rad: { title: 'MANTENIMIENTO · radiación', mant: true, time: 40, steps: ['Leer el dosímetro (cuánta radiación llevas)', 'Revisar que el blindaje esté cerrado', 'Anotar la dosis en el registro'] },
+  mant_comida: { title: 'MANTENIMIENTO · comida', mant: true, time: 40, steps: ['Revisar el agua y la luz de las plantas', 'Cosechar lo que ya está listo', 'Guardar las raciones en la despensa'] },
 };
 
 // Fuente y honestidad por protocolo (se muestra en el minijuego y en el debrief).
@@ -86,6 +91,10 @@ export const PROTO_FUENTE = {
   desacople: { nivel: 'ficcion', fuente: 'Inspirado en cápsulas Soyuz (traje Sokol real); pasos inventados' },
   ascenso: { nivel: 'ficcion', fuente: 'Inspirado en el módulo de ascenso lunar; pasos inventados' },
   mav: { nivel: 'ficcion', fuente: 'Inspirado en el MAV de Marte (concepto NASA); pasos inventados' },
+  mant_vida: { nivel: 'ficcion', fuente: 'En la ISS el mantenimiento rutinario del soporte vital es real, pero estos pasos son de juego' },
+  mant_energia: { nivel: 'ficcion', fuente: 'En una base el cuidado de baterías y paneles es real, pero estos pasos son de juego' },
+  mant_rad: { nivel: 'ficcion', fuente: 'Vigilar la dosis con dosímetros es real en la ISS, pero estos pasos son de juego' },
+  mant_comida: { nivel: 'ficcion', fuente: 'Cultivar alimento en el espacio es real (Veggie en la ISS), pero estos pasos son de juego' },
 };
 
 /*

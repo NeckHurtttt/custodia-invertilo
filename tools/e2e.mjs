@@ -171,10 +171,19 @@ try {
 
   const irA = (id) => pagina.evaluate((sid) => { const { s, Sys } = lfr; s.crew.forEach((c) => { c.x = 3.5; c.y = 3.5; c.goal = null; c.path = null; }); const o = Sys.station(s, sid); s.p.x = o.x + 0.5; s.p.y = o.y + 0.5; s.p.inDuct = false; s.p.hidden = null; s.grace = 999; }, id);
   await irA('vida'); await pagina.waitForTimeout(200);
-  await pagina.keyboard.press('e'); await pagina.waitForTimeout(3600);
-  assert.equal(await pagina.evaluate(() => !!lfr.s.sys.done.vida), true, 'la revisión del soporte vital debe quedar hecha tras pulsar E');
+  await pagina.keyboard.press('e'); await pagina.waitForSelector('#pasos button', { timeout: 3000 });
+  assert.equal(await pagina.locator('#pasos button').count(), 3, 'el mantenimiento es un mini-protocolo de 3 pasos');
+  assert.ok((await pagina.textContent('#ventana')).includes('MANTENIMIENTO'), 'el título dice MANTENIMIENTO');
+  // "AHORA NO": sin castigo y el panel sigue pendiente
+  await pagina.click('#pc'); await pagina.waitForTimeout(300);
+  assert.equal(await pagina.evaluate(() => !!lfr.s.sys.done.vida), false, 'cancelar no cuenta la revisión');
+  await pagina.keyboard.press('e'); await pagina.waitForSelector('#pasos button', { timeout: 3000 });
+  await pagina.click('#pasos button[data-i="1"]'); // un error: solo resta unos segundos
+  for (const i of [0, 1, 2]) await pagina.click(`#pasos button[data-i="${i}"]`);
+  await pagina.waitForTimeout(300);
+  assert.equal(await pagina.evaluate(() => !!lfr.s.sys.done.vida), true, 'la revisión del soporte vital debe quedar hecha al completar los 3 pasos');
   assert.equal(await pagina.locator('#sis-tareas li.ok').count(), 1);
-  ok('mantenimiento: E sobre el panel hace la revisión y se marca en la lista');
+  ok('mantenimiento: E sobre el panel abre un mini-protocolo de 3 pasos; AHORA NO no castiga; al completarlo se marca en la lista');
 
   await pagina.evaluate(() => { lfr.Sys.startEmergency(lfr.s, null, 'sobrecarga'); });
   await pagina.waitForSelector('#emerg:not([hidden])', { timeout: 2000 });

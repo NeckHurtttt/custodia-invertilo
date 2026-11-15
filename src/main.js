@@ -969,11 +969,12 @@ function breathGame() {
 function protocolGame(id) {
   menu = 'protocolo';
   const pr = PROTOCOLS[id]; const order = pr.steps; const shuffled = order.map((x, i) => [x, i]).sort(() => Math.random() - 0.5);
-  let next = 0; let time = 16; const total = 16;
-  open(`<h2>${pr.title}</h2><p>Toca los pasos <b>en orden</b>. Error = −2 s.</p><p class="fuente"><b>${PROTO_NIVEL[(PROTO_FUENTE[id]||{}).nivel] || ''}</b><br>${(PROTO_FUENTE[id]||{}).fuente || ''}</p><div class="tiempo"><i id="pt"></i></div>
-    <div class="pasos" id="pasos">${shuffled.map(([x, i]) => `<button data-i="${i}">${x}</button>`).join('')}</div>`);
+  const total = pr.time ?? 16; let next = 0; let time = total;
+  open(`<h2>${pr.title}</h2><p>Toca los pasos <b>en orden</b>. ${pr.mant ? 'Sin prisa: si te equivocas solo pierdes unos segundos.' : 'Error = −2 s.'}</p><p class="fuente"><b>${PROTO_NIVEL[(PROTO_FUENTE[id]||{}).nivel] || ''}</b><br>${(PROTO_FUENTE[id]||{}).fuente || ''}</p><div class="tiempo"><i id="pt"></i></div>
+    <div class="pasos" id="pasos">${shuffled.map(([x, i]) => `<button data-i="${i}">${x}</button>`).join('')}</div>${pr.mant ? '<div class="fila"><button id="pc" class="sec">AHORA NO</button></div>' : ''}`);
   const tick = setInterval(() => { time -= 0.1; const el = $('pt'); if (el) el.style.width = `${Math.max(0, time / total * 100)}%`; if (time <= 0) done(false); }, 100);
   function done(ok) { clearInterval(tick); M.ui(ok ? 'ok' : 'error'); G.resolveProtocol(s, ok); close(); }
+  if (pr.mant) $('pc').onclick = () => { clearInterval(tick); M.ui('cerrar'); G.resolveProtocol(s, false); close(); }; // el mantenimiento se puede dejar para después, sin castigo
   $('pasos').querySelectorAll('button').forEach((b) => (b.onclick = () => {
     if (+b.dataset.i === next) { b.classList.add('hecho'); b.disabled = true; b.textContent = `${next + 1}. ${b.textContent}`; next++; beep(520 + next * 60, 0.06); if (next === order.length) done(true); }
     else { time -= 2; M.ui('error'); shake(); }
