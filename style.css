@@ -325,7 +325,7 @@ button.reto { border-color: var(--amber); color: var(--amber); }
   .vr .dmg { top: -1em; }
   .hud-centro { left: .3em; right: 58px; top: calc(58px + 8.6em); transform: none; width: auto; }
   .hud-der { left: .3em; right: 58px; top: calc(58px + 8.6em); bottom: auto; width: auto; max-height: max(100px, calc(50vh - 196px)); padding-top: 0 !important; overflow: auto; z-index: 4; }
-  .hud-crew { display: none; }
+  .hud-crew { left: .3em; bottom: .4em; width: auto; } .hud-crew h3, .hud-crew .nom, .hud-crew .dos, .hud-crew .txt-pide, .hud-crew .pn { display: none; } .hud-crew .caja { padding: .15em .3em; } .hud-crew .crew li { gap: 3px; } .hud-crew .cor { font-size: .8em; }
   .hud-inv { bottom: 164px; left: .3em; transform: none; } .hud-inv .slot { width: 2.1em; height: 2.1em; } .hud-inv .caja { padding: .2em .3em; }
   .hud-teclas { display: flex; flex-direction: column; flex-wrap: nowrap; right: .3em; top: 150px; bottom: auto; max-width: none; align-items: stretch; gap: 4px; font-size: 14px; }
   .hud-teclas button { min-width: 48px; min-height: 44px; padding: 0 .3em; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .85em; line-height: 1; }
@@ -580,3 +580,16 @@ body.derrota .dia-nuevo { display: none; }
 .ficha::before, .pest li.ficha::before { content: none !important; }
 @media (max-height: 640px) and (min-width: 601px) { .desc-nivel { display: none; } }
 @media (max-height: 700px) { .pant-titulo .accion { padding-bottom: .8rem; } }
+
+/* Teléfono: la tripulación abajo a la izquierda (retrato, corazones y lo que pide); si usas la cruz de flechas, se esconde para no taparla */
+body.cruz-on .hud-crew { display: none; }
+.hud-crew .crew li { white-space: nowrap; }
+
+/* Bitácora en el celular: la tabla se desliza de lado con la columna de nombres fija y más apretada; en compu no hace falta el aviso */
+.bit-desliza { display: none; margin: .1rem 0 .2rem; color: var(--dim); font-size: .8em; text-align: center; }
+.bit-tabla tbody th { position: sticky; left: 0; background: var(--panel2); z-index: 1; }
+@media (max-width: 600px), (max-height: 520px) {
+  .bit-desliza { display: block; }
+  .bit-tabla table { font-size: .82em; } .bit-tabla th, .bit-tabla td { padding: .08rem .22rem; }
+  .bit-tabla { -webkit-overflow-scrolling: touch; }
+}

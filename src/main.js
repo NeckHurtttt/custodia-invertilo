@@ -659,7 +659,7 @@ function retrato(nombre, color, emo = 'normal', clase = 'retrato') {
 const emoDe = (c) => (c.betrayed ? 'enojo' : c.trust >= 2 ? 'feliz' : 'normal');
 /** Ficha de cada compañero (pausa → TRIPULACIÓN): oficio, forma de ser, su frase y cómo está contigo. */
 const crewFichas = () => s.crew.map((c) => { const f = ficha(c.name); const estado = c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? T('pide', 'asks for') + ` ${icon(c.want)} ${ITEMS[c.want].name}` : T('contento', 'happy'); return `<li class="ficha">${retrato(c.name, c.color, emoDe(c))}<b style="color:${c.color}">${c.name}</b>${f ? ` · ${f.rol} · <i>${f.rasgo}</i><br><small>“${f.frase}”</small>` : ''}<br>${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))} ${estado}</li>`; }).join('');
-const crewHTML = () => s.crew.map((c) => `<li>${retrato(c.name, c.color, emoDe(c), 'retrato-mini')} <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> ${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}: ${c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? `${T('pide', 'asks for')} <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)} ${ITEMS[c.want].name}</span>` : T('contento', 'happy')}</li>`).join('');
+const crewHTML = () => s.crew.map((c) => `<li>${retrato(c.name, c.color, emoDe(c), 'retrato-mini')} <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> <span class="cor">${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}</span><span class="dos">:</span> ${c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? `<span class="txt-pide">${T('pide', 'asks for')}</span> <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)}<span class="pn"> ${ITEMS[c.want].name}</span></span>` : `<span class="txt-pide">${T('contento', 'happy')}</span>`}</li>`).join('');
 
 const planHTML = (L = s.L) => G.PLAN_IDS.map((id) => `<li class="${G.has(s, id) ? 'ok' : ''}" title="${L.plan[id].hint}">${L.plan[id].name}</li>`).join('') + `<li class="${s.iaOn ? '' : 'ok'}" title="${T('Opcional: núcleo de la IA con tarjeta y 50 de conocimiento.', 'Optional: the AI core, with a card and 50 knowledge.')}">${T('(Opcional) Apagar a ', '(Optional) Shut down ')}${L.ai}</li>` + G.routes(s).filter((r) => r.id !== 'plan').map((r) => `<li class="ruta ${r.ok ? 'ok' : ''}" title="${r.desc}">${T('Ruta ', 'Route ')}${r.name}${r.ok ? ' ✓' : ''}</li>`).join('');
 function amenazasHTML() {
@@ -1102,6 +1102,7 @@ function bitacoraHTML() {
   const fila = (id) => `<tr><th>${ic(id)} ${Sys.SYS[id].name}</th>${inf.dias.map((d) => celda(d.lvl[id], estadoNivel(d.lvl[id]))).join('')}</tr>`;
   return `<section class="bloque bitacora" id="bitacora"><h3>${T('BITÁCORA DE LA MISIÓN · POR QUÉ PASÓ', 'MISSION LOG · WHY IT HAPPENED')}</h3>
     ${inf.causas.length ? `<ul class="causas">${inf.causas.map((c) => `<li class="${c.tipo}">${ic(c.ic)} ${c.txt}</li>`).join('')}</ul>` : ''}
+    <p class="bit-desliza">${T('← Desliza la tabla para ver todos los días →', '← Slide the table to see all the days →')}</p>
     <div class="bit-tabla"><table><thead><tr><th>${T('Día', 'Day')}</th>${inf.dias.map((d) => `<th>${d.day}</th>`).join('')}</tr></thead><tbody>
       ${Sys.SYS_IDS.map(fila).join('')}
       <tr><th>${ic('ok')} ${T('Revisiones', 'Checks')}</th>${inf.dias.map((d) => d.curso ? `<td title="${T('turno en curso', 'shift in progress')}">${d.hechas}/4…</td>` : celda(`${d.hechas}/4`, d.hechas === 4 ? 'ok' : d.hechas >= 2 ? 'warn' : 'bad')).join('')}</tr>
@@ -1184,11 +1185,13 @@ function pausa() {
   $('vmenos').onclick = () => { $('vol').textContent = Math.round(M.volume(-0.25) * 100) + ' %'; }; $('vmas').onclick = () => { $('vol').textContent = Math.round(M.volume(0.25) * 100) + ' %'; };
   $('seguir').onclick = close; $('ay').onclick = () => help(pausa); $('salir').onclick = () => { save(); titleScreen(); };
 }
+let avisoAgachar = false; // la explicación de agacharse sale una vez por sesión
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   if (e.repeat) return;
   keys.add(k);
+  if (k === 'shift' && s && !menu && !avisoAgachar) { avisoAgachar = true; G.flash(s, T('Agachado (Shift): haces menos ruido y te ven menos, pero caminas más lento. Suelta Shift para pararte.', 'Crouching (Shift): you make less noise and are seen less, but you walk slower. Release Shift to stand up.'), 'info'); }
   if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
   if (menu === 'fin' && /^[1-3]$/.test(k) && !e.target.closest?.('input, textarea')) { finQuiz?.(+k - 1); return; } // 1–3 responden la pregunta de cierre

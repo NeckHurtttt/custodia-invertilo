@@ -45,6 +45,8 @@ Juego de navegador para el reto de la NASA "Junior Astronaut Mission Trainer": e
 - Para jugar: abrir `index.html` con un servidor estático (los módulos ES no cargan con `file://`).
 
 ## Reglas al programar
+- **Todo cambio debe funcionar en compu Y en celular** (con adaptaciones: teclado/mouse vs. dedo, ventana ancha vs. 375×812 vertical y 844×390 acostado). Antes de dar algo por terminado, mira las dos vistas (navegador con tamaño de teléfono) y deja el e2e (`responsive`) cubriéndolas. Si algo solo existe en una, busca su equivalente en la otra (p. ej. Shift ⇄ botón AGACHAR, WASD ⇄ joystick de dedo, panel de tripulación ⇄ retratos compactos).
+
 - Cero dependencias externas. No agregar librerías sin acordarlo con el equipo.
 - Todo cambio de reglas va en `core.js` con una prueba en `tests/`; la lógica nueva no puede depender de `Math.random` (usar `rand(s)`).
 - Después de cada cambio: `npm test`. Si toca el equilibrio, también `npm run sim`. Si toca la interfaz o el arranque del juego, también `npm run e2e`.
