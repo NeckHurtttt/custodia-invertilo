@@ -7,7 +7,9 @@ import { T } from './i18n.js';
 /** Hora (minuto del día) a la que el tutorial adelanta el reloj para llegar al turno de mantenimiento. */
 export const HORA_TURNO = 8 * 60;
 /** Pasos en orden. `ok` = el jugador toca ENTENDIDO; `auto` = se cumple haciendo la acción. No se puede saltar: se aprende jugando. */
-export const PASOS = ['mover', 'barras', 'panel', 'usar', 'agachar', 'esconder', 'mapa', 'tormenta', 'finales'];
+// Solo lo de la BASE: moverse, recolectar, agacharse y esconderse ya los enseña la Academia de Cadetes (academia.js), antes del menú.
+// (Los casos 'mover', 'agachar' y 'esconder' de texto()/tick() quedan por si se vuelven a usar.)
+export const PASOS = ['barras', 'panel', 'usar', 'mapa', 'tormenta', 'finales'];
 const OK = new Set(['barras', 'tormenta', 'finales']);
 
 /** Estado nuevo del tutorial para esta partida. */

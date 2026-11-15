@@ -875,3 +875,9 @@ body.telefono #emerg small, body.telefono #emerg .fuente, body.telefono #emerg p
 .fin-tuto .fi { font-size: 1.4rem; line-height: 1; flex: none; }
 .fin-tuto small { color: var(--dim); font-size: .95em; }
 .fin-tuto.secreto { border-style: dashed; border-color: #6a4f9a; } .fin-tuto.secreto b { color: #c9a8ff; letter-spacing: .2em; }
+/* Academia de Cadetes: las 5 salas numeradas en la ventana de bienvenida */
+.aca-salas { display: flex; flex-wrap: wrap; gap: .4rem; padding: 0; margin: .5rem 0; list-style: none; counter-reset: sala; }
+.aca-salas li { counter-increment: sala; padding: .25rem .6rem; border: 1px solid var(--line); border-radius: 6px; background: rgba(29,37,57,.6); }
+.aca-salas li::before { content: counter(sala) " · "; color: var(--amber); }
+/* En la Academia solo sirven mochila, fabricar, inhibir, nombres y mapa: lo de la base (paneles 1-4) y la tripulación vacía no se muestran */
+body.en-academia #teclas [data-panel], body.en-academia .hud-crew { display: none !important; }

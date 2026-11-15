@@ -5,6 +5,9 @@ export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
 import { LOCS, ROOM_EN } from './locs.js';
 import { variante, candidatas, FIJO } from './disposicion.js';
+import { ACADEMIA } from './academia.js';
+/** El destino base: los 3 de LOCS o la Academia de Cadetes (tutorial). */
+const baseLoc = (loc) => (loc === 'academia' ? ACADEMIA : LOCS[loc]);
 import { T } from './i18n.js';
 import { voz } from './personajes.js';
 // Inglés: nombre del vigilante y rótulos del destino (para los avisos en inglés)
@@ -127,7 +130,7 @@ export function follow(s, b, goal, speed, dt, who = 'd') {
  * sacada de la semilla (salas cambiadas, espejo, salas opcionales), la primera que pase mapaValido(); si no, la forma propia del destino.
  */
 export function armaMapa(loc, seed, opts = {}) {
-  const L0 = LOCS[loc];
+  const L0 = baseLoc(loc); if (loc === 'academia') return L0; // la Academia siempre igual
   if (opts.lay) return variante(L0, opts.lay);
   if (opts.variar) for (const lay of candidatas(L0, seed)) { const L = variante(L0, lay); if (mapaValido(L)) return L; }
   return variante(L0, FIJO[loc]);
@@ -150,7 +153,7 @@ export function mapaValido(L) {
 export function newGame(loc = 'estacion', seed = Date.now() & 0x7fffffff, difKey = 'normal', opts = {}) {
   const L = armaMapa(loc, seed, opts);
   const s = {
-    loc, L, seed, dif: DIFS[difKey] ? difKey : 'normal', grace: 0, day: 1, mode: opts.mode === 'noche' ? 'noche' : 'campana', perk: PERKS[opts.perk] ? opts.perk : 'novato', daily: !!opts.daily,
+    loc, L, seed, dif: DIFS[difKey] ? difKey : 'normal', grace: 0, day: 1, mode: loc === 'academia' ? 'academia' : opts.mode === 'noche' ? 'noche' : 'campana', perk: PERKS[opts.perk] ? opts.perk : 'novato', daily: !!opts.daily,
     seen: opts.seen ?? [], notes: [], route: null, t: 0, min: 340, map: buildMap(L), lay: L.lay ?? null,
     p: { x: (L.inicio ?? [3.5])[0], y: (L.inicio ?? [0, 3.5])[1], dir: 0, inDuct: false, hidden: null, crouch: false, noisy: false, dusty: 0, sleep: false, salud: 100, energia: 90, fuerza: 5, conoc: 5, o2: 100, inv: ['cinta', 'tornillos'], hit: 0, walk: 0 },
     stash: [], alert: 0, integ: 100, iaOn: true, frags: [false, false, false], grates: L.grates.map(() => false),
@@ -166,10 +169,22 @@ export function newGame(loc = 'estacion', seed = Date.now() & 0x7fffffff, difKey
   if (s.mode === 'noche') setupNight(s);
   if (s.mode === 'noche' && s.daily && opts.flare) s.dFlare = { flare: { cls: opts.flare.cls, date: opts.flare.date, source: opts.flare.source }, min: opts.flareMin ?? 1500, done: false, result: null }; // reto del día: llamarada real a media noche
   S.init(s, opts);
-  refill(s); if (s.mode !== 'noche') planEvents(s); newWants(s); V.startDay(s);
+  refill(s); if (s.mode !== 'noche') planEvents(s); newWants(s); if (s.mode !== 'academia') V.startDay(s); // la Academia no tiene villanos
+  if (s.mode === 'academia') { preparaAcademia(s); return s; }
   if (s.mode === 'noche') say(s, T(`UNA NOCHE en ${L.name}. Ya tienes parte del plan. Escapa antes de las 06:00 o ${L.ai} te descubre.`, `ONE NIGHT — ${L.nameEn ?? L.name}. You already have part of the plan. Escape before 06:00 or ${L.ai} finds you out.`), 'ia');
   else say(s, T(`Día 1 en ${L.name}. ${L.ai} está fallando. La nave de rescate llega en ${DAYS} días: mantén viva la base hasta entonces.`, `Day 1 — ${L.nameEn ?? L.name}. ${L.ai} is malfunctioning. The rescue ship arrives in ${DAYS} days: keep the base alive until then.`), 'ia');
   return s;
+}
+/**
+ * Academia de Cadetes (tutorial, academia.js): de día, sin peligros, villanos ni tripulación; un solo dron en la zona vigilada;
+ * los cajones traen lo justo (chip y placa) y la caja pesada el cable. Fuerza 20 y conocimiento 15: con 2 entrenamientos
+ * y 2 estudios (+10 cada uno) alcanza para abrir la caja (40) y fabricar la tarjeta (35).
+ */
+function preparaAcademia(s) {
+  s.min = 600; s.events = []; s.vil = null; s.hazards = []; s.drones = s.drones.slice(0, 1); s.log = [];
+  Object.assign(s.p, { fuerza: 20, conoc: 15, energia: 100, inv: [] });
+  s.objects.forEach((o, i) => { const def = s.L.objects[i]; if (o.t === 'cajon') o.loot = [...(def?.loot ?? [])]; });
+  say(s, T('Academia de Cadetes: sigue la flecha dorada.', 'Cadet Academy: follow the golden arrow.'), 'info', true);
 }
 /** Modo UNA NOCHE: empiezas a las 21:00 con medio plan hecho; escapa antes de que amanezca. */
 function setupNight(s) {
@@ -192,7 +207,7 @@ export const NIGHT_SPEED = 0.3125; // en UNA NOCHE el reloj va más lento: 9 h �
 export const inicio = (s) => s.L.inicio ?? [3.5, 3.5];
 export function revive(o) {
   // partidas guardadas antes de las variantes (sin `lay`) usan el mapa original; las nuevas, su disposición exacta
-  o.L = o.lay === undefined ? LOCS[o.loc] : o.lay ? variante(LOCS[o.loc], o.lay) : LOCS[o.loc]; const map = buildMap(o.L);
+  o.L = o.lay === undefined ? baseLoc(o.loc) : o.lay ? variante(baseLoc(o.loc), o.lay) : baseLoc(o.loc); const map = buildMap(o.L);
   (o.doorsOpen ?? []).forEach((v, i) => { if (map.doors[i]) map.doors[i].open = v; }); delete o.doorsOpen;
   o.map = map; markSolid(o); o.pending = null; o.action = null; o.floor ??= []; o.mode ??= 'campana'; o.sys ??= null; o.perk ??= 'novato'; o.seen ??= []; o.notes ??= []; o.t ??= 0;
   for (const c of o.crew) { c.trust ??= 0; c.tellCd ??= 0; }
@@ -243,7 +258,7 @@ export const isOutside = (s, x = s.p.x, y = s.p.y) => !!roomAt(s, x, y)?.outside
 export const PLAN_IDS = ['codigo', 'celda', 'traje', 'llave'];
 export const planDone = (s) => PLAN_IDS.every((id) => has(s, id));
 export const clock = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(Math.floor(m % 60)).padStart(2, '0')}`;
-export const recipes = (s) => RECIPES.filter((r) => !r.locs || r.locs.includes(s.loc));
+export const recipes = (s) => RECIPES.filter((r) => (s.mode === 'academia' ? r.id === 'tarjeta' : !r.locs || r.locs.includes(s.loc))); // en la Academia solo la tarjeta
 /** Tormenta encima del jugador (oscuridad y menos visión de los drones). */
 export const storm = (s) => s.hazards.find((h) => h.def.type === 'front' && h.def.dark && h.phase === 'barre' && s.p.x < h.x);
 /** Oscuridad donde está el jugador: tormenta o apagón. */
@@ -259,6 +274,10 @@ export function raise(s, n, why) {
   if (s.alert >= 100) lockdown(s);
 }
 export function lockdown(s, who) {
+  if (s.mode === 'academia') {
+    const [x, y] = s.L.reinicio ?? inicio(s); Object.assign(s.p, { x, y, inDuct: false, hidden: null }); s.stats.caught++; s.grace = 4; s.alert = 0; V.calmAll(s);
+    return flash(s, T('¡El dron te vio! Vuelves a la entrada de la zona vigilada. Agáchate o escóndete en un casillero y vuelve a intentarlo.', 'The drone saw you! You go back to the entrance of the watched zone. Crouch or hide in a locker and try again.'), 'warn');
+  }
   const lost = s.p.inv.filter(isContraband);
   s.p.inv = s.p.inv.filter((i) => !isContraband(i));
   Object.assign(s.p, { x: inicio(s)[0], y: inicio(s)[1], inDuct: false, hidden: null }); s.p.energia = Math.max(0, s.p.energia - 20);
@@ -279,7 +298,7 @@ export function update(s, dt, input = { dx: 0, dy: 0 }) {
   if (p.sleep && (moving || !isNight(s))) { p.sleep = false; if (!isNight(s)) say(s, T('Despiertas. Hora del pase de lista.', `You wake up. Time for roll call.`), 'info'); }
   const prevMin = s.min;
   s.t += dt;
-  s.min += dt * MIN_PER_SEC * (p.sleep ? SLEEP_MULT : 1) * (s.mode === 'noche' && !s.final ? NIGHT_SPEED : 1);
+  if (s.mode !== 'academia') s.min += dt * MIN_PER_SEC * (p.sleep ? SLEEP_MULT : 1) * (s.mode === 'noche' && !s.final ? NIGHT_SPEED : 1); // en la Academia el reloj no corre
   if (s.mode === 'noche' && s.day >= 2 && s.min >= 360 && !s.final) { end(s, false, 'Amaneció', T(`Sonó el pase de lista de las 06:00 y ${s.L.ai} encontró tu cama vacía. La noche se acabó.`, `The 06:00 roll call sounded and ${s.L.ai} found your bed empty. The night is over.`)); return; }
   const dm = s.min - prevMin;
 
@@ -294,7 +313,7 @@ export function update(s, dt, input = { dx: 0, dy: 0 }) {
   if (s.dFlare && !s.dFlare.done && (s.day - 1) * 1440 + s.min >= s.dFlare.min) { if (activeHaz(s) >= dif(s).maxHaz) s.dFlare.min += 45; else spawnFlare(s); }
   if (s.min >= 1260 && prevMin < 1260 && s.iaOn) say(s, `${s.L.ai}: ${s.L.aiLines[Math.min(s.day - 1, s.L.aiLines.length - 1)]}`, 'ia');
 
-  p.energia = p.sleep ? Math.min(100, p.energia + dm * 0.22) : Math.max(0, p.energia - dm * 0.07);
+  p.energia = s.mode === 'academia' ? Math.max(p.energia, 60) : p.sleep ? Math.min(100, p.energia + dm * 0.22) : Math.max(0, p.energia - dm * 0.07);
   if (p.energia > 30) p.salud = Math.min(100, p.salud + dm * dif(s).regen);
   if (s.iaOn) s.alert = Math.max(0, s.alert - dm / 60);
   if (s.illegal > 0) s.illegal -= dt;
@@ -318,7 +337,7 @@ export function update(s, dt, input = { dx: 0, dy: 0 }) {
   S.update(s, dt, dm);
   updateDrones(s, dt);
   updateCrew(s, dt);
-  V.updateVillains(s, dt, dm);
+  if (s.mode !== 'academia') V.updateVillains(s, dt, dm);
   if (s.final) updateFinal(s, dt);
 
   if (p.salud <= 0) end(s, false, 'Evacuación médica', T(`Tu salud llegó a cero. ${s.L.ai} se quedó con todo.`, `Your health reached zero. ${s.L.ai} kept everything.`));
@@ -852,6 +871,7 @@ export function interact(s) {
   if (n.kind === 'peligro') return fixHazard(s, n.h);
   if (n.kind === 'suelo') { if (give(s, n.f.id)) { s.floor.splice(s.floor.indexOf(n.f), 1); say(s, T(`Recogiste ${itemName(s, n.f.id)}.`, `You picked up ${itemName(s, n.f.id)}.`), 'ok'); } return; }
   const o = n.o; const b = block(s);
+  if (o.meta && s.mode === 'academia') return end(s, true, 'Academia completada', T('Usaste lo que fabricaste para salir: ya sabes recolectar, esconderte, entrenar, estudiar y fabricar. La base te espera.', 'You used what you crafted to get out: you can now collect, hide, train, study and craft. The base is waiting for you.'));
   switch (o.t) {
     case 'cama':
       if (!o.mine) return flash(s, T('Esa no es tu cama.', `That is not your bed.`), 'info');
@@ -910,11 +930,11 @@ function finishAction(s, a) {
     if (!o.loot.length) return say(s, T('Cajón vacío. Se vuelve a llenar cada mañana.', `Empty drawer. It refills every morning.`), 'info');
     const got = []; while (o.loot.length && p.inv.length < capacity(s)) { const it = o.loot.shift(); p.inv.push(it); got.push(ITEMS[it].name); }
     if (got.length) say(s, T('Encontraste: ', `You found: `) + got.join(', ') + '.', 'ok'); else flash(s, T('Llevas las manos llenas. Suelta algo con G.', `Your hands are full. Drop something with G.`), 'warn');
-  } else if (a.kind === 'cinta') { p.fuerza = Math.min(100, p.fuerza + 2); p.energia = Math.max(0, p.energia - 7); say(s, T(`Entrenaste. Fuerza ${Math.floor(p.fuerza)}.`, `You trained. Strength ${Math.floor(p.fuerza)}.`), 'ok'); }
-  else if (a.kind === 'estudio') { p.conoc = Math.min(100, p.conoc + 2); p.energia = Math.max(0, p.energia - 6); say(s, T(`Estudiaste manuales. Conocimiento ${Math.floor(p.conoc)}.`, `You studied manuals. Knowledge ${Math.floor(p.conoc)}.`), 'ok'); }
+  } else if (a.kind === 'cinta') { p.fuerza = Math.min(100, p.fuerza + (s.mode === 'academia' ? 10 : 2)); p.energia = Math.max(0, p.energia - 7); say(s, T(`Entrenaste. Fuerza ${Math.floor(p.fuerza)}.`, `You trained. Strength ${Math.floor(p.fuerza)}.`), 'ok'); }
+  else if (a.kind === 'estudio') { p.conoc = Math.min(100, p.conoc + (s.mode === 'academia' ? 10 : 2)); p.energia = Math.max(0, p.energia - 6); say(s, T(`Estudiaste manuales. Conocimiento ${Math.floor(p.conoc)}.`, `You studied manuals. Knowledge ${Math.floor(p.conoc)}.`), 'ok'); }
   else if (a.kind === 'trabajo') { s.worked++; if (s.worked % 2 === 0 && p.inv.length < capacity(s)) { const it = pickWeighted(s, LOOT); p.inv.push(it); say(s, T(`Buen trabajo. Encontraste: ${ITEMS[it].name}.`, `Good job. You found: ${ITEMS[it].name}.`), 'ok'); } else say(s, T('Trabajaste un rato.', `You worked for a while.`), 'ok'); }
   else if (a.kind === 'mant' || a.kind === 'emerg') S.finish(s, a);
-  else if (a.kind === 'caja') { if (give(s, 'celda')) { o.used = true; flash(s, T(`¡Conseguiste: ${itemName(s, 'celda').toUpperCase()}!`, `You got: ${itemName(s, 'celda').toUpperCase()}!`), 'ok'); } }
+  else if (a.kind === 'caja') { const pr = o.prize ?? 'celda'; if (give(s, pr)) { o.used = true; flash(s, T(`¡Conseguiste: ${itemName(s, pr).toUpperCase()}!`, `You got: ${itemName(s, pr).toUpperCase()}!`), 'ok'); } }
 }
 
 /** Historia: encuentra la siguiente nota que aún no conoces de este destino. */
