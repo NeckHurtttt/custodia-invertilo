@@ -489,14 +489,17 @@ try {
   }
 
   assert.deepEqual(problemas, [], `errores durante la prueba:\n  - ${problemas.join('\n  - ')}`);
-  // 12. Tutorial guiado (compu y celular): 7 pasos con tarjeta y flecha; ENTENDIDO / SALTAR; se guarda para no repetirse solo.
-  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'tutorial compu'], [375, 812, true, 'tutorial celular']]) {
+  // 12. Entrenamiento obligatorio (compu y celular acostado): 9 pasos con tarjeta y flecha, SIN botón SALTAR; termina con la ventana de
+  //     finales (normales y secretos «???») y la bienvenida; se guarda para no repetirse solo.
+  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'tutorial compu'], [812, 375, true, 'tutorial celular']]) {
     const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) }); const pg = await c.newPage();
     pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
     await pg.goto(`${url}?tuto&noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok');
     await pg.waitForSelector('#tuto:not([hidden])', { timeout: 5000 });
-    const card = async () => pg.textContent('#tuto'); const paso = async (n) => pg.waitForFunction((n) => document.getElementById('tuto').textContent.includes(`· ${n}/7`), n, { timeout: 6000 });
-    let tx = await card(); assert.ok(tx.includes('1/7') && tx.includes('MUÉVETE'), `${nombre}: paso 1 → ${tx}`); assert.ok(movil ? /dedo/.test(tx) : /WASD/.test(tx), `${nombre}: el texto es de ${movil ? 'celular' : 'compu'}: ${tx}`);
+    const card = async () => pg.textContent('#tuto'); const paso = async (n) => pg.waitForFunction((n) => document.getElementById('tuto').textContent.includes(`· ${n}/9`), n, { timeout: 6000 });
+    const toca = (id) => pg.evaluate((id) => document.getElementById(id).click(), id); // botones que en el teléfono viven en la rueda (ocultos)
+    let tx = await card(); assert.ok(tx.includes('1/9') && tx.includes('MUÉVETE'), `${nombre}: paso 1 → ${tx}`); assert.ok(movil ? /joystick/.test(tx) : /WASD/.test(tx), `${nombre}: el texto es de ${movil ? 'celular' : 'compu'}: ${tx}`);
+    assert.equal(await pg.$('#tuto-salta'), null, `${nombre}: no hay botón SALTAR`);
     assert.ok(await pg.evaluate(() => { const r = document.getElementById('tuto').getBoundingClientRect(); return r.left >= -1 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight; }), `${nombre}: la tarjeta cabe en la pantalla`);
     await pg.screenshot({ path: join(salida, `tutorial-${movil ? 'celular' : 'compu'}-1.png`) });
     await pg.evaluate(() => { const s = lfr.s; s.hazards = []; s.events = []; s.drones = []; s.grace = 9999; s.p.sleep = false; s.p.x += 3.4; }); await paso(2);
@@ -505,17 +508,27 @@ try {
     await pg.screenshot({ path: join(salida, `tutorial-${movil ? 'celular' : 'compu'}-4.png`) });
     if (movil) await pg.click('#t-e'); else await pg.keyboard.press('e'); await pg.waitForSelector('#pasos button', { timeout: 4000 });
     for (let i = 0; i < 3; i++) await pg.click(`#pasos button[data-i="${i}"]`); await paso(5);
-    if (movil) await pg.click('#t-sh'); else await pg.keyboard.down('Shift'); await paso(6); if (!movil) await pg.keyboard.up('Shift'); else await pg.click('#t-sh');
-    await pg.click('#tuto-ok'); await paso(7); tx = await card(); assert.ok(/LISTO, CADETE/.test(tx), tx); await pg.click('#tuto-ok');
-    await pg.waitForSelector('#tuto', { state: 'hidden', timeout: 4000 }); assert.equal(await pg.evaluate(() => localStorage.getItem('lfr.tuto')), '1', `${nombre}: queda guardado`);
-    // saltar: otra partida con el entrenamiento forzado desde el título y SALTAR
-    await pg.evaluate(() => { localStorage.setItem('lfr.tuto', '0'); }); await pg.goto(`${url}?tuto&noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok'); await pg.waitForSelector('#tuto:not([hidden])');
-    await pg.click('#tuto-salta'); await pg.waitForSelector('#tuto', { state: 'hidden' }); assert.equal(await pg.evaluate(() => localStorage.getItem('lfr.tuto')), '1', `${nombre}: SALTAR también se recuerda`);
+    tx = await card(); if (movil) assert.ok(/USAR/.test(tx), `${nombre}: en el teléfono explica la rueda: ${tx}`);
+    if (movil) await toca('t-sh'); else await pg.keyboard.down('Shift'); await paso(6); if (!movil) await pg.keyboard.up('Shift'); else await toca('t-sh');
+    // 6 · esconderse de verdad en el escondite más cercano (casillero, cama o el propio)
+    const escondido = await pg.evaluate(() => { const { s, G } = lfr; const libres = []; for (const o of s.objects.filter((x) => ['escondite', 'cama', 'casillero'].includes(x.t))) for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) libres.push([o.x + 0.5 + dx, o.y + 0.5 + dy]);
+      for (const [x, y] of libres) { Object.assign(s.p, { x, y, hidden: null, inDuct: false }); G.toggleHide(s); if (s.p.hidden) return true; } return false; });
+    assert.ok(escondido, `${nombre}: se puede esconder`); await paso(7);
+    // 7 · abrir el mapa (Tab en compu; botón MAPA de la rueda en el teléfono) y cerrarlo
+    if (movil) await toca('t-m'); else await pg.keyboard.press('Tab'); await paso(8);
+    if (movil) await toca('t-m'); else await pg.keyboard.press('Tab');
+    await pg.click('#tuto-ok'); // 8 · el Sol real
+    await pg.waitForSelector('#tuto-fin', { timeout: 4000 }); const fines = await pg.textContent('#ventana');
+    assert.ok(/ENTRENAMIENTO COMPLETO/.test(fines) && /FINALES SECRETOS/.test(fines) && (fines.match(/\?\?\?/g) ?? []).length >= 3, `${nombre}: la ventana final muestra los finales: ${fines.slice(0, 120)}`);
+    await pg.keyboard.press('Escape'); assert.equal(await pg.evaluate(() => !document.getElementById('modal').hidden), true, `${nombre}: Esc no la cierra`);
+    await pg.screenshot({ path: join(salida, `tutorial-${movil ? 'celular' : 'compu'}-finales.png`) });
+    await pg.click('#tuto-fin'); await pg.waitForSelector('#tuto', { state: 'hidden', timeout: 4000 });
+    assert.equal(await pg.evaluate(() => localStorage.getItem('lfr.tuto')), '1', `${nombre}: queda guardado`);
     await pg.goto(`${url}?tuto&noboot`); await pg.waitForSelector('#t-jugar'); await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok'); await pg.waitForTimeout(600);
     assert.equal(await pg.evaluate(() => document.getElementById('tuto').hidden), true, `${nombre}: no vuelve a salir solo`);
     await pg.evaluate(() => { try { lfr.s && (lfr.s.over = null); } catch { /* nada */ } }); await c.close();
   }
-  ok('tutorial guiado (compu y celular): 7 pasos con tarjeta que cabe en pantalla, adelanta el reloj, se completa con las acciones reales, SALTAR se recuerda y no vuelve solo');
+  ok('entrenamiento obligatorio (compu y celular): 9 pasos sin SALTAR, se completa con las acciones reales (también esconderse y el mapa), termina con los finales y no vuelve solo');
 
   // 13. Certificado de Cadete al ganar (compu y celular): nombre, vista previa, descarga con nombre de archivo seguro y la tecla R no reinicia al escribir.
   for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'certificado compu'], [375, 812, true, 'certificado celular']]) {

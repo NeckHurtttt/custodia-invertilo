@@ -782,6 +782,11 @@ body.mapa-on.tactil-on #btn-mapa { visibility: hidden; }
   body.tactil-on .hud-teclas { top: 108px; }
 }
 body.tactil-on #btn-mapa { display: none; }
+/* Ventana de inicio: ✕ para cerrar arriba a la derecha (junto a LEER), la misión destacada y los controles visibles también en táctil */
+.btn-x { float: right; margin: 0 0 .4rem .5rem; min-width: 44px; min-height: 40px; padding: 0 .6rem; font-size: 1.2rem; line-height: 1; position: relative; z-index: 2; }
+.ventana .mision { font-size: 1.12rem; padding: .45rem .7rem; border-left: 4px solid var(--amber); background: rgba(60,46,12,.25); border-radius: 4px; }
+body.tactil-on .ventana .basico { display: flex; }
+.ventana .basico kbd { white-space: nowrap; }
 /* ---- Tablet (táctil sin rueda): los botones de acción ocupan la esquina inferior derecha; los atajos suben encima de ellos
    y los paneles 1-4 terminan antes, así nada queda tapado. ---- */
 body.tactil-on:not(.rueda-on):not(.cruz-on) .hud-teclas { bottom: 272px; }
