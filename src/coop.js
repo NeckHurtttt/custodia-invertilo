@@ -127,6 +127,10 @@ export class HostSession {
     if (this.rol === 'crew') { // el invitado maneja a un compañero: elegir quién, moverse y terminar revisiones
       if (m?.t === 'pick') { const c = s.crew.find((x) => x.name === m.who && !x.betrayed); if (c) { C.setHuman(s, c.name); this.who = c.name; this.accC = SNAP_CREW_EVERY; this.send({ t: 'you', who: c.name }); } return; }
       if (m?.t === 'inp') { if (this.who) C.crewInput(s, this.who, m.dx, m.dy); return; }
+      if (m?.t === 'emerg' || m?.t === 'dis' || m?.t === 'give' || m?.t === 'search') { // acciones de la Fase 2: el invitado pide y el anfitrión valida
+        const r = !this.who ? { ok: false, text: '' } : m.t === 'emerg' ? C.crewEmerg(s, this.who) : m.t === 'dis' ? C.crewDistract(s, this.who) : m.t === 'give' ? C.crewGive(s, this.who) : C.crewSearch(s, this.who, m.i);
+        this.send({ t: 'ack', k: 'acc', ok: r.ok, text: r.text }); return;
+      }
       if (m?.t === 'mant') { const r = this.who ? C.crewMaint(s, this.who, m.sys) : { ok: false, text: '' }; this.send({ t: 'ack', k: 'mant', ok: r.ok, text: r.text, sys: m.sys }); return; }
     }
     if (m?.t !== 'cmd' || !CMD[m.k]) return;

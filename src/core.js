@@ -486,6 +486,7 @@ export function crewInput(s, name, dx, dy) {
   c.inp = { dx: n(dx), dy: n(dy) }; c.inpT = 0; return true;
 }
 function humanStep(s, c, dt) {
+  if (c.dcd > 0) c.dcd = Math.max(0, c.dcd - dt);
   c.inpT = (c.inpT ?? 0) + dt; const i = c.inp ?? { dx: 0, dy: 0 };
   const dx = c.inpT > 0.7 ? 0 : i.dx, dy = c.inpT > 0.7 ? 0 : i.dy, len = Math.hypot(dx, dy);
   if (c.sayFor > 0 && (c.sayFor -= dt) <= 0) c.say = null;
@@ -501,6 +502,46 @@ export function crewMaint(s, name, sys) {
   if (y.done[sys]) return { ok: false, text: T('Esa revisión ya está hecha hoy.', 'That check is already done today.') };
   if (Math.hypot(c.x - (o.x + 0.5), c.y - (o.y + 0.5)) > 2.4) return { ok: false, text: T('Estás lejos del panel.', 'You are too far from the panel.') };
   S.finish(s, { kind: 'mant', o, by: c.name }); return { ok: true, text: T('¡Revisión hecha!', 'Check done!') };
+}
+/** Fase 2 del cooperativo: lo que puede hacer el compañero humano además de caminar y revisar paneles. Todo se valida aquí (el invitado solo pide). */
+export const CREW_DIS = { dur: 20, cd: 60, rango: 10 }; // distraer: segundos que un dron/guardia se queda mirándolo, espera entre usos y distancia máxima
+const crewHumano = (s, name) => s.crew.find((x) => x.human && x.name === name) ?? null;
+const no = (es, en) => ({ ok: false, text: T(es, en) }), si = (es, en) => ({ ok: true, text: T(es, en) });
+/** Atender la emergencia de reflejos que está cerca (lo mismo que hace el astronauta, pero sin mantener E). */
+export function crewEmerg(s, name) {
+  const c = crewHumano(s, name), e = s.sys?.emerg; if (!c || s.over) return no('No se puede ahora.', 'Not possible right now.'); if (!e) return no('No hay ninguna emergencia.', 'There is no emergency.');
+  if (Math.hypot(c.x - e.x, c.y - e.y) > 2.4) return no('Estás lejos de la emergencia.', 'You are too far from the emergency.');
+  S.finish(s, { kind: 'emerg', by: c.name }); return si('¡Emergencia controlada!', 'Emergency under control!');
+}
+/** Distraer al dron o guardia más cercano: se queda mirando al compañero (CREW_DIS.dur s) y el astronauta puede pasar. */
+export function crewDistract(s, name) {
+  const c = crewHumano(s, name); if (!c || s.over) return no('No se puede ahora.', 'Not possible right now.');
+  if (c.dcd > 0) return no(`Espera ${Math.ceil(c.dcd)} s para distraer otra vez.`, `Wait ${Math.ceil(c.dcd)} s to distract again.`);
+  if (!s.iaOn) return no('La vigilancia está apagada: no hace falta distraer.', 'Surveillance is off: no need to distract.');
+  const blancos = [...s.drones.filter((d) => d.stun <= 0 && !(d.busy > 0)), ...(s.vil?.walkers ?? []).filter((w) => !w.away && !w.gone && w.kind === 'walker' && !(w.busy > 0))];
+  const t = nearest(blancos, c.x, c.y); if (!t || Math.hypot(t.x - c.x, t.y - c.y) > CREW_DIS.rango) return no('No hay ningún dron o guardia cerca: acércate a uno.', 'No drone or guard nearby: get closer to one.');
+  c.dcd = CREW_DIS.cd; t.busy = CREW_DIS.dur; t.busyBy = c; t.mode = t.vid ? 'charla' : 'patrulla'; c.say = voz(s, c, 'distrae'); c.sayFor = 4;
+  say(s, T(`${c.name} distrae a ${t.vid ? t.name : 'un ' + s.L.watcher} durante ${CREW_DIS.dur} s. ¡Aprovecha!`, `${c.name} is distracting ${t.vid ? t.name : 'a ' + wEn(s)} for ${CREW_DIS.dur} s. Take advantage!`), 'ok');
+  return si(`¡Lo tienes distraído ${CREW_DIS.dur} s!`, `You have it distracted for ${CREW_DIS.dur} s!`);
+}
+/** Revisar un cajón cercano: lo que sale va a la mochila del compañero (misma capacidad que la del astronauta). */
+export function crewSearch(s, name, i) {
+  const c = crewHumano(s, name), o = s.objects[i | 0]; if (!c || s.over || !o || o.t !== 'cajon') return no('Ahí no hay nada que revisar.', 'There is nothing to search there.');
+  if (Math.hypot(c.x - (o.x + 0.5), c.y - (o.y + 0.5)) > 2.4) return no('Estás lejos del cajón.', 'You are too far from the drawer.');
+  if (!o.loot?.length) return no('Cajón vacío. Se vuelve a llenar cada mañana.', 'Empty drawer. It refills every morning.');
+  c.inv ??= []; const cap = capacity(s); const got = [];
+  while (o.loot.length && c.inv.length < cap) { const it = o.loot.shift(); c.inv.push(it); got.push(ITEMS[it].name); }
+  if (!got.length) return no('Llevas las manos llenas: pásale algo al astronauta (cerca de él, pulsa USAR).', 'Your hands are full: hand something to the astronaut (stand next to them and press USE).');
+  say(s, T(`${c.name} encontró: ${got.join(', ')}.`, `${c.name} found: ${got.join(', ')}.`), 'ok'); return si(`Encontraste: ${got.join(', ')}.`, `You found: ${got.join(', ')}.`);
+}
+/** Pasarle lo que lleva al astronauta (si está cerca y le cabe). */
+export function crewGive(s, name) {
+  const c = crewHumano(s, name); if (!c || s.over) return no('No se puede ahora.', 'Not possible right now.');
+  if (!c.inv?.length) return no('No llevas nada que dar.', 'You are not carrying anything to give.');
+  if (Math.hypot(c.x - s.p.x, c.y - s.p.y) > 2.6) return no('El astronauta está lejos: acércate a él.', 'The astronaut is far away: get close to them.');
+  const dados = []; while (c.inv.length && s.p.inv.length < capacity(s)) { const it = c.inv.shift(); s.p.inv.push(it); dados.push(itemName(s, it)); }
+  if (!dados.length) return no('Las manos del astronauta están llenas.', "The astronaut's hands are full.");
+  say(s, T(`${c.name} te dio: ${dados.join(', ')}.`, `${c.name} gave you: ${dados.join(', ')}.`), 'ok'); return si(`Le diste: ${dados.join(', ')}.`, `You gave: ${dados.join(', ')}.`);
 }
 /** Copia en `s` el estado que mandó el anfitrión (cooperativo, lado del compañero): todo menos el mapa fijo y el nivel. */
 export function applyState(s, str) {

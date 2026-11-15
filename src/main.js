@@ -313,7 +313,7 @@ function drawFrame(t) {
     if (d.open) { R(cx, '#3a4450', px, py, 3, TS); R(cx, '#3a4450', px + TS - 3, py, 3, TS); R(cx, d.lock ? '#ff4b4b' : '#4dff88', px + 1, py + 2, 1, 2); }
     else { R(cx, d.lock ? '#5a1c1c' : '#5a6270', px, py, TS, TS); R(cx, d.lock ? '#ff4b4b' : '#ffc23d', px, py + 6, TS, 2); R(cx, 'rgba(0,0,0,.3)', px + 7, py, 2, TS); if (d.lock) { R(cx, '#ffd23d', px + 6, py + 9, 4, 3); R(cx, '#ffd23d', px + 7, py + 7, 2, 2); } }
   }
-  const nb = G.nearby(s)[0]; // lo que haría E ahora: brilla su objeto y se muestra su letrero
+  const nb = crew ? null : G.nearby(s)[0]; // lo que haría E ahora: brilla su objeto y se muestra su letrero (el compañero invitado usa su propio letrero)
   A.glow(cx, s, t, vis, nb?.kind === 'obj' ? nb.o : null);
   // indicadores de objetos
   for (const o of s.objects) {
@@ -401,7 +401,7 @@ function drawFrame(t) {
   for (const c of s.crew) if (c.say && vis(c.x, c.y)) bubble(c.x * TS, c.y * TS - 18, `${c.name}: ${c.say}`, c.color);
   const n = nb;
   if (s.action) { const k = s.action.t / s.action.need; R(cx, '#0a0e17', p.x * TS - 12, p.y * TS - 20, 24, 4); R(cx, '#ffc23d', p.x * TS - 12, p.y * TS - 20, 24 * k, 4); }
-  else if (n && !p.sleep && !menu) bubble(p.x * TS, p.y * TS - 20, `[E] ${G.label(s, n)}`, '#ffffff');
+  else if (!p.sleep && !menu && (crew ? crewEtiqueta() : n)) bubble(p.x * TS, p.y * TS - 20, `[E] ${crew ? crewEtiqueta() : G.label(s, n)}`, '#ffffff');
 
   // capa de pantalla (sin cámara)
   cx.setTransform(1, 0, 0, 1, 0, 0);
@@ -889,12 +889,12 @@ function crewMsg(m) {
     if (crew.who && libre(crew.who)) crew.link.send({ t: 'pick', who: crew.who }); else eligePersonaje(m.crew);
   } else if (m.t === 'you') {
     crew.who = m.who; crew.color = LOCS[s?.loc ?? 'estacion'].crew.find((c) => c.name === m.who)?.color ?? '#fff'; crew.pred = null;
-    if (menu === 'coop') close(); avisoInvitado('');
+    if (menu === 'coop') close(); avisoInvitado(''); if (!crew.hint) { crew.hint = true; setTimeout(() => { if (crew && !menu) avisoInvitado(esTactil() ? T('Desliza el dedo en el mapa para caminar. USAR: panel, emergencia, cajón o pasarle objetos al astronauta. DISTRAER: un dron se queda mirándote.', 'Slide your finger on the map to walk. USE: panel, emergency, drawer or hand items to the astronaut. DISTRACT: a drone stares at you.') : T('Camina con WASD. USAR (E): panel, emergencia, cajón o pasarle objetos al astronauta. DISTRAER (F): un dron se queda mirándote.', 'Walk with WASD. USE (E): panel, emergency, drawer or hand items to the astronaut. DISTRACT (F): a drone stares at you.'), 9000); }, 600); } textosTactil();
   } else if (m.t === 'st') {
     if (!s) { s = G.revive(JSON.parse(m.s)); base = null; filasS = null; diaDe = null; } else s = G.applyState(s, m.s);
     const c = s.crew.find((x) => x.name === crew.who); if (c) crew.color = c.color;
     crew.paused = !!m.paused; crew.hostMsgT = performance.now();
-  } else if (m.t === 'ack' && m.k === 'mant') {
+  } else if (m.t === 'ack' && (m.k === 'mant' || m.k === 'acc')) {
     avisoInvitado(m.text || '', 3000); M.ui(m.ok ? 'ok' : 'error');
   }
 }
@@ -918,7 +918,7 @@ function conVista(fn) {
   const me = s.crew.find((c) => c.name === crew.who); if (!me) return fn();
   const real = s.p, todos = s.crew; crew.pred ??= { x: me.x, y: me.y };
   const ap = crew.prev; crew.astroMoving = !!ap && Math.hypot(real.x - ap.x, real.y - ap.y) > 0.005; crew.prev = { x: real.x, y: real.y };
-  s.p = { ...real, x: crew.pred.x, y: crew.pred.y, dir: crew.dir, walk: crew.walk, hidden: null, inDuct: false, crouch: false, sleep: false, hit: 0, noisy: crew.moving, inv: [], o2: 100 };
+  s.p = { ...real, x: crew.pred.x, y: crew.pred.y, dir: crew.dir, walk: crew.walk, hidden: null, inDuct: false, crouch: false, sleep: false, hit: 0, noisy: crew.moving, inv: me.inv ?? [], o2: 100 };
   s.crew = [...todos.filter((c) => c !== me), { name: 'Comandante', host: true, color: '#3d7bff', x: real.x, y: real.y, dir: real.dir, moving: crew.astroMoving, trust: 0, betrayed: false, say: null, want: null }];
   try { return fn(); } finally { s.p = real; s.crew = todos; }
 }
@@ -946,17 +946,31 @@ function actCrew(k) {
   if (menu) return;
   if ('1234'.includes(k) && k.length === 1) return togglePanel(['mant', 'plan', 'amen', 'reg'][+k - 1]);
   if (k === 'n') return alternaNombres();
-  if (k === 'e') crewUsa();
+  if (k === 'e') crewUsa(); else if (k === 'f') crewDistrae();
 }
+/** Lo que haría E ahora para el compañero invitado (el mismo orden de crewUsa), para el letrero sobre su cabeza. */
+function crewEtiqueta() {
+  if (!crew?.pred || !s.crew) return null; const pr = crew.pred; const d = (x, y) => Math.hypot(pr.x - x, pr.y - y); const me = s.crew.find((c) => c.name === crew.who);
+  const em = s.sys?.emerg; if (em && d(em.x, em.y) < 2.2) return T('¡Atender la emergencia!', 'Handle the emergency!');
+  if (s.sys) for (const id of Sys.pending(s)) { const o = Sys.station(s, id); if (d(o.x + 0.5, o.y + 0.5) < 2.2) return G.block(s).id === 'trabajo' ? `${T('Revisar', 'Check')}: ${Sys.taskName(s, id)}` : null; }
+  if (me?.inv?.length && d(s.p.x, s.p.y) < 2.4) return T('Pasarle objetos al astronauta', 'Hand items to the astronaut');
+  if (s.objects.some((o) => o.t === 'cajon' && o.loot?.length && d(o.x + 0.5, o.y + 0.5) < 2.2)) return T('Revisar el cajón', 'Search the drawer');
+  return null;
+}
+/** USAR (E) del compañero, por prioridad: emergencia cercana, panel de revisión pendiente, pasarle objetos al astronauta, revisar un cajón. */
 function crewUsa() {
-  const y = s.sys; if (!y || !crew.pred) return;
-  if (G.block(s).id !== 'trabajo') return avisoInvitado(T('El mantenimiento se hace en el turno de trabajo (08:00–12:00).', 'Maintenance is done during the work shift (08:00–12:00).'), 2600);
-  let mejor = null;
-  for (const id of Sys.pending(s)) { const o = Sys.station(s, id); const d = Math.hypot(crew.pred.x - (o.x + 0.5), crew.pred.y - (o.y + 0.5)); if (d < 2.2 && (!mejor || d < mejor.d)) mejor = { id, d }; }
-  if (!mejor) return avisoInvitado(Sys.pending(s).length ? T('Acércate a un panel de mantenimiento y pulsa USAR.', 'Go to a maintenance panel and press USE.') : T('Las 4 revisiones de hoy ya están listas.', "Today's 4 checks are done."), 2600);
-  M.sfx('interactuar'); const id = mejor.id;
-  protocolGame(idMant(y.sem ?? 0, s.day, id), (ok) => { if (ok) crew.link.send({ t: 'mant', sys: id }); });
+  if (!crew.pred || !s.crew) return; const pr = crew.pred; const me = s.crew.find((c) => c.name === crew.who); const d = (x, y) => Math.hypot(pr.x - x, pr.y - y); const y = s.sys;
+  const em = y?.emerg; if (em && d(em.x, em.y) < 2.2) { M.sfx('interactuar'); return crew.link.send({ t: 'emerg' }); }
+  let panel = null, lejos = false; if (y) for (const id of Sys.pending(s)) { const o = Sys.station(s, id); const dd = d(o.x + 0.5, o.y + 0.5); if (dd < 2.2 && (!panel || dd < panel.d)) panel = { id, d: dd }; }
+  if (panel && G.block(s).id === 'trabajo') { M.sfx('interactuar'); const id = panel.id; return protocolGame(idMant(y.sem ?? 0, s.day, id), (ok) => { if (ok) crew.link.send({ t: 'mant', sys: id }); }); }
+  if (me?.inv?.length && d(s.p.x, s.p.y) < 2.4) { M.sfx('soltar'); return crew.link.send({ t: 'give' }); }
+  let cj = null; s.objects.forEach((o, i) => { if (o.t === 'cajon' && o.loot?.length) { const dd = d(o.x + 0.5, o.y + 0.5); if (dd < 2.2 && (!cj || dd < cj.d)) cj = { i, d: dd }; } });
+  if (cj) { M.sfx('recoger'); return crew.link.send({ t: 'search', i: cj.i }); }
+  if (panel) return avisoInvitado(T('El mantenimiento se hace en el turno de trabajo (08:00–12:00).', 'Maintenance is done during the work shift (08:00–12:00).'), 2800);
+  avisoInvitado(T('Aquí no hay nada que usar. Acércate a un panel, un cajón con cosas, el astronauta (si llevas objetos) o una emergencia.', 'Nothing to use here. Get close to a panel, a drawer with items, the astronaut (if you carry items) or an emergency.'), 3200);
 }
+/** DISTRAER (F): el dron o guardia más cercano se queda mirando al compañero un rato, para que el astronauta pase. */
+function crewDistrae() { if (!crew?.who || menu || s?.over) return; M.sfx('interactuar'); crew.link.send({ t: 'dis' }); }
 function crewPausa() {
   if (menu && menu !== 'pausa-inv') return;
   if (menu === 'pausa-inv') return close();
@@ -975,7 +989,7 @@ function crewFin() {
     <div class="fila"><button id="salir" class="sec">${ic('menu')} ${T('SALIR DE LA SALA', 'LEAVE THE ROOM')}</button></div></div>`);
   $('salir').onclick = crewSalir;
 }
-function crewSalirSilencio() { try { crew?.link.close(); } catch { /* ya cerrado */ } crew = null; s = null; base = null; document.body.classList.remove('invitado', 'derrota'); $('inv-aviso')?.remove(); touch.dx = 0; touch.dy = 0; }
+function crewSalirSilencio() { try { crew?.link.close(); } catch { /* ya cerrado */ } crew = null; textosTactil(); s = null; base = null; document.body.classList.remove('invitado', 'derrota'); $('inv-aviso')?.remove(); touch.dx = 0; touch.dy = 0; }
 function crewSalir() { crewSalirSilencio(); close(); titleScreen(); }
 
 // ---------- cooperativo (Astronauta + Control de Misión) ----------
@@ -1475,7 +1489,7 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
 }
 /** Los botones de acción dicen QUÉ hacen (no solo la letra del teclado). */
 const TACTIL_TXT = { 't-e': ['E', 'USAR', 'USE'], 't-f': ['F', 'ESCONDER', 'HIDE'], 't-t': ['T', 'LANZAR', 'THROW'], 't-sh': ['⇩', 'AGACHAR', 'CROUCH'], 't-q': ['Q', 'INHIBIR', 'JAM'], 't-i': ['I', 'MOCHILA', 'BAG'] };
-function textosTactil() { for (const [id, [k, es, en]] of Object.entries(TACTIL_TXT)) { const b = $(id); if (b) b.innerHTML = `<b>${k}</b><small>${T(es, en)}</small>`; } }
+function textosTactil() { for (const [id, base] of Object.entries(TACTIL_TXT)) { const [k, es, en] = crew && id === 't-f' ? ['F', 'DISTRAER', 'DISTRACT'] : base; const b = $(id); if (b) b.innerHTML = `<b>${k}</b><small>${T(es, en)}</small>`; } }
 textosTactil();
 document.querySelectorAll('.cruz button').forEach((b) => {
   const on = (e) => { e.preventDefault(); [touch.dx, touch.dy] = dirs[b.dataset.d]; };

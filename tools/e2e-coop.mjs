@@ -105,6 +105,18 @@ try {
   const orden = await t4.evaluate(() => [...document.querySelectorAll('#pasos button')].map((b) => +b.dataset.i)); for (let i = 0; i < orden.length; i++) await t4.click(`#pasos button[data-i="${i}"]`);
   await a4.waitForFunction(() => lfr.s.sys.done.vida === true && lfr.s.sys.lvl.vida > 40, null, { timeout: 6000 }); ok('el invitado hace la revisión del panel y la base del anfitrión la cuenta como hecha');
   await a4.screenshot({ path: join(salida, 'coop-tripulante-revision.png') });
+  // Fase 2: emergencia, distraer, cajón y pasar objetos
+  await a4.evaluate(() => { const s = lfr.s; Sys_startEmerg(); function Sys_startEmerg() { lfr.Sys.startEmergency(s, null, 'sobrecarga'); const e = s.sys.emerg; Object.assign(s.crew[0], { x: e.x + 1, y: e.y }); } });
+  await espera(700); await t4.keyboard.press('e'); await a4.waitForFunction(() => lfr.s.sys.emerg === null, null, { timeout: 5000 }); ok('el invitado atiende una emergencia de reflejos corriendo hasta el punto y pulsando E');
+  await a4.evaluate(() => { const s = lfr.s; const d = JSON.parse(JSON.stringify(lfr.G.newGame('estacion', 3, 'cadete').drones[0])); Object.assign(d, { x: s.crew[0].x + 4, y: s.crew[0].y, stun: 0, busy: 0 }); s.drones = [d]; }); await espera(500);
+  await t4.keyboard.press('f'); await a4.waitForFunction(() => lfr.s.drones[0].busy > 15 && lfr.s.crew[0].dcd > 50, null, { timeout: 5000 }); ok('con F (DISTRAER) un dron se queda mirando al compañero 20 s y hay espera de 60 s');
+  await a4.evaluate(() => { const s = lfr.s; s.drones.forEach((d) => { d.x = 2; d.y = 2; }); const i = s.objects.findIndex((o) => o.t === 'cajon'); const o = s.objects[i]; o.loot = ['tornillos', 'cable']; Object.assign(s.crew[0], { x: o.x + 0.5, y: o.y + 1.5, inv: [] }); });
+  await espera(700); await t4.keyboard.press('e'); await a4.waitForFunction(() => lfr.s.crew[0].inv.length === 2, null, { timeout: 5000 });
+  await espera(400); assert.equal(await t4.evaluate(() => document.querySelectorAll('#inv .slot:not(.vacio)').length === 2), true, 'el invitado ve lo que lleva en su mochila'); ok('el invitado revisa un cajón y lo que encuentra queda en SU mochila (la ve en pantalla)');
+  await a4.evaluate(() => { const s = lfr.s; s.p.inv = ['cinta']; Object.assign(s.crew[0], { x: s.p.x + 1, y: s.p.y }); }); await espera(700); await t4.keyboard.press('e');
+  await a4.waitForFunction(() => lfr.s.p.inv.length === 3 && lfr.s.crew[0].inv.length === 0, null, { timeout: 5000 }); ok('cerca del astronauta, USAR le pasa los objetos a su mochila');
+  await t4.screenshot({ path: join(salida, 'coop-tripulante-fase2.png') });
+
   // pausa del anfitrión: el invitado lo sabe
   await a4.keyboard.press('Escape'); await t4.waitForFunction(() => /pausó/.test(document.getElementById('inv-aviso')?.textContent ?? ''), null, { timeout: 5000 }); await a4.click('#seguir'); ok('si el anfitrión pausa, el invitado ve el aviso');
   // ahora el segundo jugador es una persona en CELULAR: la misma sala, con el dedo
@@ -119,6 +131,7 @@ try {
   await t5.evaluate(async () => { const cv = document.getElementById('lienzo'); const ev = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, { pointerId: 9, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, isPrimary: true })); ev('pointerdown', 200, 500); ev('pointermove', 200, 560); await new Promise((r) => setTimeout(r, 1300)); ev('pointerup', 200, 560); });
   await espera(400); const y1 = await a4.evaluate(() => lfr.s.crew[1].y); assert.ok(Math.abs(y1 - y0) > 0.5 || true, 'el dedo mueve a Kenji'); ok(`el dedo en el celular mueve a Kenji en la computadora del anfitrión (${y0.toFixed(2)} → ${y1.toFixed(2)})`);
   assert.ok(await t5.evaluate(() => getComputedStyle(document.getElementById('t-e')).display !== 'none' && getComputedStyle(document.getElementById('t-sh')).display === 'none' && !document.getElementById('tactil').hidden), 'en el celular el invitado ve USAR y no los botones del astronauta');
+  assert.ok(await t5.evaluate(() => { const f = document.getElementById('t-f'); const q = f.getBoundingClientRect(); return getComputedStyle(f).display !== 'none' && /DISTRAER/.test(f.textContent) && q.width >= 43.5 && q.height >= 43.5 && getComputedStyle(document.querySelector('.hud-inv')).display !== 'none'; }), 'en el celular el invitado ve DISTRAER (≥ 44 px) y su mochila');
   await t5.screenshot({ path: join(salida, 'coop-tripulante-celular.png') }); await ct.close();
   // ---------- 2) código manual (WebRTC) ----------
   const a2 = await nueva('astronauta2'); const c2 = await nueva('control2');

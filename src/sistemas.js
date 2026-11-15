@@ -148,7 +148,7 @@ export function finish(s, a) {
   } else if (a.kind === 'emerg' && y.emerg) {
     const e = EMERGS[y.emerg.kind]; const id = e.sys;
     y.lvl[id] = clamp(y.lvl[id] + 15); y.emerg = null; y.st.saved++; s.stats.solved++;
-    C.flash(s, T(`¡Controlado! ${e.name} resuelta.`, `Controlled! ${e.name} solved.`), 'ok');
+    C.flash(s, T(`¡Controlado!${a.by ? ' ' + a.by + ':' : ''} ${e.name} resuelta.`, `Controlled!${a.by ? ' ' + a.by + ':' : ''} ${e.name} solved.`), 'ok');
   }
 }
 

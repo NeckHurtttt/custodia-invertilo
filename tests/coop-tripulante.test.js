@@ -82,3 +82,41 @@ test('tripulante: cambiar de partida (reintentar) saluda de nuevo y hay que volv
   const hi = ultimo(out, 'hi'); assert.ok(hi && hi.rol === 'crew' && hi.you === null, 'saluda otra vez, sin personaje elegido'); assert.equal(G.humanCrew(s2), null);
   const c = G.newGame('luna', 7, 'cadete'); const p = pair(c); p.link.onmessage({ t: 'hello' }); assert.equal(p.host.rol, 'control'); p.host.tick(c, 0.6); assert.ok(ultimo(p.out, 'snap'), 'Control sigue recibiendo sus fotos');
 });
+
+// ---------- Fase 2: emergencias, distraer, cajones y pasar objetos ----------
+const conCompanero = (nombre = 'Kenji', loc = 'estacion', drones = false) => { const s = G.newGame(loc, 5, 'cadete'); const d0 = s.drones; quieto(s); if (drones) s.drones = d0; s.p.sleep = false; const o = pair(s); o.link.onmessage({ t: 'hello', rol: 'crew' }); o.link.onmessage({ t: 'pick', who: nombre }); return { s, c: G.humanCrew(s), ...o }; };
+const pide = (t, m) => { t.link.onmessage(m); return ultimo(t.out, 'ack'); };
+
+test('fase 2: el compañero atiende una emergencia de reflejos si está cerca, y el astronauta no pierde nada', () => {
+  const t = conCompanero(); const { s, c } = t; s.sys.reflex = true; Sys.startEmergency(s, null, 'sobrecarga'); const e = s.sys.emerg; assert.ok(e);
+  Object.assign(c, { x: e.x + 6, y: e.y }); let a = pide(t, { t: 'emerg' }); assert.equal(a.ok, false, 'lejos no vale'); assert.ok(s.sys.emerg, 'sigue la emergencia');
+  Object.assign(c, { x: e.x + 1, y: e.y }); const salvadas = s.sys.st.saved; a = pide(t, { t: 'emerg' }); assert.equal(a.ok, true); assert.equal(s.sys.emerg, null); assert.equal(s.sys.st.saved, salvadas + 1);
+  assert.equal(pide(t, { t: 'emerg' }).ok, false, 'ya no hay emergencia'); assert.equal(s.over, null, 'no se acaba la partida');
+});
+
+test('fase 2: distraer deja al dron mirando al compañero 20 s, con espera de 60 s, solo si hay uno cerca y la vigilancia está encendida', () => {
+  const t = conCompanero('Kenji', 'estacion', true); const { s, c } = t; assert.ok(s.drones.length >= 1); Object.assign(s.drones[0], { x: c.x + 30, y: c.y, stun: 0, busy: 0 });
+  assert.equal(pide(t, { t: 'dis' }).ok, false, 'lejos de todo dron no se puede');
+  Object.assign(s.drones[0], { x: c.x + 4, y: c.y }); let a = pide(t, { t: 'dis' }); assert.equal(a.ok, true); assert.ok(s.drones[0].busy > 19 && s.drones[0].busyBy === c); assert.ok(c.dcd > 59, 'queda la espera');
+  assert.equal(pide(t, { t: 'dis' }).ok, false, 'espera'); s.drones[0].busy = 0; for (let i = 0; i < 80; i++) { G.update(s, 1, { dx: 0, dy: 0 }); s.p.energia = 100; s.alert = 0; s.grace = 9999; } assert.equal(c.dcd, 0, 'la espera pasa');
+  s.iaOn = false; assert.equal(pide(t, { t: 'dis' }).ok, false, 'con la IA apagada no hace falta');
+  // el dron distraído de verdad se queda quieto mirando
+  const u = conCompanero('Kenji', 'estacion', true); Object.assign(u.s.drones[0], { x: u.c.x + 4, y: u.c.y, stun: 0, busy: 0 }); pide(u, { t: 'dis' }); const d = u.s.drones[0]; const x0 = d.x; G.update(u.s, 0.5, { dx: 0, dy: 0 }); assert.equal(d.x, x0, 'no patrulla mientras está distraído');
+});
+
+test('fase 2: revisar cajones llena la mochila del compañero (con tope), y se la pasa al astronauta solo si está cerca y le cabe', () => {
+  const t = conCompanero('Amara'); const { s, c } = t; const i = s.objects.findIndex((o) => o.t === 'cajon'); const o = s.objects[i]; o.loot = ['tornillos', 'cable', 'placa', 'tubo', 'cinta', 'tela', 'filtro'];
+  Object.assign(c, { x: o.x + 6, y: o.y + 1 }); assert.equal(pide(t, { t: 'search', i }).ok, false, 'lejos no vale'); assert.equal(pide(t, { t: 'search', i: 9999 }).ok, false, 'un cajón inventado no vale'); assert.equal(pide(t, { t: 'search', i: s.objects.findIndex((x) => x.t !== 'cajon') }).ok, false, 'otra cosa no es un cajón');
+  Object.assign(c, { x: o.x + 0.5, y: o.y + 1.5 }); let a = pide(t, { t: 'search', i }); assert.equal(a.ok, true); assert.equal(c.inv.length, G.capacity(s)); assert.equal(o.loot.length, 7 - G.capacity(s), 'el cajón se vacía de a poco');
+  assert.equal(pide(t, { t: 'search', i }).ok, false, 'con las manos llenas no recoge más');
+  Object.assign(c, { x: s.p.x + 8, y: s.p.y }); assert.equal(pide(t, { t: 'give' }).ok, false, 'lejos del astronauta no puede dar');
+  Object.assign(c, { x: s.p.x + 1, y: s.p.y }); s.p.inv = ['cinta', 'tornillos', 'x', 'y']; a = pide(t, { t: 'give' }); assert.equal(a.ok, true); assert.equal(s.p.inv.length, G.capacity(s), 'solo le cabe hasta el tope'); assert.ok(c.inv.length >= 1, 'lo que no cabe se lo queda el compañero');
+  s.p.inv = Array(G.capacity(s)).fill('cinta'); assert.equal(pide(t, { t: 'give' }).ok, false, 'si tiene las manos llenas no da'); c.inv = []; assert.equal(pide(t, { t: 'give' }).ok, false, 'sin nada que dar');
+  assert.ok(s.log.some((l) => l.text.includes('Amara') && /encontró|te dio/.test(l.text)), 'queda en el registro');
+});
+
+test('fase 2: sin ser tripulante nadie puede pedir estas acciones, y el nombre siempre es el del compañero elegido', () => {
+  const s = G.newGame('estacion', 5, 'cadete'); quieto(s); const { link, out } = pair(s); link.onmessage({ t: 'hello' });
+  for (const t of ['emerg', 'dis', 'give', 'search']) { link.onmessage({ t }); assert.equal(ultimo(out, 'ack'), undefined, `${t}: Control no puede`); }
+  assert.deepEqual(G.crewDistract(s, 'María'), { ok: false, text: 'No se puede ahora.' }); assert.equal(G.crewGive(s, 'María').ok, false); assert.equal(G.crewSearch(s, 'María', 0).ok, false); assert.equal(G.crewEmerg(s, 'María').ok, false);
+});
