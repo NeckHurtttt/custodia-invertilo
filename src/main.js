@@ -1534,7 +1534,9 @@ $('btn-nombres').onclick = () => { if (s && !menu) alternaNombres(); }; $('btn-f
 // en iPhone no, y ahí queda el aviso «Gira el teléfono» del CSS). Si lo pones en vertical a mitad de partida, el juego se pausa.
 const tacto = matchMedia('(pointer: coarse)'); const vertical = matchMedia('(orientation: portrait)');
 /** Teléfono = pantalla táctil cuyo lado corto mide menos de 600 px. Tablets y PC quedan fuera (no se fuerza horizontal ni hay rueda). */
-const esTelefono = () => tacto.matches && Math.min(screen.width, screen.height) < 600;
+// Algunos Android (y el «modo escritorio») informan screen en píxeles físicos: por eso también cuenta la ventana visible
+// (un teléfono acostado mide < 520 px de alto; una tablet, bastante más).
+const esTelefono = () => tacto.matches && (Math.min(screen.width, screen.height) < 600 || Math.min(innerWidth, innerHeight) < 520);
 function aHorizontal() {
   if (!esTelefono()) return;
   if (screen.orientation?.type?.startsWith('landscape') && document.fullscreenElement) return;
