@@ -5,6 +5,7 @@ export const perk = (s) => PERKS[s.perk] ?? PERKS.novato;
 export const dif = (s) => DIFS[s.dif] ?? DIFS.normal;
 import { LOCS } from './locs.js';
 import * as V from './villains.js';
+import * as AI from './ia.js';
 import * as S from './sistemas.js';
 
 export const DAYS = 10;
@@ -322,6 +323,12 @@ function checkBlock(s) {
 
 // ---------- vigilancia ----------
 function updateDrones(s, dt) {
+  const adaptive = AI.tuning(s);
+  AI.observe(s, dt, (s.dif !== 'cadete' || suspicious(s)) && s.drones.some(d => !(d.busy > 0) && canSee(s, d, dark(s) ? 0.55 : 1)));
+  if (s.iaOn) {
+    const m = AI.memory(s), stage = Math.floor(adaptive.progress * 3);
+    if (stage > m.stage) { m.stage = stage; say(s, `${s.L.ai}: Vigilancia nivel ${stage + 1}. Detecto más rápido y busco durante más tiempo. Varía tus rutas y usa los conductos.`, 'ia'); }
+  }
   const p = s.p; const dk = dark(s);
   const front = s.hazards.find((h) => (h.def.type === 'front' && h.def.safe) || h.def.type === 'shelter');
   for (const d of s.drones) {
@@ -337,7 +344,7 @@ function updateDrones(s, dt) {
     const sure = V.suspect(s, d, seen, dt) || (seen && !!s.final);
     if (d.mode === 'persigue') {
       if (seen) { d.lost = 0; d.target = [p.x, p.y]; raise(s, 14 * dt); }
-      else { d.lost += dt; if (d.lost > 3) { d.mode = 'investiga'; d.target = d.lastSeen ?? d.target; d.look = 4; d.path = null; d.sus = 0; d.qT = 1.5; V.sfx(s, 'perdido'); } }
+      else { d.lost += dt; if (d.lost > adaptive.persistence) { d.mode = 'investiga'; d.target = d.lastSeen ?? d.target; d.look = adaptive.persistence; d.path = null; d.sus = 0; d.qT = 1.5; V.sfx(s, 'perdido'); } }
     } else if (seen) {
       if (sure) { V.spotted(s, d); s.stats.spotted++; d.mode = 'persigue'; d.lost = 0; d.target = [p.x, p.y]; raise(s, 14 * dt); }
       else if (d.mode !== 'busca') { if (d.mode !== 'sospecha') { d.mode = 'sospecha'; d.qT = 1.2; V.sfx(s, 'sospecha'); } d.target = [p.x, p.y]; }
@@ -345,6 +352,20 @@ function updateDrones(s, dt) {
     // oído: pasos cerca o un ruido
     if (d.mode === 'patrulla' && p.noisy && !p.hidden && Math.hypot(p.x - d.x, p.y - d.y) < (perk(s).quiet ? 1.3 : 2.8)) { d.mode = 'investiga'; d.target = [p.x, p.y]; d.look = 3; d.qT = 1; }
     if (d.mode === 'patrulla' && V.hearsNoise(s, d)) { d.mode = 'investiga'; d.target = [s.noise.x, s.noise.y]; d.look = 4; d.qT = 1.2; }
+    d.aiCooldown = Math.max(0, (d.aiCooldown ?? 0) - dt);
+    if (d.aiSearch > 0) {
+      d.aiSearch -= dt;
+      if (['persigue', 'sospecha'].includes(d.mode)) d.aiSearch = 0;
+      else if (d.aiSearch <= 0) { d.mode = 'patrulla'; d.path = null; }
+    }
+    if (d.mode === 'patrulla' && !s.final && !emergency(s) && !(s.grace > 0) && d.aiCooldown <= 0) {
+      d.aiCooldown = adaptive.interval;
+      const guess = AI.predict(s);
+      if (guess && s.drones.filter(q => q.aiSearch > 0).length < adaptive.searches && !isOutside(s, guess.x, guess.y) && path(s, d.x, d.y, guess.x, guess.y)) {
+        d.target = [guess.x, guess.y]; d.path = null; d.pause = 0;
+        d.mode = guess.hide ? 'busca' : 'investiga'; d.look = adaptive.persistence; d.aiSearch = 15;
+      }
+    }
     d.chasing = d.mode === 'persigue' || !!s.final;
     let goal, hold = false;
     const haz = s.hazards.find((h) => MAGNET.includes(h.def.type) && !isOutside(s, h.x, h.y));
@@ -369,7 +390,7 @@ function updateDrones(s, dt) {
       }
       goal = [w[0] + 0.5, w[1] + 0.5];
     }
-    if (!hold) follow(s, d, goal, (d.chasing ? 3.4 : d.mode === 'patrulla' ? 2.0 : 2.6) * (s.final ? 1.2 : 1) * dif(s).spd, dt, 'd');
+    if (!hold) follow(s, d, goal, (d.chasing ? 3.4 : d.mode === 'patrulla' ? 2.0 : 2.6) * (s.final ? 1.2 : 1) * dif(s).spd * adaptive.speed, dt, 'd');
     if (d.mode === 'persigue' && seen) d.dir = Math.atan2(p.y - d.y, p.x - d.x);
     else if (d.mode === 'persigue' && d.target && Math.hypot(d.target[0] - d.x, d.target[1] - d.y) < 0.9) d.dir += dt * 2.2; // llegó a donde te vio: mira alrededor
     // buscar en el escondite donde te vio meterte
@@ -407,7 +428,9 @@ export function toggleHide(s) {
   if (p.hidden) { p.hidden = null; return say(s, 'Saliste del escondite.', 'info'); }
   const o = s.objects.filter((x) => ['escondite', 'cama', 'casillero'].includes(x.t)).map((x) => [x, Math.hypot(x.x + 0.5 - p.x, x.y + 0.5 - p.y)]).sort((a, b) => a[1] - b[1])[0];
   if (!o || o[1] > 1.4) return flash(s, 'No hay dónde esconderse aquí (casilleros o debajo de las camas).', 'warn');
+  const witnessed = s.drones.some(d => !(d.busy > 0) && canSee(s, d, dark(s) ? 0.55 : 1));
   p.hidden = { x: o[0].x + 0.5, y: o[0].y + 0.5, t: o[0].t };
+  if (witnessed) AI.hideSeen(s, p.hidden);
   // quien te estaba persiguiendo y te vio meterte, va a revisar
   for (const h of [...s.drones, ...(s.vil?.walkers ?? [])]) if ((h.mode === 'persigue') && Math.hypot(h.x - p.x, h.y - p.y) < 8 && h.lost < 1) { h.mode = 'busca'; h.target = [p.hidden.x, p.hidden.y]; h.goal = h.target; }
   flash(s, o[0].t === 'cama' ? 'Te metiste debajo de la cama. No respires.' : o[0].t === 'escondite' ? 'Te metiste en tu casillero. No hagas ruido.' : 'Te metiste en el casillero. No hagas ruido.', 'info');
@@ -433,7 +456,7 @@ export const nearest = (arr, x, y) => arr.slice().sort((a, b) => Math.hypot(a.x 
 
 export function canSee(s, d, k = 1) {
   const p = s.p; if (p.inDuct || p.hidden || d.stun > 0 || !s.iaOn) return false;
-  k *= dif(s).see * (perk(s).see ?? 1); if (p.crouch) k *= 0.7; if (isNight(s)) k *= 0.85;
+  k *= dif(s).see * AI.tuning(s).vision * (perk(s).see ?? 1); if (p.crouch) k *= 0.7; if (isNight(s)) k *= 0.85;
   const dx = p.x - d.x, dy = p.y - d.y, dist = Math.hypot(dx, dy);
   if (dist > VIEW * k) return false;
   if (dist > 1.2) { let a = Math.atan2(dy, dx) - d.dir; a = Math.atan2(Math.sin(a), Math.cos(a)); if (Math.abs(a) > FOV) return false; }

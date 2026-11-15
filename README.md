@@ -50,6 +50,8 @@ Eres un astronauta en una base de la **Estación Espacial, la Luna o Marte**. La
 - **Uso de IA:** Claude (Anthropic) ayudó a programar y redactar junto al equipo; el equipo decidió el diseño y probó el juego. Los datos vienen de las fuentes citadas, no de la IA.
 
 ## Técnica
+La vigilancia aumenta con el avance de la misión: los drones ven más lejos, reaccionan antes y buscan durante más tiempo. La IA recuerda recorridos observados y escondites descubiertos; cambiar de ruta ayuda a despistarla. Cadete aplica una escalada suave y solo aprende recorridos sospechosos. La memoria se conserva al guardar la partida. Reglas, revisión y resultados de pruebas: [IA progresiva](docs/analisis/ia-progresiva.md).
+
 `src/core.js` es la lógica (sin pantalla) y tiene pruebas: `npm test`. `src/sistemas.js`: los 4 sistemas y las tormentas. `src/clima.js`: DONKI y la dosis de las tormentas. `src/datos.js`: los datos reales y sus fuentes. Para jugar en local: `python3 -m http.server 8000` y abrir http://127.0.0.1:8000/?cadete
 
 Controles: `WASD`/flechas · `E` usar/hablar · `C` fabricar · `Q` inhibidor · `P` pausa. En el teléfono aparecen botones.

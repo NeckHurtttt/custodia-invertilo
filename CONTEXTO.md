@@ -76,7 +76,7 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 
 ## 5. Siguiente paso y cola de trabajo
 
-> **SIGUIENTE PASO:** C · ocultar "delatar a un compañero" en Cadete.
+> **SIGUIENTE PASO:** Probar la IA progresiva con jugadores en días 1, 4, 7 y 10 (Normal/Terror), revisar el límite temporal del simulador en Cadete y después retomar C · ocultar "delatar a un compañero" en Cadete. Análisis y límites de validación: `docs/analisis/ia-progresiva.md`.
 
 Cola en orden (marca `[x]` al terminar y sube):
 - [x] A · Instrucciones para el Claude que retome + bitácora (este archivo).
@@ -126,6 +126,7 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
 
 | Fecha | Commit | Cambio | Siguiente |
 | :--- | :--- | :--- | :--- |
+| 14/11 | (este cambio) | IA progresiva: visión, velocidad, reacción y persistencia por avance y nivel; memoria local de recorridos observados y escondites; 151 pruebas correctas y simulaciones Cadete/Normal en tres destinos. Análisis: `docs/analisis/ia-progresiva.md`. | Validar balance con jugadores y métricas del simulador; retomar C |
 | 14/11 | `630b97a` | Base: copia de la versión de Leo (etiqueta `base-leo`) | — |
 | 14/11 | `74019d1`…`f9422b0` | Los 8 puntos (rescate, Cadete, tormentas DONKI, armario, pantalla simple, DATOS NASA, enlaces del jurado) | — |
 | 14/11 | `b7c3663`, `3cd072f` | CONTEXTO, referencias, análisis; publicado en GitHub y Pages | — |
