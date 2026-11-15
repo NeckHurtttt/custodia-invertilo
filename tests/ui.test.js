@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ICONOS, ic, nivel, MARCA, UMBRALES, descripcion, seguir, DANIO, textoDanio, pulso, alterna, esAngosta, geomMinimapa, resumenFin } from '../src/ui.js';
+import { ICONOS, ic, nivel, MARCA, UMBRALES, descripcion, seguir, DANIO, textoDanio, pulso, alterna, esAngosta, geomMinimapa, geomMapa, resumenFin } from '../src/ui.js';
 import { LOCS } from '../src/locs.js';
 import * as G from '../src/core.js';
 
@@ -67,7 +67,8 @@ test('modo suave en CSS: sin animaciones ni transiciones de las barras', () => {
 test('pantalla angosta: cambia la forma del HUD y el minimapa se hace chico', () => {
   assert.ok(esAngosta(375)); assert.ok(esAngosta(600)); assert.ok(!esAngosta(601)); assert.ok(!esAngosta(1280));
   const a = geomMinimapa(375, 2, 44, 35), b = geomMinimapa(1280, 3, 44, 35);
-  assert.equal(a.k, 1); assert.equal(a.w, 44); assert.equal(b.k, 3); assert.equal(b.h, 105);
+  assert.equal(a.k, 1.5); assert.equal(a.w, 66); assert.equal(b.k, 4); assert.equal(b.h, 140);
+  const m = geomMapa(1280, 720, 44, 35); assert.ok(m.w <= 1280 && m.oy + m.h <= 720 && m.k > b.k, 'el mapa completo cabe y es más grande que el minimapa');
 });
 
 test('resumen del final: dice qué pasó, qué aprender y, si ganaste, cómo conseguir las 3 estrellas', () => {

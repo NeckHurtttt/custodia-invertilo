@@ -70,8 +70,15 @@ export const alterna = (tMs, hz = 0.8) => Math.floor(tMs / (500 / Math.min(1.5, 
 export const esAngosta = (ancho) => ancho <= 600;
 /** Geometría del minimapa: en pantallas angostas es más chico para no tapar el HUD. */
 export function geomMinimapa(ancho, zoom, W, H) {
-  const k = esAngosta(ancho) ? 1 : zoom;
+  const k = esAngosta(ancho) ? 1.5 : zoom + 1; // un poco más grande que la vista del mundo para leerlo de un vistazo
   return { k, w: W * k, h: H * k, oy: esAngosta(ancho) ? 52 : 46, borde: 10 };
+}
+/** Mapa completo (tecla Tab o tocar el minimapa): ocupa casi toda la pantalla, centrado, dejando sitio a la leyenda. */
+export function geomMapa(ancho, alto, W, H, arriba = 60, abajo = 50) {
+  const libre = alto - arriba - abajo; // alto disponible (abajo deja sitio a la leyenda y, en el teléfono, a los botones)
+  const k = Math.max(3, Math.min((ancho * 0.94) / W, libre / H));
+  const w = W * k, h = H * k;
+  return { k, w, h, ox: (ancho - w) / 2, oy: arriba + Math.max(0, (libre - h) / 2) };
 }
 
 import { T } from './i18n.js';
