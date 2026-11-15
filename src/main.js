@@ -447,7 +447,7 @@ function cartel(txt, col, px, t, hz = 0) {
   cx.globalAlpha = hz ? 0.7 + 0.3 * UI.pulso(t, hz) : 1; cx.fillStyle = col; cx.fillText(txt, cv.width / 2, y); cx.globalAlpha = 1;
 }
 function bubble(x, y, txt, color) {
-  const max = document.body.classList.contains('telefono') ? 26 : 46; // en el teléfono los globos son cortos
+  const max = document.body.classList.contains('telefono') ? 38 : 46; // en el teléfono los globos son cortos
   if (txt.length > max) txt = txt.slice(0, max - 1) + '…';
   const w = Math.min(190, cx.measureText(txt).width + 8);
   R(cx, 'rgba(10,14,24,.9)', x - w / 2, y - 6, w, 12); R(cx, color, x - w / 2, y + 6, w, 1);
@@ -589,7 +589,7 @@ function mapaCompleto(t) {
   // teléfono y tablet: el mapa ocupa todo, salvo una columna a la izquierda para los avisos y la leyenda (todos los botones se esconden; en tablet queda solo ✕ CERRAR MAPA)
   const comp = tel || tab, f = tel ? 1 : 1.3; // f = tamaño de la letra de la leyenda (la tablet se mira desde más lejos)
   const izq = tel ? Math.min(230, Math.round(cv.width * 0.28)) : tab ? Math.min(300, Math.round(cv.width * 0.27)) : 0;
-  const g = tel ? UI.geomMapa(cv.width, cv.height, L.W, L.H, 30, 8, izq) : tab ? UI.geomMapa(cv.width, cv.height, L.W, L.H, 62, 14, izq) : UI.geomMapa(cv.width, cv.height, L.W, L.H, tact ? 100 : 66, tact ? 300 : 50); const k = g.k, ox = g.ox, oy = g.oy;
+  const g = tel ? UI.geomMapa(cv.width, cv.height, L.W, L.H, 52, 8, izq) : tab ? UI.geomMapa(cv.width, cv.height, L.W, L.H, 62, 14, izq) : UI.geomMapa(cv.width, cv.height, L.W, L.H, tact ? 100 : 66, tact ? 300 : 50); const k = g.k, ox = g.ox, oy = g.oy;
   R(cx, 'rgba(4,6,12,.94)', 0, 0, cv.width, cv.height);
   const goal = G.block(s).room; const aqui = G.playerRoom(s);
   const urg = new Set(); if (s.vil?.mission) urg.add(s.vil.mission.room);
@@ -1716,7 +1716,7 @@ const joyEl = document.createElement('div'); joyEl.id = 'joy'; joyEl.innerHTML =
 /** Centro de la base en pantalla (lo pone el CSS: abajo a la izquierda). */
 const joyCentro = () => { const r = joyEl.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
 function joyMueve(e) {
-  const c = joyCentro(); let dx = e.clientX - c.x, dy = e.clientY - c.y; const len = Math.hypot(dx, dy); const R = document.body.classList.contains('tablet') && joyEl.offsetWidth ? joyEl.offsetWidth * (JOY_R / 124) : JOY_R; // en tablet la base es más grande y el recorrido crece con ella
+  const c = joyCentro(); let dx = e.clientX - c.x, dy = e.clientY - c.y; const len = Math.hypot(dx, dy); const R = joyEl.offsetWidth ? joyEl.offsetWidth * (JOY_R / 124) : JOY_R; // en tablet la base es más grande y el recorrido crece con ella
   if (len > R) { dx = (dx / len) * R; dy = (dy / len) * R; } // restricción: la perilla se queda dentro del círculo
   const l = Math.hypot(dx, dy);
   if (l < JOY_MUERTO) { touch.dx = 0; touch.dy = 0; } else { touch.dx = dx / l; touch.dy = dy / l; }

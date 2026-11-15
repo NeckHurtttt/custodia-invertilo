@@ -391,6 +391,61 @@ try {
   }
   ok('tablet (960×600, 1133×744, 1194×834 × botones | rueda | cruz): vertical pide girar; nada se solapa ni toca al jugador, controles a ≥ 24 px del borde, botones ≥ 44 px, mapa grande con solo ✕ CERRAR MAPA');
 
+  // 9c. TELÉFONO (acostado, con la barra del navegador: alturas reales de 320 a 412 px): NADA se solapa (ni entre sí ni con el jugador), joystick, cruceta y USAR quedan a ≥ 24 px del borde,
+  //     todo botón mide ≥ 44 px y el mapa abierto muestra solo ✕ CERRAR MAPA. Cada tamaño × (joystick | cruceta) × estados. Capturas 7p-*.png.
+  {
+    const UA_TEL = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36';
+    const MARGEN = 24;
+    const medir = (pg) => pg.evaluate((MARGEN) => {
+      const W = innerWidth, H = innerHeight; const vis = (e) => { const st = getComputedStyle(e); if (st.display === 'none' || st.visibility === 'hidden') return false; const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
+      const it = []; const add = (n, e, t) => { if (!vis(e)) return; const r = e.getBoundingClientRect(); let tp = r.top, b = r.bottom; const pc = e.closest('.hud-centro, .hud-der'); if (pc && pc !== e && ['hidden', 'auto', 'scroll'].includes(getComputedStyle(pc).overflowY)) { const q = pc.getBoundingClientRect(); tp = Math.max(tp, q.top); b = Math.min(b, q.bottom); if (b <= tp) return; } it.push({ n: n, t, l: r.left, r: r.right, tp, b }); };
+      document.querySelectorAll('.barra button, .barra .chip, .barra #rev').forEach((e) => add('barra:' + (e.id || e.className.split(' ')[0] || e.tagName), e, 'barra'));
+      document.querySelectorAll('.hud-izq').forEach((e, i) => add('izq' + i, e, 'panel'));
+      document.querySelectorAll('.hud-centro #actividad, .hud-centro #emerg, .hud-centro .avisos li').forEach((e, i) => add('centro:' + (e.id || 'aviso' + i), e, 'panel'));
+      document.querySelectorAll('.hud-der .caja').forEach((e, i) => add('der:' + (e.id || i), e, 'panel'));
+      document.querySelectorAll('.hud-crew .caja').forEach((e) => add('tripulación', e, 'panel')); document.querySelectorAll('.hud-inv .caja').forEach((e) => add('mochila', e, 'panel'));
+      document.querySelectorAll('.hud-teclas button').forEach((e) => add('atajo:' + (e.id || e.textContent.trim()), e, 'boton')); document.querySelectorAll('#tactil button').forEach((e, i) => add('tactil:' + (e.id || e.dataset.d || i), e, 'boton'));
+      const j = document.getElementById('joy'); if (j) add('joystick', j, 'joy');
+      if (!document.body.classList.contains('mapa-on')) { const k = (W <= 600 || H <= 520) ? 1.5 : lfr.zoom + 1; it.push({ n: 'minimapa', t: 'panel', l: W - lfr.s.L.W * k - 14, r: W - 6, tp: 4, b: 8 + lfr.s.L.H * k + 4 }); }
+      it.push({ n: 'JUGADOR', t: 'jugador', l: W / 2 - 22, r: W / 2 + 22, tp: H / 2 - 40, b: H / 2 + 14 });
+      const sol = []; for (let i = 0; i < it.length; i++) for (let k = i + 1; k < it.length; k++) { const a = it[i], c = it[k]; if (a.t === 'barra' && c.t === 'barra') continue; if (Math.min(a.r, c.r) - Math.max(a.l, c.l) > 3 && Math.min(a.b, c.b) - Math.max(a.tp, c.tp) > 3) sol.push(`${a.n} × ${c.n}`); }
+      const bordes = it.filter((x) => (x.t === 'boton' || x.t === 'joy') && !x.n.startsWith('barra')).map((x) => ({ n: x.n, m: Math.round(Math.min(x.l, W - x.r, H - x.b)) })).filter((x) => x.m < MARGEN);
+      const chicos = [...document.querySelectorAll('.barra button, #tactil button, .hud-teclas button, #btn-cerrar-mapa')].filter(vis).map((e) => { const r = e.getBoundingClientRect(); return `${e.id || e.textContent.trim().slice(0, 10)} ${Math.round(r.width)}×${Math.round(r.height)}`; }).filter((t) => { const [w, h] = t.split(' ').pop().split('×').map(Number); return w < 43.5 || h < 43.5; });
+      const botonesMapa = document.body.classList.contains('mapa-on') ? [...document.querySelectorAll('button')].filter(vis).map((e) => e.id || e.textContent.trim().slice(0, 12)) : [];
+      return { sol, bordes, chicos, botonesMapa };
+    }, MARGEN);
+    for (const [ancho, alto] of [[568, 320], [640, 360], [750, 338], [844, 342], [932, 350], [915, 412]]) for (const modo of ['rueda', 'cruz']) {
+      const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, isMobile: true, hasTouch: true, deviceScaleFactor: 1.5, userAgent: UA_TEL });
+      await c.addInitScript((m) => { try { localStorage.setItem('lfr.cruz', m === 'cruz' ? '1' : '0'); localStorage.setItem('lfr.joyhint', '1'); } catch { /* nada */ } }, modo);
+      const pg = await c.newPage(); pg.on('pageerror', (e) => problemas.push(`teléfono ${ancho}×${alto}: error de JavaScript: ${e.message}`));
+      await pg.goto(url); await pg.waitForSelector('#t-jugar', { timeout: 10000 }); await pg.waitForTimeout(900);
+      if (ancho === 568) { // título: las tres misiones se ven y JUGAR no las tapa
+        const t = await pg.evaluate(() => { const j = document.getElementById('t-jugar').getBoundingClientRect(); const ts = [...document.querySelectorAll('.tarjeta')].map((e) => e.getBoundingClientRect()); return { jt: j.top, filas: Math.max(...ts.map((r) => r.top)) - Math.min(...ts.map((r) => r.top)) < 8 ? 1 : 2, fondo: Math.max(...ts.map((r) => r.bottom)) }; });
+        assert.equal(t.filas, 1, 'teléfono 568×320: las 3 misiones van en una fila'); assert.ok(t.fondo <= t.jt + 2, `teléfono 568×320: JUGAR (${Math.round(t.jt)}) no debe tapar las misiones (terminan en ${Math.round(t.fondo)})`);
+        await pg.screenshot({ path: join(salida, '7p-telefono-titulo.png') });
+      }
+      await pg.click('#t-jugar'); await pg.waitForSelector('#ok'); await pg.click('#ok');
+      await pg.waitForFunction(() => window.lfr?.s && document.getElementById('modal').hidden, null, { timeout: 5000 });
+      assert.ok(await pg.evaluate(() => document.body.classList.contains('telefono')), `${ancho}×${alto}: debe contar como teléfono`);
+      await pg.evaluate(() => { while (lfr.s.min < 490) lfr.G.update(lfr.s, 0.05, { dx: 0, dy: 0, crouch: false }); lfr.s.pending = null; lfr.s.grace = 9999; lfr.G.say(lfr.s, 'Primer aviso', 'ok'); lfr.G.say(lfr.s, 'Segundo aviso importante', 'bad'); });
+      const revisa = async (estado) => { await pg.waitForTimeout(450); const m = await medir(pg); const et = `teléfono ${ancho}×${alto} ${modo} ${estado}`;
+        assert.deepEqual(m.sol, [], `${et}: se solapan ${m.sol}`); assert.deepEqual(m.bordes, [], `${et}: controles a menos de ${MARGEN} px del borde: ${JSON.stringify(m.bordes)}`); assert.deepEqual(m.chicos, [], `${et}: botones menores de 44 px: ${m.chicos}`);
+        return m; };
+      await revisa('base');
+      for (const k of ['1', '2', '3', '4']) { await pg.keyboard.press(k); await revisa('panel ' + k); await pg.keyboard.press(k); }
+      await pg.evaluate(() => { const { s, Sys, G } = lfr; Sys.startEmergency(s, null, 'meteorito'); s.grace = 9999; for (let i = 0; i < 40; i++) G.update(s, 0.05, { dx: 0, dy: 0, crouch: false }); }); await revisa('emergencia');
+      await pg.evaluate(() => { const { s, Sys } = lfr; s.sys.emerg = null; s.pending = null; Object.assign(s.p, { x: 5.5, y: 13.5 }); Sys.startStorm(s); s.grace = 9999; }); await revisa('tormenta');
+      await pg.evaluate(() => { lfr.s.sys.storm = null; });
+      await pg.keyboard.press('Tab'); await pg.waitForTimeout(400); const mm = await revisa('mapa');
+      assert.deepEqual(mm.botonesMapa, ['btn-cerrar-mapa'], `${ancho}×${alto} ${modo}: con el mapa abierto solo debe verse ✕ CERRAR MAPA (se ve: ${mm.botonesMapa})`);
+      if (modo === 'rueda' && ancho === 750) await pg.screenshot({ path: join(salida, '7p-telefono-mapa.png') });
+      await pg.click('#btn-cerrar-mapa'); await pg.waitForTimeout(200); assert.ok(await pg.evaluate(() => !document.body.classList.contains('mapa-on')), 'el botón ✕ CERRAR MAPA cierra el mapa');
+      if (modo === 'rueda' && ancho === 750) await pg.screenshot({ path: join(salida, '7p-telefono-juego.png') });
+      await c.close();
+    }
+  }
+  ok('teléfono (568×320 … 932×350, 915×412 × joystick | cruceta): nada se solapa ni toca al jugador, controles a ≥ 24 px del borde, botones ≥ 44 px, título con las 3 misiones visibles, mapa con solo ✕ CERRAR MAPA');
+
   // 10. Inglés para el jurado: ?lang=en, selector ES/EN en el título (se guarda), DATOS NASA, intro, mantenimiento, tormenta y final en inglés.
   {
     const c = await navegador.newContext({ viewport: { width: 1280, height: 760 } }); const pg = await c.newPage();
