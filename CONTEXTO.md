@@ -130,6 +130,7 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
 
 | Fecha | Commit | Cambio | Siguiente |
 | :--- | :--- | :--- | :--- |
+| 15/11 | (este cambio) | Banner principal animado: GIF de 6 segundos y 60 fotogramas; estación flotando, estrellas, órbita y pulso solar suave. Texto fijo y portada SVG estática enlazada. Sin cambios al juego. | Revisar y fusionar el PR del banner; luego continúa E2 |
 | 15/11 | (este cambio) | README visual bilingüe: inglés principal, español completo, portada SVG, siete capturas reales y GIF de alerta solar. Sin cambios al juego. Validación: 236 pruebas, enlaces y revisión visual en escritorio/móvil. | Revisar y fusionar el PR visual; luego continúa E2 |
 | 15/11 | (este cambio) | README: expediente de misión, voseo y tono épico; cooperativo Tripulante/Control actualizado. Enlaces locales verificados y 236 pruebas correctas con node --test. | Revisar y fusionar el PR; luego continúa E2 |
 | 14/11 | (este cambio) | README renovado: portada SVG propia, enlaces a jugar/demo, guía de misión, controles, IA, ciencia, cooperativo, desarrollo y resumen en inglés. Portada revisada en navegador y enlaces locales verificados. | Continúa el siguiente paso de la sección 5 |
