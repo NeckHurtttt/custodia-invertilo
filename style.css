@@ -293,6 +293,7 @@ button.reto { border-color: var(--amber); color: var(--amber); }
 .mcc-ack { min-height: 1.2em; color: #ffc23d; margin: .2rem 0; }
 .mcc-lado { width: 22rem; display: flex; flex-direction: column; gap: .4rem; overflow-y: auto; }
 .mcc-lado .caja { pointer-events: auto; border: 1px solid var(--line); background: var(--panel); padding: .45rem .6rem; } .m-fila { display: flex; flex-wrap: wrap; gap: .3rem; margin: .3rem 0; } .m-fila small { width: 100%; opacity: .75; } .m-fila button { font-size: .8em; padding: .2rem .4rem; }
+.mcc-storm { color: #ffc23d; font-weight: 700; } .mcc-tarde { color: #ff9a5d; } .mcc-grande { width: 100%; margin-top: .4rem; min-height: 44px; font-size: 1.05rem; border: 2px solid #ffc23d; }
 .mcc-emerg { color: #ff5d5d; font-weight: 700; animation: parp 1.8s ease-in-out infinite; } @keyframes parp { 50% { opacity: .55; } }
 .mcc-fin { position: absolute; inset: 30% 20%; background: #000c; border: 2px solid var(--cyan); display: flex; align-items: center; justify-content: center; text-align: center; font-size: 2em; padding: 1rem; }
 #m-mapa { position: static; inset: auto; width: auto; height: auto; image-rendering: auto; flex: none; }

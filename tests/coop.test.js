@@ -75,3 +75,46 @@ test('coop: no ejecuta nada cuando la partida ya terminó', () => {
   const s = G.newGame('estacion', 5); s.over = { won: false, title: 'x', text: 'y' };
   assert.equal(Co.applyCommand(s, { k: 'aviso', id: 'bien' }).ok, false);
 });
+
+// ---------- clima espacial real para Control de Misión (paso G) ----------
+const alRefugio = (s) => { const r = s.L.rooms.find((x) => x.id === Sys.shelterOf(s).room); s.p.x = r.x + r.w / 2; s.p.y = r.y + r.h / 2; };
+
+test('coop: Control ve la llamarada real que viene y cuándo llega la próxima tormenta', () => {
+  const s = G.newGame('estacion', 5); const { host, out } = pair(s); host.tick(s, 0.6);
+  const f = last(out, 'snap'); assert.ok(f.sys.clima && f.sys.clima.flare, 'la foto trae la llamarada de la próxima tormenta');
+  assert.equal(f.sys.clima.total, 3); assert.equal(f.sys.clima.day, 2); assert.equal(f.sys.storm, null);
+  assert.doesNotThrow(() => JSON.stringify(f));
+  const v = Co.climaView(f, 0); assert.equal(v.modo, 'espera'); assert.equal(v.boton, false);
+  assert.match(v.lineas.join(' '), /día 2 a las 15:00/); assert.match(v.lineas.join(' '), /REAL .*NASA DONKI/);
+  assert.equal(Co.climaView(f, 0).lineas.length, 2);
+  assert.equal(Co.climaView(Co.snapshot(G.newGame('estacion', 5, 'normal', { mode: 'noche' })), 0), null, 'sin sistemas no hay clima');
+});
+
+test('coop: con la tormenta en curso, Control ve la cuenta atrás, el refugio y si el astronauta ya llegó', () => {
+  const s = G.newGame('estacion', 5); Sys.startStorm(s); Object.assign(s.p, { x: 5.5, y: 13.5 }); // el dormitorio es el refugio de la Estación: se sale al comedor
+  assert.equal(Sys.inShelter(s), false);
+  let v = Co.climaView(Co.snapshot(s), 0); assert.equal(v.modo, 'tormenta'); assert.equal(v.urgente, true); assert.equal(v.boton, true);
+  assert.match(v.lineas[0], /TORMENTA SOLAR 1 de 3: las partículas llegan en \d+ s/); assert.match(v.lineas.join(' '), /AFUERA/);
+  assert.ok(v.lineas.join(' ').includes(Sys.view(s).storm.shelter), 'dice cuál es el refugio');
+  alRefugio(s); v = Co.climaView(Co.snapshot(s), 0);
+  assert.equal(v.boton, false); assert.equal(v.urgente, false); assert.match(v.lineas.join(' '), /YA ESTÁ en el refugio/);
+});
+
+test('coop: el retraso de la señal se avisa a Control y si el mensaje llegaría tarde', () => {
+  const s = G.newGame('marte', 5); Sys.startStorm(s);
+  let v = Co.climaView(Co.snapshot(s), 6); assert.equal(v.tarde, false); assert.match(v.lineas.at(-1), /tarda 6 s.*avisa ya/);
+  s.sys.storm.t = 3; v = Co.climaView(Co.snapshot(s), 6); assert.equal(v.tarde, true); assert.match(v.lineas.at(-1), /casi no llega a tiempo/);
+});
+
+test('coop: el aviso “¡al refugio!” llega con el retraso del destino y nombra el refugio', () => {
+  const s = G.newGame('luna', 5); Sys.startStorm(s); const { host, link } = pair(s); const refugio = Sys.view(s).storm.shelter;
+  link.onmessage({ t: 'cmd', k: 'aviso', id: 'refugio' });
+  host.tick(s, 1.5); assert.ok(!s.log.some((l) => /Control de Misión/.test(l.text)), 'todavía no llegó (Luna: 2 s)');
+  host.tick(s, 1); const l = s.log.find((x) => /Control de Misión/.test(x.text)); assert.ok(l, 'llegó tras el retraso');
+  assert.ok(l.text.includes('refugio') && l.text.includes(refugio), l.text);
+  // si el astronauta ya está en el refugio, Control lo felicita en vez de repetir la orden
+  const t = G.newGame('estacion', 5); Sys.startStorm(t); alRefugio(t);
+  assert.ok(Co.applyCommand(t, { k: 'aviso', id: 'refugio' }).ok); assert.ok(t.log.some((x) => /ya estás en el refugio/.test(x.text)));
+  // sin tormenta, el mensaje sigue siendo el de siempre
+  const u = G.newGame('estacion', 5); Co.applyCommand(u, { k: 'aviso', id: 'refugio' }); assert.ok(u.log.some((x) => x.text.includes('¡Corre al refugio de radiación!') && !/Refugio:/.test(x.text)));
+});

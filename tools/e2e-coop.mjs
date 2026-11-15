@@ -50,6 +50,18 @@ try {
   await control.click('[data-apoyo="energia"]'); await control.waitForFunction(() => /ejecutada/.test(document.getElementById('m-ack').textContent), null, { timeout: 6000 }); ok('la orden “reasignar recursos” llega, se ejecuta y Control recibe la confirmación');
   await control.click('[data-aviso="bien"]'); await espera(300);
   assert.match(await control.textContent('#m-ack'), /Espera|Enviada|ejecutada/); ok('los mensajes prefabricados funcionan');
+  // clima espacial real: Control ve la tormenta con su llamarada, sabe si el astronauta ya está a salvo y puede avisarle
+  const verClima = await control.evaluate(() => document.getElementById('m-clima').textContent);
+  assert.match(verClima, /CLIMA ESPACIAL REAL/); assert.match(verClima, /Próxima tormenta: día 2/); assert.match(verClima, /NASA DONKI/); ok('Control ve la próxima llamarada REAL de NASA y cuándo llega');
+  await astro.evaluate(() => { const { s, Sys } = lfr; Object.assign(s.p, { x: 5.5, y: 13.5, inDuct: false, hidden: null }); Sys.startStorm(s); }); // el comedor no es el refugio de la Estación
+  await control.waitForFunction(() => /TORMENTA SOLAR 1 de 3/.test(document.getElementById('m-clima')?.textContent ?? ''), null, { timeout: 6000 });
+  assert.match(await control.textContent('#m-clima'), /AFUERA/);
+  await control.waitForFunction(() => { const b = document.querySelector('#m-clima [data-aviso="refugio"]'); return b && !b.disabled; }, null, { timeout: 9000 });
+  await control.click('#m-clima [data-aviso="refugio"]');
+  await astro.waitForFunction(() => lfr.s.log.some((l) => /Control de Misión.*Refugio:/.test(l.text)), null, { timeout: 6000 }); ok('con la tormenta en curso, Control avisa “¡al refugio!” y el astronauta recibe el mensaje con el nombre del refugio');
+  await astro.evaluate(() => { const { s, Sys } = lfr; const r = s.L.rooms.find((x) => x.id === Sys.shelterOf(s).room); Object.assign(s.p, { x: r.x + r.w / 2, y: r.y + r.h / 2 }); });
+  await control.waitForFunction(() => /YA ESTÁ en el refugio/.test(document.getElementById('m-clima')?.textContent ?? '') && !document.querySelector('#m-clima [data-aviso="refugio"]'), null, { timeout: 6000 }); ok('cuando el astronauta llega al refugio, Control lo ve y el botón de aviso desaparece');
+  await control.screenshot({ path: join(salida, 'coop-control-tormenta.png') });
   await control.click('[data-tool="marca"]'); await control.click('#m-mapa', { position: { x: 120, y: 90 } });
   await astro.waitForFunction(() => document.getElementById('coop-badge').textContent.includes('CONECTADO')); ok('el astronauta ve “CONTROL: CONECTADO”');
   await astro.screenshot({ path: join(salida, 'coop-astronauta.png') });

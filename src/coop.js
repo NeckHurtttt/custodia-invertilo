@@ -35,12 +35,37 @@ export function snapshot(s, since = 0, mark = null, paused = false) {
     t: 'snap', loc: s.L.id, day: s.day, min: Math.floor(s.min), clock: C.clock(s.min), block: { id: b.id, name: b.name }, paused,
     p: { x: +s.p.x.toFixed(2), y: +s.p.y.toFixed(2), salud: Math.round(s.p.salud), energia: Math.round(s.p.energia), room: C.roomName(s, C.playerRoom(s)), hidden: !!s.p.hidden },
     alert: Math.round(s.alert), integ: Math.round(s.integ), ia: s.iaOn,
-    sys: view && { meters: view.meters.map((m) => ({ id: m.id, name: m.name, v: Math.round(m.v) })), dosePct: Math.round(view.dosePct), tasks: view.tasks.map((k) => ({ id: k.id, short: k.short, room: k.room, done: k.done })), events: view.events, emerg: view.emerg && { ...view.emerg, t: Math.ceil(view.emerg.t) } },
+    sys: view && { meters: view.meters.map((m) => ({ id: m.id, name: m.name, v: Math.round(m.v) })), dosePct: Math.round(view.dosePct), tasks: view.tasks.map((k) => ({ id: k.id, short: k.short, room: k.room, done: k.done })), events: view.events, emerg: view.emerg && { ...view.emerg, t: Math.ceil(view.emerg.t) }, clima: view.clima, storm: view.storm && { ...view.storm, t: Math.ceil(view.storm.t) } },
     haz: s.hazards.filter((h) => h.def.name).map((h) => ({ name: h.def.name, x: +h.x.toFixed(1), y: +h.y.toFixed(1), room: C.roomName(s, h.room ?? C.roomIdAt(s, h.x, h.y)) })).slice(0, 12),
     doors: s.map.doors.map((d) => (d.open ? 1 : 0) + (d.lock ? 2 : 0)),
     log: s.log.filter((l) => (l.id ?? 0) > since).slice(-8).map((l) => ({ id: l.id, text: l.text.replace(/<[^>]+>/g, ''), kind: l.kind })),
     logSeq: s.logSeq ?? 0, mark, over: s.over ? { won: !!s.over.won, title: s.over.title } : null,
   };
+}
+
+const hhmm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+/**
+ * Lo que Control ve del clima espacial, listo para pintar (lógica pura, con pruebas): la llamarada REAL que viene, la cuenta atrás de la tormenta,
+ * si el astronauta ya está en el refugio y si el aviso de Control llegaría tarde por el retraso de la señal (delay, en segundos).
+ * Devuelve { modo: 'espera'|'tormenta'|'fin', lineas, urgente, boton, tarde } o null si este modo no tiene sistemas.
+ */
+export function climaView(sn, delay = 0) {
+  const y = sn?.sys; const c = y?.clima; if (!c) return null;
+  const st = y.storm;
+  if (st) {
+    const llega = st.phase === 'aviso'; const falta = !st.inShelter; const tarde = falta && delay >= st.t;
+    return {
+      modo: 'tormenta', urgente: falta, boton: falta, tarde,
+      lineas: [
+        `TORMENTA SOLAR ${st.n} de ${c.total}: ${llega ? `las partículas llegan en ${st.t} s` : `las partículas están pasando (${st.t} s más)`}.`,
+        st.source,
+        `Refugio: ${st.shelter}. El astronauta ${st.inShelter ? 'YA ESTÁ en el refugio ✔' : 'está AFUERA'}.`,
+        ...(falta && delay ? [tarde ? `⚠ Tu aviso tarda ${delay} s en llegar: casi no llega a tiempo.` : `Tu aviso tarda ${delay} s en llegar: avisa ya.`] : []),
+      ],
+    };
+  }
+  if (c.day) return { modo: 'espera', urgente: false, boton: false, tarde: false, lineas: [`Próxima tormenta: día ${c.day} a las ${hhmm(c.min)} (ya pasaron ${c.n} de ${c.total}).`, ...(c.flare ? [c.flare.text] : [])] };
+  return { modo: 'fin', urgente: false, boton: false, tarde: false, lineas: [`Ya pasaron las ${c.total} tormentas de esta misión.`] };
 }
 
 /** Ejecuta una orden de Control sobre la partida. Devuelve { ok, text }. Es la ÚNICA puerta por la que Control cambia algo. */
@@ -49,7 +74,9 @@ export function applyCommand(s, cmd, host = null) {
   switch (cmd.k) {
     case 'aviso': {
       const a = AVISOS[cmd.id]; if (!a) return { ok: false, text: 'Mensaje no válido.' };
-      C.say(s, `📡 Control de Misión: ${a[0]}`, a[1]); break;
+      const st = cmd.id === 'refugio' ? Sys.view(s)?.storm : null; // con tormenta en curso, el mensaje dice cuál es el refugio
+      if (st && st.inShelter) { C.say(s, '📡 Control de Misión: Buen trabajo, ya estás en el refugio. Quédate hasta que pase.', 'ok'); break; }
+      C.say(s, `📡 Control de Misión: ${a[0]}${st ? ` Refugio: ${st.shelter}.` : ''}`, a[1]); break;
     }
     case 'apoyo': {
       if (!s.sys || !Sys.SYS_IDS.includes(cmd.sys)) return { ok: false, text: 'Ese sistema no existe aquí.' };

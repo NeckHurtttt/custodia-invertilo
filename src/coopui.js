@@ -3,7 +3,7 @@
 import * as G from './core.js';
 import { LOCS } from './locs.js';
 import { ROOM_TINT } from './arte.js';
-import { CMD, AVISOS, DELAY_NOTE } from './coop.js';
+import { CMD, AVISOS, DELAY_NOTE, climaView } from './coop.js';
 import { newRoom, netInfo, wsLink, rtcHost, rtcGuest } from './link.js';
 
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -105,7 +105,7 @@ export function coopScreens(ctx) {
     const V = { link, ref: null, snap: null, tool: 'marca', cd: {}, ack: '', note: '', delay: 0, offline: false, rx: performance.now() };
     root.innerHTML = `<header class="mcc-top"><b>🛰️ CONTROL DE MISIÓN</b><span id="m-reloj">—</span><span id="m-bloque"></span><span id="m-estado" class="ok">conectando…</span><button id="m-salir" class="mini">SALIR</button></header>
       <div class="mcc-cuerpo"><div class="mcc-mapa"><div id="m-herr" class="mcc-herr"><span>CLIC EN EL MAPA:</span><button data-tool="marca" class="on">📍 Marcar punto</button><button data-tool="abrir">🚪 Abrir escotilla</button></div><p id="m-ack" class="mcc-ack"></p><canvas id="m-mapa"></canvas></div>
-      <aside class="mcc-lado"><div class="caja" id="m-astro"></div><div class="caja" id="m-sis"></div><div class="caja" id="m-ordenes"></div><div class="caja" id="m-log"></div></aside></div><div id="m-fin" class="mcc-fin" hidden></div>`;
+      <aside class="mcc-lado"><div class="caja" id="m-astro"></div><div class="caja" id="m-sis"></div><div class="caja" id="m-clima"></div><div class="caja" id="m-ordenes"></div><div class="caja" id="m-log"></div></aside></div><div id="m-fin" class="mcc-fin" hidden></div>`;
     const $m = (id) => root.querySelector('#' + id); const cvm = $m('m-mapa'); const g = cvm.getContext('2d'); let K = 12;
     const ord = () => `<h3>ÓRDENES <small>(retraso de señal: ${V.delay} s)</small></h3>
       <div class="m-fila"><small>${CMD.apoyo.name}: ${CMD.apoyo.help}</small>${['vida', 'energia', 'rad', 'comida'].map((id) => `<button data-apoyo="${id}" style="border-color:${SYSC[id]}">${{ vida: 'Vida', energia: 'Energía', rad: 'Radiación', comida: 'Comida' }[id]}</button>`).join('')}</div>
@@ -114,6 +114,7 @@ export function coopScreens(ctx) {
     const mandar = (m) => { const w = Math.ceil(((V.cd[m.k] ?? 0) - performance.now()) / 1000); if (w > 0) { V.ack = `Espera ${w} s para repetir esa orden.`; return pinta(); } V.cd[m.k] = performance.now() + CMD[m.k].cd * 1000; link.send({ t: 'cmd', ...m }); V.ack = 'Enviando…'; pinta(); };
     root.querySelectorAll('[data-apoyo]').forEach((b) => (b.onclick = () => mandar({ k: 'apoyo', sys: b.dataset.apoyo })));
     root.querySelectorAll('[data-aviso]').forEach((b) => (b.onclick = () => mandar({ k: 'aviso', id: b.dataset.aviso })));
+    $m('m-clima').onclick = (e) => { const b = e.target.closest('[data-aviso]'); if (b && !b.disabled) mandar({ k: 'aviso', id: b.dataset.aviso }); }; // el botón de la tormenta se vuelve a dibujar a cada rato: se escucha en la caja
     root.querySelectorAll('[data-tool]').forEach((b) => (b.onclick = () => { V.tool = b.dataset.tool; root.querySelectorAll('[data-tool]').forEach((x) => x.classList.toggle('on', x === b)); }));
     cvm.onclick = (e) => {
       if (!V.ref) return; const r = cvm.getBoundingClientRect(); const x = (e.clientX - r.left) / K, y = (e.clientY - r.top) / K;
@@ -154,6 +155,13 @@ export function coopScreens(ctx) {
         + sn.sys.meters.map((m) => m.id === 'rad' ? `<div class="fila-sis"><span>${m.name}</span>${bar(100 - sn.sys.dosePct, 25)}<span>${m.v}%</span></div><small>dosis ${sn.sys.dosePct}% del límite</small>` : `<div class="fila-sis"><span>${m.name}</span>${bar(m.v)}<span>${m.v}%</span></div>`).join('')
         + `<ul class="plan">${sn.sys.tasks.map((k) => `<li class="${k.done ? 'ok' : ''}">${esc(k.short)} <small>→ ${esc(k.room)}</small></li>`).join('')}</ul>`
         + (sn.sys.emerg ? `<p class="mcc-emerg">🚨 ${esc(sn.sys.emerg.name)} en ${esc(sn.sys.emerg.room)} · ${sn.sys.emerg.t} s</p>` : '');
+      const cv = climaView(sn, V.delay); const cl = $m('m-clima'); cl.hidden = !cv;
+      if (cv) {
+        const espera = (V.cd.aviso ?? 0) > performance.now();
+        const html = `<h3>☀️ CLIMA ESPACIAL REAL</h3>${cv.lineas.map((l, i) => `<p class="${i === 0 && cv.modo === 'tormenta' ? 'mcc-storm' : ''}${cv.tarde && i === cv.lineas.length - 1 ? ' mcc-tarde' : ''}">${esc(l)}</p>`).join('')}`
+          + (cv.boton ? `<button class="mcc-grande" data-aviso="refugio" ${espera ? 'disabled' : ''}>📡 AVISAR: ¡AL REFUGIO!</button>` : '');
+        if (html !== V.climaHtml) { V.climaHtml = html; cl.innerHTML = html; }
+      }
       $m('m-log').innerHTML = `<h3>AVISOS DE LA BASE</h3><ul class="log">${V.log.slice(-8).reverse().map((l) => `<li class="${l.kind}">${esc(l.text)}</li>`).join('')}</ul>`;
       const f = $m('m-fin'); f.hidden = !sn.over; if (sn.over) f.innerHTML = `<b>${sn.over.won ? '🎉 ¡MISIÓN CUMPLIDA!' : '💀 MISIÓN FALLIDA'}</b><br>${esc(sn.over.title)}`;
     }

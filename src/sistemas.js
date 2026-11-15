@@ -268,6 +268,8 @@ export function view(s) {
     dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? NASA_NOTE, events: mods(s).map((e) => ({ name: e.name, text: e.hud })),
     tasks: SYS_IDS.map((id) => ({ id, name: taskName(s, id), short: taskShort(s, id), room: stationRoom(s, id), done: !!y.done[id] })),
     reflex: y.reflex, last: y.lastStorm ?? null,
+    // lo que ve Control de Misión del Sol: cuántas tormentas van, cuándo llega la próxima y qué llamarada real la causa
+    clima: { n: y.storms, total: STORM_DAYS.length, day: STORM_DAYS[y.storms] ?? null, min: STORM_MIN, flare: y.flares[y.storms] ? { cls: y.flares[y.storms].cls, date: y.flares[y.storms].date, source: y.flares[y.storms].source, text: sourceText(y.flares[y.storms]) } : null },
     storm: y.storm ? { n: y.storm.n, phase: y.storm.phase, t: y.storm.t, total: y.storm.phase === 'aviso' ? y.storm.total : STORM_SECONDS, cls: y.storm.flare.cls, source: sourceText(y.storm.flare), shelter: C.roomName(s, shelterOf(s).room), inShelter: inShelter(s), dose: y.storm.dose } : null,
     emerg: e ? { name: ed.name, verb: ed.verb, t: e.t, total: e.total, room: C.roomName(s, e.room), x: e.x, y: e.y } : null,
   };
