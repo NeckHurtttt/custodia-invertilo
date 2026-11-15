@@ -5,6 +5,7 @@ import { NOTES, rescateLinea, NAVE } from './story.js';
 import { LOCS, ROOM_EN } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
+import * as Amb from './ambientes.js';
 import { fetchFlares, donkiEstado, sourceText, missionFlares, SHELTER } from './clima.js';
 import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang, IDIOMAS } from './i18n.js';
@@ -70,9 +71,10 @@ document.addEventListener('click', (e) => { if (e.target.closest?.('button') && 
 
 // ---------- paletas por destino ----------
 const THEMES = {
-  estacion: { void: '#02040a', floor: '#1d2733', floor2: '#232f3d', line: '#2c3a4a', wall: '#56677a', wallTop: '#8296ab', wallDark: '#2a3440', corr: '#1c2530', danger: '#2a1418', out: '#000' },
-  luna: { void: '#1b1e27', floor: '#262a33', floor2: '#2d313b', line: '#393e4a', wall: '#5d6573', wallTop: '#8c95a5', wallDark: '#2f3540', corr: '#222630', danger: '#2c1719', out: '#4a4f5c' },
-  marte: { void: '#33190f', floor: '#2f261f', floor2: '#362c24', line: '#43362b', wall: '#7a6152', wallTop: '#a68b78', wallDark: '#42322a', corr: '#2a231d', danger: '#3a1a16', out: '#6e3d2a' },
+  // Estación: módulos blanco-grisáceos (tipo ISS). Luna: paneles beige aislados. Marte: metal oxidado. Así cada destino se reconoce de un vistazo.
+  estacion: { void: '#02040a', floor: '#1d2733', floor2: '#232f3d', line: '#2c3a4a', wall: '#7d8a9b', wallTop: '#c1cad6', wallDark: '#38424f', corr: '#1e2833', danger: '#2a1418', out: '#000' },
+  luna: { void: '#1b1e27', floor: '#2c2b28', floor2: '#33322e', line: '#43413b', wall: '#8a8476', wallTop: '#c4bdab', wallDark: '#46423a', corr: '#2a2926', danger: '#2c1719', out: '#4a4f5c' },
+  marte: { void: '#33190f', floor: '#2f221b', floor2: '#382820', line: '#4a3226', wall: '#7c4a36', wallTop: '#ad7258', wallDark: '#45281c', corr: '#2c1f18', danger: '#3a1a16', out: '#6e3d2a' },
 };
 
 // ---------- capa fija del mundo (piso, paredes, objetos) ----------
@@ -105,6 +107,7 @@ function drawBase() {
       continue;
     }
     A.floorTile(b, s, T, x, y, r, hashRand, at);
+    Amb.detallePiso(b, L.theme, px, py, hashRand(x * 13 + y * 7 + 5), !at(x, y - 1)); // pasamanos, regolito o polvo rojo según el destino
   }
   A.lightPools(b, s);
   // cráteres y rocas en el exterior
@@ -177,6 +180,7 @@ function drawObjOut(b, o, theme) {
   b.drawImage(t, x, y);
 }
 function drawObj(b, o, theme) {
+  if (Amb.objeto(b, o, theme)) return; // cada destino tiene su propia versión del objeto (ambientes.js)
   const x = o.x * TS, y = o.y * TS;
   switch (o.t) {
     case 'cama': R(b, '#3a4350', x, y + 2, 16, 12); R(b, '#c9d3dd', x + 1, y + 3, 14, 10); R(b, '#fff', x + 2, y + 4, 4, 4); R(b, o.mine ? '#2bb8c4' : '#b0505a', x + 6, y + 4, 9, 8); break;
