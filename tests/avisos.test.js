@@ -14,14 +14,14 @@ function simula(entradas, ctx = {}) {
   return vis;
 }
 
-test('avisos: nunca hay más de 3 a la vez, pase lo que pase', () => {
+test('avisos: nunca hay más de 2 a la vez, pase lo que pase', () => {
   const lluvia = Array.from({ length: 40 }, (_, i) => ({ kind: ['info', 'ok', 'warn', 'bad', 'ia', 'day'][i % 6], text: `mensaje ${i}` }));
   assert.ok(simula(lluvia).length <= MAX_AVISOS);
 });
 
 test('avisos: lo importante desplaza a lo menor, y lo menor no desplaza a lo importante', () => {
-  const grave = [{ kind: 'bad', text: 'a' }, { kind: 'ia', text: 'b' }, { kind: 'warn', text: 'c' }];
-  assert.deepEqual(simula([...grave, { kind: 'info', text: 'trivial' }]).map((v) => v.text), ['a', 'b', 'c'], 'info no entra si todo vale más');
+  const grave = [{ kind: 'bad', text: 'a' }, { kind: 'ia', text: 'b' }];
+  assert.deepEqual(simula([...grave, { kind: 'info', text: 'trivial' }]).map((v) => v.text), ['a', 'b'], 'info no entra si todo vale más');
   const r = simula([{ kind: 'info', text: 'x' }, { kind: 'ok', text: 'y' }, { kind: 'info', text: 'z' }, { kind: 'bad', text: 'URGENTE' }]);
   assert.ok(r.some((v) => v.text === 'URGENTE') && !r.some((v) => v.text === 'x'), 'sale el menor más viejo');
 });

@@ -2,8 +2,8 @@
 // Idea: la pantalla es de quien juega, no del registro. Todo lo que pasa queda en el panel [4] Avisos; solo se SUBE a la pantalla
 // lo que ayuda a decidir algo ahora, con un tope fijo, sin repetir lo que otro panel ya dice y sin estorbar durante una emergencia.
 export const PRIO = { bad: 4, ia: 4, warn: 3, day: 2, ok: 2, info: 1 };
-export const MAX_AVISOS = 3; // nunca más de tres avisos a la vez
-export const TTL = { bad: 8000, ia: 7000, warn: 6000, day: 5000, ok: 3500, info: 3000 }; // ms en pantalla
+export const MAX_AVISOS = 2; // nunca más de dos avisos a la vez (más tapaba el centro de la pantalla)
+export const TTL = { bad: 6000, ia: 5500, warn: 4500, day: 4000, ok: 2800, info: 2500 }; // ms en pantalla
 
 const prio = (k) => PRIO[k] ?? 1;
 

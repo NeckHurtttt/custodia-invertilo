@@ -17,7 +17,7 @@ try { setLang(pickLang(location.search, localStorage.getItem('lfr.lang'))); docu
 const nm = (o) => T(o.name, o.nameEn); const ds = (o) => T(o.desc, o.descEn); const rn = (n) => T(n, ROOM_EN[n] ?? n);
 const idiomaHTML = () => `<div class="idioma" role="group" aria-label="Language / Idioma">${IDIOMAS.map((l) => `<button data-lang="${l}" class="${getLang() === l ? 'on' : ''}" aria-pressed="${getLang() === l}" title="${{ es: 'Español', en: 'English', he: 'עברית · טקסט בלבד' }[l]}">${l === 'he' ? 'עב' : l.toUpperCase()}</button>`).join('')}</div>`;
 const HUD_TXT = [['#c-vit h3', 'TÚ', 'YOU'], ['#ov-sis h3', 'SISTEMAS DE LA BASE', 'BASE SYSTEMS'], ['.hud-crew h3', 'TRIPULACIÓN', 'CREW'], ['.hud-inv h3.cap', 'MOCHILA', 'BACKPACK'], ['#btn-mochila', 'Mochila', 'Backpack'], ['#btn-fabricar', 'Fabricar', 'Craft'], ['#btn-usar', 'Inhibir', 'Inhibit'],
-  ['[data-panel="mant"]', 'Mantenim.', 'Upkeep'], ['[data-panel="plan"]', 'Plan', 'Plan'], ['[data-panel="amen"]', 'Amenazas', 'Threats'], ['[data-panel="reg"]', 'Avisos', 'Alerts'], ['#btn-nombres', 'Nombres', 'Names'], ['#btn-menu .txt', 'PAUSA', 'PAUSE']];
+  ['[data-panel="mant"]', 'Mantenim.', 'Upkeep'], ['[data-panel="plan"]', 'Plan', 'Plan'], ['[data-panel="amen"]', 'Amenazas', 'Threats'], ['[data-panel="reg"]', 'Avisos', 'Alerts'], ['#btn-nombres', 'Nombres', 'Names'], ['#btn-mapa', 'Mapa', 'Map'], ['#btn-menu .txt', 'PAUSA', 'PAUSE']];
 const aplicaIdioma = () => { for (const [sel, es, en] of HUD_TXT) { const el = document.querySelector(sel); if (!el) continue; for (const n of el.childNodes) if (n.nodeType === 3 && [es, en, T(es, en)].includes(n.nodeValue.trim())) n.nodeValue = n.nodeValue.replace(/\S(.*\S)?/, T(es, en)); } };
 const cambiaIdioma = (l, volver) => { setLang(l); try { localStorage.setItem('lfr.lang', l); } catch { /* nada */ } document.documentElement.lang = l; aplicaIdioma(); textosTactil(); Voz.parar(); volver(); };
 aplicaIdioma();
@@ -428,6 +428,7 @@ function drawFrame(t) {
   if (s.iaOn && s.alert > 70 && !FX.suave()) R(cx, `rgba(0,0,0,${(0.08 + 0.14 * (0.5 + 0.5 * Math.sin(t / 400))) * Math.min(1, (s.alert - 70) / 20)})`, 0, 0, cv.width, cv.height);
   // susto: tinte rojo que se desvanece al descubrir tu escondite (suave y corto; en modo suave, nada)
   if (scareT > 0) { scareT -= pdt; if (!FX.suave()) R(cx, `rgba(160,0,0,${Math.min(0.25, scareT * 0.5)})`, 0, 0, cv.width, cv.height); }
+  if (mapaOn && !menu) mapaCompleto(t);
 }
 
 /** Borde de arriba de la mochila (lo mide hud()) y posición del próximo cartel del mundo (se apilan hacia arriba). */
@@ -547,7 +548,7 @@ function arrowToGoal(t) {
 }
 
 function minimap() {
-  const L = s.L; const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H); const k = g.k; const mw = g.w, mh = g.h; const ox = cv.width - mw - g.borde, oy = g.oy;
+  const L = s.L; const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height); const k = g.k; const mw = g.w, mh = g.h; const ox = cv.width - mw - g.borde, oy = g.oy;
   R(cx, 'rgba(0,0,0,.6)', ox - 3, oy - 3, mw + 6, mh + 6); cx.strokeStyle = '#33405e'; cx.strokeRect(ox - 3.5, oy - 3.5, mw + 7, mh + 7);
   const goal = G.block(s).room;
   for (let y = 0; y < L.H; y++) for (let x = 0; x < L.W; x++) {
@@ -563,6 +564,65 @@ function minimap() {
   if (s.iaOn) for (const d of s.drones) R(cx, d.mode === 'persigue' ? '#ff3b3b' : '#ffc23d', ox + d.x * k - 1, oy + d.y * k - 1, 3, 3);
   R(cx, '#5ff6ff', ox + s.p.x * k - 2, oy + s.p.y * k - 2, 4, 4);
   R(cx, 'rgba(255,255,255,.25)', ox + cam.x / TS * k, oy + cam.y / TS * k, VW / TS * k, 1);
+}
+
+/**
+ * Mapa completo (tecla Tab, botón MAPA o tocar el minimapa): todas las salas con su nombre, dónde estás (TÚ), el objetivo del momento
+ * y lo urgente (emergencia, misión del villano, refugio de la tormenta). El juego sigue corriendo: es para ubicarse rápido, no para pausar.
+ */
+let mapaOn = false;
+function alternaMapa(on = !mapaOn) { mapaOn = !!on && !!s; document.body.classList.toggle('mapa-on', mapaOn); $('btn-mapa')?.classList.toggle('sel', mapaOn); $('t-m')?.classList.toggle('sel', mapaOn); }
+function mapaCompleto(t) {
+  const L = s.L; const tact = !$('tactil').hidden; const g = UI.geomMapa(cv.width, cv.height, L.W, L.H, tact ? 100 : 66, tact ? 300 : 50); const k = g.k, ox = g.ox, oy = g.oy;
+  R(cx, 'rgba(4,6,12,.94)', 0, 0, cv.width, cv.height);
+  const goal = G.block(s).room; const aqui = G.playerRoom(s);
+  const urg = new Set(); if (s.vil?.mission) urg.add(s.vil.mission.room);
+  for (const h of s.hazards) if (h.def.type === 'shelter') urg.add(h.def.safe[0]);
+  for (let y = 0; y < L.H; y++) for (let x = 0; x < L.W; x++) {
+    const c = s.map.grid[y * L.W + x]; if (!c) continue; const r = L.rooms[s.map.room[y * L.W + x]];
+    cx.fillStyle = c === 2 ? '#7a6a3a' : r?.id === goal ? '#2f5a96' : urg.has(r?.id) ? '#4a2f6a' : r?.restricted ? '#4a1c1c' : r?.outside ? '#3a3a3a' : r ? '#26324a' : '#1a2132';
+    cx.fillRect(ox + x * k, oy + y * k, Math.ceil(k), Math.ceil(k));
+  }
+  const pul = FX.suave() ? 1 : 0.6 + 0.4 * UI.pulso(t, 0.8);
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  for (const r of L.rooms) {
+    const x = ox + r.x * k, y = oy + r.y * k, w = r.w * k, h = r.h * k;
+    const meta = r.id === goal, tu = r.id === aqui, u = urg.has(r.id);
+    if (meta || tu || u) { cx.globalAlpha = meta ? pul : 1; cx.lineWidth = 3; cx.strokeStyle = meta ? '#ffc23d' : u ? '#d08aff' : '#5ff6ff'; cx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3); cx.globalAlpha = 1; cx.lineWidth = 1; }
+    const px = Math.max(11, Math.min(22, k * 1.15)); cx.font = `${px}px VT323`;
+    const nom = G.roomName(s, r.id); const tw = cx.measureText(nom).width;
+    if (tw > w + 40) continue; // sala muy chica: el nombre se leería encima de otra
+    R(cx, 'rgba(8,11,18,.75)', x + w / 2 - tw / 2 - 4, y + h / 2 - px / 2 - 2, tw + 8, px + 4);
+    cx.fillStyle = meta ? '#ffc23d' : u ? '#e0b8ff' : r.restricted ? '#ff9a9a' : '#dfe8ff'; cx.fillText(nom, x + w / 2, y + h / 2);
+    if (meta) { cx.font = `${px - 2}px VT323`; cx.fillStyle = '#ffc23d'; cx.fillText(T('★ OBJETIVO', '★ GOAL'), x + w / 2, y + h / 2 + px); }
+  }
+  if (s.sys) { if (G.block(s).id === 'trabajo') for (const id of Sys.pending(s)) { const o = Sys.station(s, id); R(cx, '#ffc23d', ox + o.x * k - 3, oy + o.y * k - 3, 6, 6); } const e = s.sys.emerg; if (e) { cx.globalAlpha = pul; R(cx, '#ff3b3b', ox + e.x * k - 5, oy + e.y * k - 5, 10, 10); cx.globalAlpha = 1; } }
+  for (const c of s.crew) R(cx, c.color, ox + c.x * k - 3, oy + c.y * k - 3, 6, 6);
+  if (s.vil) for (const w of s.vil.walkers) if (!w.gone && !w.away && VILLAINS[w.vid].mode !== 'doble') R(cx, w.mode === 'persigue' ? '#ff3b3b' : '#c08aff', ox + w.x * k - 3, oy + w.y * k - 3, 6, 6);
+  if (s.iaOn) for (const d of s.drones) R(cx, d.mode === 'persigue' ? '#ff3b3b' : '#ffc23d', ox + d.x * k - 3, oy + d.y * k - 3, 6, 6);
+  // tú: punto grande con anillo y etiqueta
+  const tx = ox + s.p.x * k, ty = oy + s.p.y * k;
+  cx.beginPath(); cx.arc(tx, ty, 9, 0, Math.PI * 2); cx.strokeStyle = '#5ff6ff'; cx.lineWidth = 2; cx.stroke(); cx.lineWidth = 1; R(cx, '#5ff6ff', tx - 4, ty - 4, 8, 8);
+  cx.font = '18px VT323'; cx.fillStyle = '#5ff6ff'; cx.fillText(T('TÚ', 'YOU'), tx, ty - 18);
+  // título y leyenda
+  cx.font = '24px VT323'; cx.fillStyle = '#dfe8ff'; cx.textBaseline = 'alphabetic';
+  const gr = L.rooms.find((r) => r.id === goal);
+  const t1 = T('MAPA DE LA BASE', 'BASE MAP'), t2 = T(`estás en ${aqui ? G.roomName(s, aqui) : 'un pasillo'}`, `you are in ${aqui ? G.roomName(s, aqui) : 'a corridor'}`) + (gr ? T(` · objetivo: ${G.roomName(s, goal)}`, ` · goal: ${G.roomName(s, goal)}`) : '');
+  if (cx.measureText(`${t1} · ${t2}`).width < cv.width - 20) cx.fillText(`${t1} · ${t2}`, cv.width / 2, oy - 14);
+  else { cx.fillText(t1, cv.width / 2, oy - 34); cx.font = '18px VT323'; cx.fillStyle = '#9fd4ff'; cx.fillText(t2, cv.width / 2, oy - 12); }
+  // leyenda: cada color con su cuadrito (el significado también va escrito, no depende solo del color)
+  cx.font = '17px VT323'; cx.textAlign = 'left';
+  const ley = [['#5ff6ff', T('tú', 'you')], ['#ffc23d', T('objetivo / tareas', 'goal / tasks')], ['#ff3b3b', T('emergencia o te persiguen', 'emergency or chasing you')], ['#d08aff', T('amenazas', 'threats')], ['#4a1c1c', T('zona prohibida', 'restricted')], [null, T('Tab o tocar para cerrar', 'Tab or tap to close')]];
+  const anchoDe = ([c, x]) => cx.measureText(x).width + (c ? 18 : 0) + 22;
+  const filasL = [[]]; let acc = 0; for (const it of ley) { const a = anchoDe(it); if (acc + a > cv.width - 16 && filasL.at(-1).length) { filasL.push([]); acc = 0; } filasL.at(-1).push(it); acc += a; }
+  let ly = oy + g.h + 26;
+  for (const fl of filasL) {
+    let lx = Math.max(8, cv.width / 2 - fl.reduce((n, it) => n + anchoDe(it), 0) / 2 + 11);
+    for (const [c, x] of fl) { if (c) { R(cx, c, lx, ly - 11, 12, 12); lx += 18; } cx.fillStyle = c ? '#c8d2ea' : '#8a96b4'; cx.fillText(x, lx, ly); lx += cx.measureText(x).width + 22; }
+    ly += 22;
+  }
+  cx.textAlign = 'center';
+  cx.textBaseline = 'alphabetic';
 }
 
 // ---------- panel ----------
@@ -583,7 +643,7 @@ function diaNuevo() {
     <p class="dn-falta">${faltan > 1 ? T(`La nave de rescate llega en ${faltan} días`, `The rescue ship arrives in ${faltan} days`) : T('La nave de rescate llega mañana', 'The rescue ship arrives tomorrow')}</p>
     ${msg ? `<p class="dn-msg">📡 ${NAVE}: «${msg}»</p>` : ''}
     ${Sys.eventoHoy(s).map((e) => `<p class="dn-evento ${e.tipo}"><b>${e.tipo === 'bueno' ? '🎲' : e.tipo === 'reto' ? '📡' : '⚠'} ${T('HOY', 'TODAY')}: ${e.name}</b><br>${e.text}</p>`).join('')}`;
-  el.hidden = false; clearTimeout(diaT); diaT = setTimeout(() => { el.hidden = true; }, 6500);
+  el.hidden = false; clearTimeout(diaT); diaT = setTimeout(() => { el.hidden = true; }, 4500);
 }
 function vigilaDia() {
   if (diaDe !== s && esTactil() && !vista.cruz && getOpt('joyhint', '0') !== '1') { setOpt('joyhint', '1'); G.say(s, T('Para moverte: toca el mapa con el dedo y deslízalo hacia donde quieras ir.', 'To move: touch the map with your finger and slide it where you want to go.'), 'info'); }
@@ -677,7 +737,7 @@ function hud() {
   const th = amenazasHTML();
   if ($('amenazas').dataset.h !== th) { $('amenazas').innerHTML = th; $('amenazas').dataset.h = th; }
   if (!$('c-reg').hidden) { const html = logHTML(8); if ($('log').dataset.h !== html) { $('log').innerHTML = html; $('log').dataset.h = html; } }
-  { const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
+  { const g = UI.geomMinimapa(cv.width, ZOOM, L.W, L.H, cv.height); $('cajones').style.paddingTop = `${g.oy + g.h + 12}px`; }
   toasts(); paneles();
 }
 /** Retrato de un compañero (el mismo dibujo del mapa, de frente): una imagen chica por personaje y ánimo, guardada para no dibujarla cada vez. */
@@ -1451,6 +1511,8 @@ addEventListener('keydown', (e) => {
   if (k === 'shift' && s && !menu && !avisoAgachar) { avisoAgachar = true; G.flash(s, T('Agachado (Shift): haces menos ruido y te ven menos, pero caminas más lento. Suelta Shift para pararte.', 'Crouching (Shift): you make less noise and are seen less, but you walk slower. Release Shift to stand up.'), 'info'); }
   if (k === 'escape' && menu && !['titulo', 'fin', 'protocolo', 'intro', 'codigo', 'cables', 'respira'].includes(menu)) { if (menu === 'escondite') s.pending = null; close(); return; }
   if (k === 'n' && s && !menu) { alternaNombres(); return; }
+  if (k === 'tab') { e.preventDefault(); if (s && !menu) alternaMapa(); return; }
+  if (k === 'escape' && mapaOn) { alternaMapa(false); return; }
   if (menu === 'fin' && /^[1-3]$/.test(k) && !e.target.closest?.('input, textarea')) { finQuiz?.(+k - 1); return; } // 1–3 responden la pregunta de cierre
   if (menu === 'fin' && !e.target.closest?.('input, textarea') && (k === 'r' || (k === 'enter' && !e.target.closest?.('button, summary')))) { ($('otra') ?? $('menu'))?.click(); return; } // reintento inmediato con una tecla
   if (menu === 'datos' && /^[1-6]$/.test(k) && !e.target.closest?.('input, textarea')) { datosIr?.(+k - 1); return; } // atajos 1–6 en la terminal de DATOS NASA
@@ -1460,9 +1522,83 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 $('btn-nombres').onclick = () => { if (s && !menu) alternaNombres(); }; $('btn-fabricar').onclick = () => act('c'); $('btn-full').onclick = toggleFull; document.querySelectorAll('#teclas [data-panel]').forEach((b) => { b.onclick = () => { if (s && !menu) togglePanel(b.dataset.panel); }; }); $('btn-mochila').onclick = () => act('i'); $('btn-menu').onclick = () => { if (!menu) act('p'); else if (menu === 'pausa') close(); }; $('btn-musica').onclick = () => { M.toggle(); sincBotones(); }; $('btn-usar').onclick = () => act('q'); $('btn-ayuda').onclick = () => { if (!menu) help(null); };
+// Celular y tablet: se juega en HORIZONTAL. Al primer toque pide pantalla completa y fija la orientación (Android/Chrome lo permite;
+// en iPhone no, y ahí queda el aviso «Gira el teléfono» del CSS). Si lo pones en vertical a mitad de partida, el juego se pausa.
+const tacto = matchMedia('(pointer: coarse)'); const vertical = matchMedia('(orientation: portrait)');
+/** Teléfono = pantalla táctil cuyo lado corto mide menos de 600 px. Tablets y PC quedan fuera (no se fuerza horizontal ni hay rueda). */
+const esTelefono = () => tacto.matches && Math.min(screen.width, screen.height) < 600;
+function aHorizontal() {
+  if (!esTelefono()) return;
+  if (screen.orientation?.type?.startsWith('landscape') && document.fullscreenElement) return;
+  const fija = () => screen.orientation?.lock?.('landscape').catch(() => {});
+  if (document.fullscreenElement) fija(); else document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).then(fija).catch(fija);
+}
+addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') aHorizontal(); }, { capture: true });
+vertical.addEventListener?.('change', () => { if (esTelefono() && vertical.matches && s && !menu && !crew) pausa(); });
+/**
+ * Rueda de acciones (pantalla táctil): para que la pantalla no se llene de botones, quedan solo USAR y ☰ ATAJOS.
+ * USAR: un toque = usar (E); mantenerlo RUEDA_MS = se abre la rueda con esconder, lanzar, inhibir, agachar, mochila y mapa.
+ * ☰ ATAJOS: un toque abre la rueda de fabricar, paneles 1-4, nombres y mochila.
+ * En la rueda: desliza el dedo hasta una opción y suéltalo, o suelta y luego toca la opción. Tocar fuera la cierra.
+ * Cada opción reusa el botón original (oculto), así el texto (ESCONDER/DISTRAER) y el estado (agachado) siguen iguales.
+ */
+const RUEDA_MS = 2000;
+const rueda = document.createElement('div'); rueda.id = 'rueda'; rueda.hidden = true; document.body.appendChild(rueda);
+let ruedaSel = null;
+const RUEDA_ACC = ['t-f', 't-t', 't-q', 't-sh', 't-i', 't-m'];
+const RUEDA_ATAJOS = [['btn-fabricar', '🔧'], ['[data-panel="mant"]', '1'], ['[data-panel="plan"]', '2'], ['[data-panel="amen"]', '3'], ['[data-panel="reg"]', '4'], ['btn-nombres', 'N'], ['btn-mochila', 'I']];
+function cierraRueda() { rueda.hidden = true; rueda.innerHTML = ''; ruedaSel = null; }
+function abreRueda(cx0, cy0, ops) {
+  const R0 = Math.min(104, Math.max(78, Math.min(innerWidth, innerHeight) * 0.26)); const m = R0 + 40;
+  const x = Math.min(innerWidth - m, Math.max(m, cx0)), y = Math.min(innerHeight - m, Math.max(m, cy0));
+  rueda.innerHTML = `<div class="r-centro" style="left:${x}px;top:${y}px">✕</div>` + ops.map((o, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / ops.length;
+    return `<button class="r-op${o.sel ? ' sel' : ''}" data-i="${i}" style="left:${x + Math.cos(a) * R0}px;top:${y + Math.sin(a) * R0}px">${o.html}</button>`;
+  }).join('');
+  // Solo cuenta un toque que EMPIEZA y TERMINA en la rueda (nada de clic): así el «clic fantasma» que el teléfono manda al soltar
+  // después de mantener apretado no elige ni cierra nada por error.
+  let baja = null;
+  rueda.onpointerdown = (e) => { baja = e.target.closest('.r-op') ?? 'fondo'; };
+  rueda.onpointerup = (e) => {
+    const el = e.target.closest('.r-op') ?? 'fondo'; if (baja !== el) { baja = null; return; } baja = null;
+    if (el === 'fondo') cierraRueda(); else { const o = ops[+el.dataset.i]; cierraRueda(); o.run(); }
+  };
+  rueda.onclick = (e) => e.stopPropagation();
+  rueda.hidden = false; rueda._ops = ops; M.ui('abrir');
+}
+function ruedaMarca(e) { // con el dedo aún apoyado: resalta la opción que está debajo
+  const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.r-op');
+  rueda.querySelectorAll('.r-op').forEach((b) => b.classList.toggle('apunta', b === el)); ruedaSel = el ? +el.dataset.i : null;
+}
+const opDe = (id) => { const b = $(id); return { html: b.innerHTML, sel: b.classList.contains('sel'), run: () => b.click() }; };
+const opsAcciones = () => RUEDA_ACC.map(opDe);
+const opsAtajos = () => RUEDA_ATAJOS.map(([q, k]) => { const b = q.startsWith('[') ? document.querySelector(`#teclas ${q}`) : $(q); const nom = [...b.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim(); return { html: `<b>${k}</b><small>${nom}</small>`, sel: b.classList.contains('sel'), run: () => b.click() }; });
+/** Botón con toque corto + mantener: corto() al soltar rápido; largo() abre la rueda tras RUEDA_MS (con anillo de carga). */
+function conRueda(btn, corto, ops, ms) {
+  let tim = 0, abierta = false, id = null;
+  btn.addEventListener('contextmenu', (e) => e.preventDefault()); // mantener apretado no abre el menú del navegador
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); if (!s || menu) return; id = e.pointerId; abierta = false; try { btn.setPointerCapture(e.pointerId); } catch { /* nada */ }
+    if (!ms || !esTelefono()) return; // fuera del teléfono USAR es un botón normal
+    btn.style.setProperty('--carga', `${ms}ms`); btn.classList.add('cargando');
+    tim = setTimeout(() => { btn.classList.remove('cargando'); abierta = true; const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); navigator.vibrate?.(20); }, ms);
+  });
+  btn.addEventListener('pointermove', (e) => { if (e.pointerId === id && abierta) ruedaMarca(e); });
+  const fin = (e, cancel) => {
+    if (e.pointerId !== id) return; id = null; clearTimeout(tim); btn.classList.remove('cargando');
+    if (abierta) { if (ruedaSel !== null) { const o = rueda._ops[ruedaSel]; cierraRueda(); o.run(); } return; } // soltó sobre una opción; si no, la rueda queda abierta para tocar
+    if (cancel || !s || menu) return;
+    if (ms || !esTelefono()) corto?.(); else { const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); }
+  };
+  btn.addEventListener('pointerup', (e) => fin(e, false)); btn.addEventListener('pointercancel', (e) => fin(e, true));
+  btn.addEventListener('click', (e) => { if (e.detail === 0 && s && !menu) corto(); }); // teclado / lector de pantalla: Enter = toque corto
+}
+conRueda($('t-e'), () => act('e'), opsAcciones, RUEDA_MS);
+conRueda($('t-menu'), null, opsAtajos, 0);
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !rueda.hidden) cierraRueda(); });
 // controles táctiles: en pantallas táctiles o angostas (teléfono); body.tactil-on deja sitio a los atajos
 const esTactil = () => matchMedia('(pointer: coarse)').matches || UI.esAngosta(innerWidth);
-function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('cruz-on', on && vista.cruz); }
+function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('telefono', esTelefono()); document.body.classList.toggle('cruz-on', on && vista.cruz); }
 sincTactil(); addEventListener('resize', sincTactil); sincBotones();
 const dirs = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
 /**
@@ -1483,6 +1619,11 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
 {
   const pant = document.querySelector('.pantalla');
   pant.addEventListener('pointerdown', (e) => {
+    if (s && !menu && !e.target.closest('button, input, textarea, a')) {
+      if (mapaOn) { alternaMapa(false); return; }
+      const g = UI.geomMinimapa(cv.width, ZOOM, s.L.W, s.L.H, cv.height); const r = cv.getBoundingClientRect(); const mx = (e.clientX - r.left) * (cv.width / r.width), my = (e.clientY - r.top) * (cv.height / r.height);
+      if (mx >= cv.width - g.w - g.borde - 6 && my >= g.oy - 6 && my <= g.oy + g.h + 6) { alternaMapa(true); return; }
+    }
     if (e.pointerType === 'mouse' || joy.id !== null || menu || !s || vista.cruz || e.target.closest('button, input, textarea, a')) return;
     joy.id = e.pointerId; joy.x = e.clientX; joy.y = e.clientY; joyEl.hidden = false; try { pant.setPointerCapture(e.pointerId); } catch { /* sin captura */ } joyMueve(e);
   });
@@ -1490,7 +1631,7 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pant.addEventListener(ev, joySuelta);
 }
 /** Los botones de acción dicen QUÉ hacen (no solo la letra del teclado). */
-const TACTIL_TXT = { 't-e': ['E', 'USAR', 'USE'], 't-f': ['F', 'ESCONDER', 'HIDE'], 't-t': ['T', 'LANZAR', 'THROW'], 't-sh': ['⇩', 'AGACHAR', 'CROUCH'], 't-q': ['Q', 'INHIBIR', 'JAM'], 't-i': ['I', 'MOCHILA', 'BAG'] };
+const TACTIL_TXT = { 't-e': ['E', 'USAR', 'USE'], 't-f': ['F', 'ESCONDER', 'HIDE'], 't-t': ['T', 'LANZAR', 'THROW'], 't-sh': ['⇩', 'AGACHAR', 'CROUCH'], 't-q': ['Q', 'INHIBIR', 'JAM'], 't-i': ['I', 'MOCHILA', 'BAG'], 't-m': ['🗺', 'MAPA', 'MAP'], 't-menu': ['☰', 'ATAJOS', 'SHORTCUTS'] };
 function textosTactil() { for (const [id, base] of Object.entries(TACTIL_TXT)) { const [k, es, en] = crew && id === 't-f' ? ['F', 'DISTRAER', 'DISTRACT'] : base; const b = $(id); if (b) b.innerHTML = `<b>${k}</b><small>${T(es, en)}</small>`; } }
 textosTactil();
 document.querySelectorAll('.cruz button').forEach((b) => {
@@ -1498,7 +1639,7 @@ document.querySelectorAll('.cruz button').forEach((b) => {
   const off = (e) => { e.preventDefault(); touch.dx = 0; touch.dy = 0; };
   b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
 });
-$('t-e').onclick = () => act('e'); $('t-f').onclick = () => act('f'); $('t-t').onclick = () => act('t'); $('t-i').onclick = () => act('i'); $('t-sh').onclick = () => { touch.crouch = !touch.crouch; $('t-sh').classList.toggle('sel', touch.crouch); if (s && !menu) G.flash(s, touch.crouch ? T('Agachado: haces menos ruido y te ven menos, pero caminas más lento. Vuelve a tocar para pararte.', 'Crouching: you make less noise and are seen less, but you walk slower. Tap again to stand up.') : T('Te pusiste de pie.', 'You stood up.'), 'info'); }; $('t-q').onclick = () => act('q');
+$('t-f').onclick = () => act('f'); $('t-t').onclick = () => act('t'); $('t-i').onclick = () => act('i'); $('t-sh').onclick = () => { touch.crouch = !touch.crouch; $('t-sh').classList.toggle('sel', touch.crouch); if (s && !menu) G.flash(s, touch.crouch ? T('Agachado: haces menos ruido y te ven menos, pero caminas más lento. Vuelve a tocar para pararte.', 'Crouching: you make less noise and are seen less, but you walk slower. Tap again to stand up.') : T('Te pusiste de pie.', 'You stood up.'), 'info'); }; $('t-q').onclick = () => act('q'); $('t-m').onclick = () => { if (s && !menu) alternaMapa(); }; $('btn-mapa').onclick = () => { if (s && !menu) alternaMapa(); };
 
 function input() {
   let dx = touch.dx, dy = touch.dy;

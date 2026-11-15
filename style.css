@@ -714,3 +714,92 @@ body.invitado #t-f { display: flex !important; }
 :lang(he) .ventana { letter-spacing: 0; } :lang(he) .logo-grande, :lang(he) .boot-txt, :lang(he) kbd { direction: ltr; }
 :lang(he) .sublema, :lang(he) .inicio .paso, :lang(he) .inicio .kicker, :lang(he) .tarjeta .nombre { letter-spacing: 0; }
 :lang(he) body { font-family: "VT323", "Noto Sans Hebrew", "Arial Hebrew", "DejaVu Sans Mono", monospace; }
+
+/* ---- Feedback de prueba (15/11): botones más grandes, avisos fuera del centro, mapa ---- */
+/* Botones táctiles grandes: USAR (E) ocupa dos filas en la esquina, donde descansa el pulgar */
+.tactil { padding: .7rem; }
+.tactil .acciones { grid-template-columns: repeat(3, 74px); grid-auto-rows: 74px; gap: 8px; }
+.tactil .acciones button { width: 74px; height: 74px; border-radius: 14px; }
+.tactil .acciones button b { font-size: 1.9rem; }
+.tactil .acciones button small { font-size: .78rem; }
+.tactil .acciones #t-e { grid-column: 3; grid-row: 2 / 4; height: auto; }
+.tactil .acciones #t-e b { font-size: 2.6rem; } .tactil .acciones #t-e small { font-size: .95rem; }
+.tactil .acciones #t-f { grid-column: 1; grid-row: 1; } .tactil .acciones #t-t { grid-column: 2; grid-row: 1; } .tactil .acciones #t-q { grid-column: 3; grid-row: 1; }
+.tactil .acciones #t-sh { grid-column: 1; grid-row: 2; } .tactil .acciones #t-i { grid-column: 2; grid-row: 2; }
+.tactil .acciones #t-m { grid-column: 1 / 3; grid-row: 3; width: auto; }
+.tactil .cruz { grid-template-columns: repeat(3, 66px); grid-template-rows: repeat(3, 66px); }
+.tactil .cruz button { width: 66px; height: 66px; font-size: 1.8rem; }
+@media (max-width: 600px), (max-height: 520px) {
+  .tactil { padding: .45rem; }
+  .tactil .acciones { grid-template-columns: repeat(3, 64px); grid-auto-rows: 64px; gap: 6px; }
+  .tactil .acciones button { width: 64px; height: 64px; }
+  .tactil .acciones button b { font-size: 1.6rem; } .tactil .acciones button small { font-size: .7rem; }
+  .tactil .cruz { grid-template-columns: repeat(3, 58px); grid-template-rows: repeat(3, 58px); } .tactil .cruz button { width: 58px; height: 58px; }
+}
+/* PC: los atajos de abajo a la derecha, más grandes y fáciles de leer */
+@media (min-width: 601px) {
+  .hud-teclas { font-size: .95em; gap: 5px; max-width: 30em; }
+  .hud-teclas button { min-height: 2.1em; padding: .15em .6em; }
+  .hud-teclas button kbd { font-size: 1.05em; }
+}
+/* Avisos: columna más angosta y con tope de alto, para que nunca bajen hasta el centro del mapa */
+.hud-centro { width: min(26em, 40%); max-height: 34vh; overflow: hidden; }
+.avisos li { font-size: 1em; padding: .18em .5em; }
+/* Cartel del día: arriba, compacto y más corto (antes quedaba en medio de la pantalla) */
+.dia-nuevo { top: 3.2em; width: min(92vw, 24rem); padding: .4rem .8rem .5rem; animation-duration: 4.5s; }
+.dn-dia { font-size: 1.6rem; }
+.dia-nuevo .dn-msg { display: none; }
+@media (max-width: 600px), (max-height: 520px) { .dia-nuevo { top: 3.2em; } }
+/* Con el mapa completo abierto se esconde el HUD (menos la barra y los botones) para que no tape las salas */
+body.mapa-on .hud:not(.barra):not(.hud-teclas), body.mapa-on .hud-teclas button:not(#btn-mapa) { visibility: hidden; }
+body.mapa-on.tactil-on #btn-mapa { visibility: hidden; }
+/* Teléfono en vertical: se pide girar (el juego es horizontal). En tablet y PC nunca aparece. */
+.girar { display: none; }
+@media (pointer: coarse) and (orientation: portrait) {
+  body.telefono .girar { display: flex; position: fixed; inset: 0; z-index: 50; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: 2rem; text-align: center; background: #02060b; color: var(--fg); }
+  .girar-tel { font-size: 4.5rem; animation: girar-tel 2.4s ease-in-out infinite; }
+  .girar-tit { font-size: 1.8rem; letter-spacing: .12em; color: var(--cyan); margin: 0; }
+  .girar-txt { color: var(--dim); font-size: 1.1rem; max-width: 20rem; margin: 0; }
+}
+@keyframes girar-tel { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+.suave .girar-tel { animation: none; transform: rotate(-90deg); }
+/* Teléfono acostado: botones en 2 filas (USAR alto a la derecha) y los atajos debajo del minimapa, sin taparlo */
+@media (max-height: 520px) and (min-width: 601px) {
+  .tactil .acciones { grid-template-columns: repeat(4, 58px); grid-auto-rows: 58px; gap: 6px; }
+  .tactil .acciones button { width: 58px; height: 58px; }
+  .tactil .acciones button b { font-size: 1.45rem; } .tactil .acciones button small { font-size: .66rem; }
+  .tactil .acciones #t-f { grid-column: 1; grid-row: 1; } .tactil .acciones #t-t { grid-column: 2; grid-row: 1; } .tactil .acciones #t-q { grid-column: 3; grid-row: 1; }
+  .tactil .acciones #t-sh { grid-column: 1; grid-row: 2; } .tactil .acciones #t-i { grid-column: 2; grid-row: 2; } .tactil .acciones #t-m { grid-column: 3; grid-row: 2; width: 58px; }
+  .tactil .acciones #t-e { grid-column: 4; grid-row: 1 / 3; height: auto; } .tactil .acciones #t-e b { font-size: 2.2rem; }
+  body.tactil-on .hud-teclas { top: 108px; }
+}
+body.tactil-on #btn-mapa { display: none; }
+/* ---- Solo TELÉFONO (body.telefono): quedan USAR y ☰ ATAJOS; el resto va en ruedas (mantener USAR 2 s / tocar ☰). Tablet y PC no cambian ---- */
+.tactil .acciones #t-menu { display: none; }
+body.telefono .hud-teclas { display: none !important; }
+body.telefono .tactil .acciones { display: flex !important; align-items: flex-end; gap: 10px; }
+body.telefono .tactil .acciones button:not(#t-e):not(#t-menu) { display: none !important; }
+body.telefono .tactil .acciones #t-e { width: 92px !important; height: 92px !important; border-radius: 50%; position: relative; }
+body.telefono .tactil .acciones #t-e b { font-size: 2.6rem; }
+body.telefono .tactil .acciones #t-menu { display: flex; width: 62px !important; height: 62px !important; border-radius: 50%; }
+body.telefono .tactil .acciones #t-menu b { font-size: 1.6rem; }
+@media (max-height: 520px) and (min-width: 601px) { body.telefono .tactil .acciones #t-e { width: 80px !important; height: 80px !important; } }
+/* anillo que se llena mientras mantienes USAR */
+#t-e::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: conic-gradient(var(--amber) calc(var(--p, 0) * 1turn), transparent 0); -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%); mask: radial-gradient(circle, transparent 62%, #000 64%); }
+@property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+#t-e.cargando::after { opacity: 1; animation: carga var(--carga, 2s) linear forwards; }
+@keyframes carga { from { --p: 0; } to { --p: 1; } }
+/* la rueda */
+#rueda { position: fixed; inset: 0; z-index: 40; background: rgba(2,6,11,.45); touch-action: none; }
+#rueda[hidden] { display: none; }
+#rueda .r-centro { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; display: grid; place-items: center; background: rgba(13,17,28,.9); border: 1px solid var(--line); color: var(--dim); font-size: 1.2rem; }
+#rueda .r-op { position: absolute; width: 72px; height: 72px; margin: -36px 0 0 -36px; border-radius: 50%; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1;
+  background: rgba(21,27,43,.96); border: 2px solid var(--line); color: var(--fg); box-shadow: 0 6px 18px rgba(0,0,0,.5); animation: r-entra .14s ease-out both; }
+#rueda .r-op b { font-weight: normal; font-size: 1.5rem; }
+#rueda .r-op small { font-size: .62rem; letter-spacing: .03em; color: var(--dim); max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rueda .r-op.sel { border-color: var(--amber); color: var(--amber); }
+#rueda .r-op.apunta, #rueda .r-op:active { border-color: var(--cyan); background: #1d3a4a; transform: scale(1.12); }
+@keyframes r-entra { from { opacity: 0; transform: scale(.6); } }
+.suave #rueda .r-op { animation: none; }
+.tactil button, #rueda { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
