@@ -1533,6 +1533,67 @@ function aHorizontal() {
 }
 addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') aHorizontal(); }, { capture: true });
 vertical.addEventListener?.('change', () => { if (tacto.matches && vertical.matches && s && !menu && !crew) pausa(); });
+/**
+ * Rueda de acciones (pantalla táctil): para que la pantalla no se llene de botones, quedan solo USAR y ☰ ATAJOS.
+ * USAR: un toque = usar (E); mantenerlo RUEDA_MS = se abre la rueda con esconder, lanzar, inhibir, agachar, mochila y mapa.
+ * ☰ ATAJOS: un toque abre la rueda de fabricar, paneles 1-4, nombres y mochila.
+ * En la rueda: desliza el dedo hasta una opción y suéltalo, o suelta y luego toca la opción. Tocar fuera la cierra.
+ * Cada opción reusa el botón original (oculto), así el texto (ESCONDER/DISTRAER) y el estado (agachado) siguen iguales.
+ */
+const RUEDA_MS = 2000;
+const rueda = document.createElement('div'); rueda.id = 'rueda'; rueda.hidden = true; document.body.appendChild(rueda);
+let ruedaSel = null;
+const RUEDA_ACC = ['t-f', 't-t', 't-q', 't-sh', 't-i', 't-m'];
+const RUEDA_ATAJOS = [['btn-fabricar', '🔧'], ['[data-panel="mant"]', '1'], ['[data-panel="plan"]', '2'], ['[data-panel="amen"]', '3'], ['[data-panel="reg"]', '4'], ['btn-nombres', 'N'], ['btn-mochila', 'I']];
+function cierraRueda() { rueda.hidden = true; rueda.innerHTML = ''; ruedaSel = null; }
+function abreRueda(cx0, cy0, ops) {
+  const R0 = Math.min(104, Math.max(78, Math.min(innerWidth, innerHeight) * 0.26)); const m = R0 + 40;
+  const x = Math.min(innerWidth - m, Math.max(m, cx0)), y = Math.min(innerHeight - m, Math.max(m, cy0));
+  rueda.innerHTML = `<div class="r-centro" style="left:${x}px;top:${y}px">✕</div>` + ops.map((o, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / ops.length;
+    return `<button class="r-op${o.sel ? ' sel' : ''}" data-i="${i}" style="left:${x + Math.cos(a) * R0}px;top:${y + Math.sin(a) * R0}px">${o.html}</button>`;
+  }).join('');
+  // Solo cuenta un toque que EMPIEZA y TERMINA en la rueda (nada de clic): así el «clic fantasma» que el teléfono manda al soltar
+  // después de mantener apretado no elige ni cierra nada por error.
+  let baja = null;
+  rueda.onpointerdown = (e) => { baja = e.target.closest('.r-op') ?? 'fondo'; };
+  rueda.onpointerup = (e) => {
+    const el = e.target.closest('.r-op') ?? 'fondo'; if (baja !== el) { baja = null; return; } baja = null;
+    if (el === 'fondo') cierraRueda(); else { const o = ops[+el.dataset.i]; cierraRueda(); o.run(); }
+  };
+  rueda.onclick = (e) => e.stopPropagation();
+  rueda.hidden = false; rueda._ops = ops; M.ui('abrir');
+}
+function ruedaMarca(e) { // con el dedo aún apoyado: resalta la opción que está debajo
+  const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.r-op');
+  rueda.querySelectorAll('.r-op').forEach((b) => b.classList.toggle('apunta', b === el)); ruedaSel = el ? +el.dataset.i : null;
+}
+const opDe = (id) => { const b = $(id); return { html: b.innerHTML, sel: b.classList.contains('sel'), run: () => b.click() }; };
+const opsAcciones = () => RUEDA_ACC.map(opDe);
+const opsAtajos = () => RUEDA_ATAJOS.map(([q, k]) => { const b = q.startsWith('[') ? document.querySelector(`#teclas ${q}`) : $(q); const nom = [...b.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim(); return { html: `<b>${k}</b><small>${nom}</small>`, sel: b.classList.contains('sel'), run: () => b.click() }; });
+/** Botón con toque corto + mantener: corto() al soltar rápido; largo() abre la rueda tras RUEDA_MS (con anillo de carga). */
+function conRueda(btn, corto, ops, ms) {
+  let tim = 0, abierta = false, id = null;
+  btn.addEventListener('contextmenu', (e) => e.preventDefault()); // mantener apretado no abre el menú del navegador
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); if (!s || menu) return; id = e.pointerId; abierta = false; try { btn.setPointerCapture(e.pointerId); } catch { /* nada */ }
+    if (!ms) return;
+    btn.style.setProperty('--carga', `${ms}ms`); btn.classList.add('cargando');
+    tim = setTimeout(() => { btn.classList.remove('cargando'); abierta = true; const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); navigator.vibrate?.(20); }, ms);
+  });
+  btn.addEventListener('pointermove', (e) => { if (e.pointerId === id && abierta) ruedaMarca(e); });
+  const fin = (e, cancel) => {
+    if (e.pointerId !== id) return; id = null; clearTimeout(tim); btn.classList.remove('cargando');
+    if (abierta) { if (ruedaSel !== null) { const o = rueda._ops[ruedaSel]; cierraRueda(); o.run(); } return; } // soltó sobre una opción; si no, la rueda queda abierta para tocar
+    if (cancel || !s || menu) return;
+    if (ms) corto(); else { const r = btn.getBoundingClientRect(); abreRueda(r.left + r.width / 2, r.top + r.height / 2, ops()); }
+  };
+  btn.addEventListener('pointerup', (e) => fin(e, false)); btn.addEventListener('pointercancel', (e) => fin(e, true));
+  btn.addEventListener('click', (e) => { if (e.detail === 0 && s && !menu) corto(); }); // teclado / lector de pantalla: Enter = toque corto
+}
+conRueda($('t-e'), () => act('e'), opsAcciones, RUEDA_MS);
+conRueda($('t-menu'), null, opsAtajos, 0);
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !rueda.hidden) cierraRueda(); });
 // controles táctiles: en pantallas táctiles o angostas (teléfono); body.tactil-on deja sitio a los atajos
 const esTactil = () => matchMedia('(pointer: coarse)').matches || UI.esAngosta(innerWidth);
 function sincTactil() { const on = esTactil(); $('tactil').hidden = !on; document.body.classList.toggle('tactil-on', on); document.body.classList.toggle('cruz-on', on && vista.cruz); }
@@ -1568,7 +1629,7 @@ function joySuelta(e) { if (e.pointerId !== joy.id) return; joy.id = null; touch
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pant.addEventListener(ev, joySuelta);
 }
 /** Los botones de acción dicen QUÉ hacen (no solo la letra del teclado). */
-const TACTIL_TXT = { 't-e': ['E', 'USAR', 'USE'], 't-f': ['F', 'ESCONDER', 'HIDE'], 't-t': ['T', 'LANZAR', 'THROW'], 't-sh': ['⇩', 'AGACHAR', 'CROUCH'], 't-q': ['Q', 'INHIBIR', 'JAM'], 't-i': ['I', 'MOCHILA', 'BAG'], 't-m': ['🗺', 'MAPA', 'MAP'] };
+const TACTIL_TXT = { 't-e': ['E', 'USAR', 'USE'], 't-f': ['F', 'ESCONDER', 'HIDE'], 't-t': ['T', 'LANZAR', 'THROW'], 't-sh': ['⇩', 'AGACHAR', 'CROUCH'], 't-q': ['Q', 'INHIBIR', 'JAM'], 't-i': ['I', 'MOCHILA', 'BAG'], 't-m': ['🗺', 'MAPA', 'MAP'], 't-menu': ['☰', 'ATAJOS', 'SHORTCUTS'] };
 function textosTactil() { for (const [id, base] of Object.entries(TACTIL_TXT)) { const [k, es, en] = crew && id === 't-f' ? ['F', 'DISTRAER', 'DISTRACT'] : base; const b = $(id); if (b) b.innerHTML = `<b>${k}</b><small>${T(es, en)}</small>`; } }
 textosTactil();
 document.querySelectorAll('.cruz button').forEach((b) => {
@@ -1576,7 +1637,7 @@ document.querySelectorAll('.cruz button').forEach((b) => {
   const off = (e) => { e.preventDefault(); touch.dx = 0; touch.dy = 0; };
   b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off); b.addEventListener('pointercancel', off);
 });
-$('t-e').onclick = () => act('e'); $('t-f').onclick = () => act('f'); $('t-t').onclick = () => act('t'); $('t-i').onclick = () => act('i'); $('t-sh').onclick = () => { touch.crouch = !touch.crouch; $('t-sh').classList.toggle('sel', touch.crouch); if (s && !menu) G.flash(s, touch.crouch ? T('Agachado: haces menos ruido y te ven menos, pero caminas más lento. Vuelve a tocar para pararte.', 'Crouching: you make less noise and are seen less, but you walk slower. Tap again to stand up.') : T('Te pusiste de pie.', 'You stood up.'), 'info'); }; $('t-q').onclick = () => act('q'); $('t-m').onclick = () => { if (s && !menu) alternaMapa(); }; $('btn-mapa').onclick = () => { if (s && !menu) alternaMapa(); };
+$('t-f').onclick = () => act('f'); $('t-t').onclick = () => act('t'); $('t-i').onclick = () => act('i'); $('t-sh').onclick = () => { touch.crouch = !touch.crouch; $('t-sh').classList.toggle('sel', touch.crouch); if (s && !menu) G.flash(s, touch.crouch ? T('Agachado: haces menos ruido y te ven menos, pero caminas más lento. Vuelve a tocar para pararte.', 'Crouching: you make less noise and are seen less, but you walk slower. Tap again to stand up.') : T('Te pusiste de pie.', 'You stood up.'), 'info'); }; $('t-q').onclick = () => act('q'); $('t-m').onclick = () => { if (s && !menu) alternaMapa(); }; $('btn-mapa').onclick = () => { if (s && !menu) alternaMapa(); };
 
 function input() {
   let dx = touch.dx, dy = touch.dy;

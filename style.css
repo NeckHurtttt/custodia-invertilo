@@ -774,3 +774,31 @@ body.mapa-on.tactil-on #btn-mapa { visibility: hidden; }
   body.tactil-on .hud-teclas { top: 108px; }
 }
 body.tactil-on #btn-mapa { display: none; }
+/* ---- Pantalla táctil limpia: solo ☰ ATAJOS y USAR; el resto va en ruedas (mantener USAR 2 s / tocar ☰) ---- */
+body.tactil-on .hud-teclas { display: none !important; }
+.tactil .acciones { display: flex !important; align-items: flex-end; gap: 10px; }
+.tactil .acciones button:not(#t-e):not(#t-menu) { display: none !important; }
+.tactil .acciones #t-e { width: 92px !important; height: 92px !important; border-radius: 50%; position: relative; }
+.tactil .acciones #t-e b { font-size: 2.6rem; }
+.tactil .acciones #t-menu { width: 62px !important; height: 62px !important; border-radius: 50%; }
+.tactil .acciones #t-menu b { font-size: 1.6rem; }
+@media (max-height: 520px) and (min-width: 601px) { .tactil .acciones #t-e { width: 80px !important; height: 80px !important; } }
+/* anillo que se llena mientras mantienes USAR */
+#t-e::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; opacity: 0;
+  background: conic-gradient(var(--amber) calc(var(--p, 0) * 1turn), transparent 0); -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%); mask: radial-gradient(circle, transparent 62%, #000 64%); }
+@property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+#t-e.cargando::after { opacity: 1; animation: carga var(--carga, 2s) linear forwards; }
+@keyframes carga { from { --p: 0; } to { --p: 1; } }
+/* la rueda */
+#rueda { position: fixed; inset: 0; z-index: 40; background: rgba(2,6,11,.45); touch-action: none; }
+#rueda[hidden] { display: none; }
+#rueda .r-centro { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; display: grid; place-items: center; background: rgba(13,17,28,.9); border: 1px solid var(--line); color: var(--dim); font-size: 1.2rem; }
+#rueda .r-op { position: absolute; width: 72px; height: 72px; margin: -36px 0 0 -36px; border-radius: 50%; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1;
+  background: rgba(21,27,43,.96); border: 2px solid var(--line); color: var(--fg); box-shadow: 0 6px 18px rgba(0,0,0,.5); animation: r-entra .14s ease-out both; }
+#rueda .r-op b { font-weight: normal; font-size: 1.5rem; }
+#rueda .r-op small { font-size: .62rem; letter-spacing: .03em; color: var(--dim); max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#rueda .r-op.sel { border-color: var(--amber); color: var(--amber); }
+#rueda .r-op.apunta, #rueda .r-op:active { border-color: var(--cyan); background: #1d3a4a; transform: scale(1.12); }
+@keyframes r-entra { from { opacity: 0; transform: scale(.6); } }
+.suave #rueda .r-op { animation: none; }
+.tactil button, #rueda { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
