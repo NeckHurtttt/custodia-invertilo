@@ -141,8 +141,8 @@ export function finish(s, a) {
   const y = s.sys; if (!y) return;
   if (a.kind === 'mant') {
     const id = a.o.sys; y.done[id] = true; y.st.done++;
-    y.lvl[id] = clamp(y.lvl[id] + SYS[id].restore * restoreMul(s, id) + (y.prio === id ? 8 : 0)); s.p.energia = Math.max(0, s.p.energia - 2);
-    C.say(s, `✔ ${taskName(s, id)}. ${SYS[id].name}: ${Math.round(y.lvl[id])} %.`, 'ok');
+    y.lvl[id] = clamp(y.lvl[id] + SYS[id].restore * restoreMul(s, id) + (y.prio === id ? 8 : 0)); if (!a.by) s.p.energia = Math.max(0, s.p.energia - 2);
+    C.say(s, `✔ ${a.by ? a.by + ': ' : ''}${taskName(s, id)}. ${SYS[id].name}: ${Math.round(y.lvl[id])} %.`, 'ok');
     if (pending(s).length === 0) C.say(s, T('Las 4 revisiones de hoy están listas.', `Today's 4 checks are done.`), 'ok');
     maybeEmergency(s, id);
   } else if (a.kind === 'emerg' && y.emerg) {

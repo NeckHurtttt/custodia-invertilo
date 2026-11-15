@@ -59,7 +59,7 @@ const doorOf = (s, tx, ty) => { const d = s.map.doorAt[I(s, tx, ty)]; return d >
 export function walkable(s, tx, ty, who = 'p') {
   if (!inside(s, tx, ty)) return false;
   if (who === 'p' && s.p.inDuct) return s.map.duct[I(s, tx, ty)] === 1;
-  if (who === 'p' && s.map.solid?.[I(s, tx, ty)]) return false; // los objetos son sólidos: se usan desde al lado
+  if ((who === 'p' || who === 'h') && s.map.solid?.[I(s, tx, ty)]) return false; // los objetos son sólidos: se usan desde al lado ('h' = tripulante humano: igual que el jugador pero sin mirar si el astronauta está en un conducto)
   const g = s.map.grid[I(s, tx, ty)];
   if (g === 1) return true;
   if (g === 2) return who === 'd' || doorOf(s, tx, ty).open;
@@ -297,9 +297,13 @@ export function update(s, dt, input = { dx: 0, dy: 0 }) {
 
 export function moveBody(s, b, mx, my, r, who) {
   // La caja de colisión del jugador está en los PIES (el sprite se dibuja ~0,4 casillas por debajo de su centro), no en el centro del cuerpo.
-  const [t0, t1] = who === 'p' ? [-0.05, 0.45] : [-r, r];
+  const [t0, t1] = who === 'p' || who === 'h' ? [-0.05, 0.45] : [-r, r];
   const ok = (x, y) => walkable(s, Math.floor(x - r), Math.floor(y + t0), who) && walkable(s, Math.floor(x + r), Math.floor(y + t0), who) && walkable(s, Math.floor(x - r), Math.floor(y + t1), who) && walkable(s, Math.floor(x + r), Math.floor(y + t1), who);
   const atrapado = !ok(b.x, b.y); // si algo te dejó dentro de un objeto, puedes salir
+  if (atrapado && who === 'h') { // un tripulante humano nunca atraviesa paredes: lo sacamos al piso libre más cercano
+    for (let rr = 0.5; rr <= 5; rr += 0.5) for (let a = 0; a < 16; a++) { const x = b.x + Math.cos(a * Math.PI / 8) * rr, y = b.y + Math.sin(a * Math.PI / 8) * rr; if (ok(x, y)) { b.x = x; b.y = y; return; } }
+    return;
+  }
   // si el paso completo choca, avanza lo que quepa hasta tocar (así se llega pegado a la pared o al objeto)
   const avanza = (px, py) => { if (atrapado || ok(b.x + px, b.y + py)) { b.x += px; b.y += py; return; } let k = 0.5; for (let i = 0; i < 4; i++, k /= 2) if (ok(b.x + px * k, b.y + py * k)) { b.x += px * k; b.y += py * k; return; } };
   avanza(mx, 0); avanza(0, my);
@@ -463,6 +467,52 @@ export function suspicious(s) {
   return false;
 }
 
+// ---------- tripulante humano (cooperativo: la otra persona maneja a un compañero) ----------
+/** Velocidad de un tripulante humano (casillas/s): un poco menos que el astronauta, para que el astronauta lleve la delantera. */
+export const HUMAN_SPEED = 3.0;
+/** Pone a una persona al mando del compañero `name` (o a ninguno con null). Los demás vuelven al piloto automático. */
+export function setHuman(s, name) {
+  for (const c of s.crew) {
+    const h = !!name && c.name === name && !c.betrayed;
+    if (h && !c.human) { c.human = true; c.inp = { dx: 0, dy: 0 }; c.inpT = 0; c.goal = null; c.path = null; c.busyT = 0; c.distractT = null; c.say = null; c.sayFor = 0; }
+    else if (!h && c.human) { c.human = false; c.inp = null; c.goal = null; c.path = null; }
+  }
+}
+export const humanCrew = (s) => s.crew.find((c) => c.human) ?? null;
+/** Entrada de la persona: dirección (dx, dy en −1…1). Si dejan de llegar entradas (se perdió la red), el compañero se detiene solo. */
+export function crewInput(s, name, dx, dy) {
+  const c = s.crew.find((x) => x.human && x.name === name); if (!c) return false;
+  const n = (v) => (Number.isFinite(+v) ? Math.max(-1, Math.min(1, +v)) : 0);
+  c.inp = { dx: n(dx), dy: n(dy) }; c.inpT = 0; return true;
+}
+function humanStep(s, c, dt) {
+  c.inpT = (c.inpT ?? 0) + dt; const i = c.inp ?? { dx: 0, dy: 0 };
+  const dx = c.inpT > 0.7 ? 0 : i.dx, dy = c.inpT > 0.7 ? 0 : i.dy, len = Math.hypot(dx, dy);
+  if (c.sayFor > 0 && (c.sayFor -= dt) <= 0) c.say = null;
+  if (len < 0.1 || s.over) return;
+  let sp = HUMAN_SPEED * dt; if (slowHere(s, c)) sp *= 0.5;
+  moveBody(s, c, (dx / len) * sp, (dy / len) * sp, 0.28, 'h'); c.dir = Math.atan2(dy, dx); c.moving = true;
+}
+/** La persona terminó la revisión de un panel (el minijuego lo juega ella en su pantalla). Se valida aquí: turno de trabajo, panel pendiente y cerca. */
+export function crewMaint(s, name, sys) {
+  const y = s.sys; const c = s.crew.find((x) => x.human && x.name === name); const o = y ? S.station(s, sys) : null;
+  if (!y || !c || !o || s.over) return { ok: false, text: T('No se puede hacer esa revisión.', 'That check cannot be done.') };
+  if (block(s).id !== 'trabajo') return { ok: false, text: T('El mantenimiento se hace en el turno de trabajo (08:00–12:00).', 'Maintenance is done during the work shift (08:00–12:00).') };
+  if (y.done[sys]) return { ok: false, text: T('Esa revisión ya está hecha hoy.', 'That check is already done today.') };
+  if (Math.hypot(c.x - (o.x + 0.5), c.y - (o.y + 0.5)) > 2.4) return { ok: false, text: T('Estás lejos del panel.', 'You are too far from the panel.') };
+  S.finish(s, { kind: 'mant', o, by: c.name }); return { ok: true, text: T('¡Revisión hecha!', 'Check done!') };
+}
+/** Copia en `s` el estado que mandó el anfitrión (cooperativo, lado del compañero): todo menos el mapa fijo y el nivel. */
+export function applyState(s, str) {
+  const o = JSON.parse(str);
+  if (o.loc !== s.loc) return revive(o); // otro destino: se arma de nuevo
+  (o.doorsOpen ?? []).forEach((v, i) => { if (s.map.doors[i]) s.map.doors[i].open = v; }); (o.doorsLock ?? []).forEach((v, i) => { if (s.map.doors[i]) s.map.doors[i].lock = v; });
+  delete o.doorsOpen; delete o.doorsLock; delete o.pending; delete o.action;
+  for (const h of o.hazards ?? []) h.def = HAZARDS[h.kind];
+  for (const k of Object.keys(s)) if (!(k in o) && k !== 'map' && k !== 'L') delete s[k]; // lo que dejó de existir (p. ej. `over` al empezar otra partida)
+  Object.assign(s, o); return s;
+}
+
 // ---------- tripulación ----------
 /** De qué habla un compañero ahora: tormenta, noche, trabajo (la mitad de las veces) o lo de siempre. Sin azar: sale de la hora del juego. */
 const vozContexto = (s) => { if (s.sys?.storm) return 'tormenta'; const ctx = isNight(s) ? 'noche' : block(s).id === 'trabajo' ? 'trabajo' : null; return ctx && Math.floor(s.min / 7) % 2 === 0 ? ctx : 'idle'; };
@@ -471,6 +521,7 @@ function updateCrew(s, dt) {
   const b = block(s);
   s.crew.forEach((c, i) => {
     c.moving = false;
+    if (c.human) { humanStep(s, c, dt); return; } // cooperativo: este compañero lo maneja una persona (sin piloto automático)
     const danger = s.hazards.find((h) => MAGNET.includes(h.def.type) && Math.hypot(h.x - c.x, h.y - c.y) < 4);
     if (!c.goal || c.goalBlock !== s.block || c.goalDay !== s.day) {
       c.goalBlock = s.block; c.goalDay = s.day;
@@ -559,7 +610,7 @@ function spreadTiles(s, h) {
   const n = I(s, nx, ny); if (!h.tiles.includes(n)) h.tiles.push(n);
 }
 export const onTiles = (s, h, x, y, r = 0.9) => !!h.tiles?.some((t) => Math.hypot((t % s.L.W) + 0.5 - x, ((t / s.L.W) | 0) + 0.5 - y) < r);
-function slowHere(s) { return !s.p.inDuct && s.hazards.some((h) => h.def.type === 'spread' && h.def.slow && onTiles(s, h, s.p.x, s.p.y, 0.7)); }
+function slowHere(s, b = s.p) { return !b.inDuct && s.hazards.some((h) => h.def.type === 'spread' && h.def.slow && onTiles(s, h, b.x, b.y, 0.7)); }
 
 function updateHazards(s, dt, dm) {
   const p = s.p;

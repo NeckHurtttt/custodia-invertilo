@@ -21,7 +21,7 @@ export function coopScreens(ctx) {
       <p>${T('Como en una misión real: <b>uno está en la base</b> y <b>otro, en Houston</b>, ve todo y ayuda.', 'Like a real mission: <b>one is on the base</b> and <b>the other, in Houston</b>, sees everything and helps.')}</p>
       <div class="coop-roles">
         <button id="c-host"><span class="ico">🧑‍🚀</span>${T('ASTRONAUTA', 'ASTRONAUT')}<small>${T('Juegas normal en la base. Control de Misión te ayuda desde otra computadora.', 'You play normally on the base. Mission Control helps you from another computer.')}</small></button>
-        <button id="c-guest"><span class="ico">🛰️</span>${T('CONTROL DE MISIÓN', 'MISSION CONTROL')}<small>${T('No caminas: ves los sistemas, el mapa y las alarmas, y mandas ayuda (recursos, escotillas, balizas, mensajes).', 'You do not walk: you see the systems, the map and the alarms, and send help (resources, hatches, beacons, messages).')}</small></button>
+        <button id="c-guest"><span class="ico">🛰️</span>${T('SEGUNDO JUGADOR', 'SECOND PLAYER')}<small>${T('Te unes a la sala del astronauta: caminas por la base como un compañero de la tripulación (haces las revisiones de la mañana) o ayudas desde Control de Misión.', "You join the astronaut's room: you walk around the base as a crewmate (doing the morning checks) or help from Mission Control.")}</small></button>
       </div>
       <p style="color:var(--dim)">${T('Se conectan de dos maneras: por la <b>red local</b> (misma WiFi, con el servidor del juego) o con un <b>código</b> que se copian y pegan (sin servidor).', 'You connect in two ways: over the <b>local network</b> (same WiFi, with the game server) or with a <b>code</b> you copy and paste (no server).')}</p>
       <div class="fila"><button id="volver">${T('VOLVER', 'BACK')}</button></div>`);
@@ -57,7 +57,7 @@ export function coopScreens(ctx) {
           : (() => {
             const r = i.redes?.length ? i.redes : i.ips.map((ip) => ({ ip, probable: false }));
             const mejor = r.find((x) => x.probable) ?? r[0];
-            if (mejor) { const e = $('c-enlace'); e.hidden = false; e.innerHTML = `${T('Enlace directo para Control', 'Direct link for Control')}: <b>http://${mejor.ip}:${i.port}/?sala=${room}</b> <button id="c-copia-enlace" class="mini">${T('COPIAR', 'COPY')}</button>`; $('c-copia-enlace').onclick = () => navigator.clipboard?.writeText(`http://${mejor.ip}:${i.port}/?sala=${room}`); }
+            if (mejor) { const e = $('c-enlace'); e.hidden = false; e.innerHTML = `${T('Enlace directo para tu compañero (tripulante)', 'Direct link for your crewmate')}: <b>http://${mejor.ip}:${i.port}/?sala=${room}</b> <button id="c-copia-enlace" class="mini">${T('COPIAR', 'COPY')}</button><br><small>${T('Para entrar como Control de Misión, agrega', 'To join as Mission Control, add')} <code>&rol=mcc</code></small>`; $('c-copia-enlace').onclick = () => navigator.clipboard?.writeText(`http://${mejor.ip}:${i.port}/?sala=${room}`); }
             const otras = r.filter((x) => x !== mejor).map((x) => `http://${x.ip}:${i.port}`);
             return mejor ? T(`En la otra computadora abre el enlace de abajo (misma WiFi).${otras.length ? ` Si no abre, prueba: <b>${otras.join('  o  ')}</b> → COOPERATIVO → CONTROL DE MISIÓN.` : ''}`, `On the other computer open the link below (same WiFi).${otras.length ? ` If it does not open, try: <b>${otras.join('  or  ')}</b> → CO-OP → MISSION CONTROL.` : ''}`) : T('No encuentro tu dirección de red: ¿estás conectado al WiFi? Mira la terminal.', 'I cannot find your network address: are you connected to WiFi? Check the terminal.');
           })(); });
@@ -76,26 +76,29 @@ export function coopScreens(ctx) {
   }
 
   // ---------- control de misión ----------
-  function guestScreen(st = { kind: 'ws' }) { // st.sala: código que viene del enlace ?sala=XXXX (entra solo)
+  function guestScreen(st = { kind: 'ws', rol: 'crew' }) {
+    const entra = (l) => (st.rol === 'crew' ? ctx.startCrew(l) : entrar(l)); // el mismo cable sirve para los dos roles // st.sala: código que viene del enlace ?sala=XXXX (entra solo)
     ctx.setMenu('coop');
-    open(`<h2>🛰️ ${T('CONTROL DE MISIÓN', 'MISSION CONTROL')}</h2>
+    open(`<h2>🤝 ${T('ENTRAR A LA SALA', 'JOIN THE ROOM')}</h2>
+      <div class="dificultad"><span class="lbl">${T('QUIERO SER', 'I WANT TO BE')}</span><button data-rol="crew" class="${st.rol === 'crew' ? 'on' : ''}">🧑‍🚀 ${T('TRIPULANTE', 'CREWMATE')}</button><button data-rol="mcc" class="${st.rol === 'mcc' ? 'on' : ''}">🛰️ ${T('CONTROL DE MISIÓN', 'MISSION CONTROL')}</button></div>
       <div class="dificultad"><span class="lbl">${T('CONEXIÓN', 'CONNECTION')}</span><button data-kind="ws" class="${st.kind === 'ws' ? 'on' : ''}">${T('RED LOCAL (misma WiFi)', 'LOCAL NETWORK (same WiFi)')}</button><button data-kind="rtc" class="${st.kind === 'rtc' ? 'on' : ''}">${T('CÓDIGO MANUAL', 'MANUAL CODE')}</button></div>
       <div id="c-cuerpo" class="coop-cuerpo"></div>
       <div class="fila"><button id="volver">${T('VOLVER', 'BACK')}</button></div>`);
-    $('ventana').querySelectorAll('[data-kind]').forEach((b) => (b.onclick = () => guestScreen({ kind: b.dataset.kind })));
+    $('ventana').querySelectorAll('[data-kind]').forEach((b) => (b.onclick = () => guestScreen({ ...st, kind: b.dataset.kind, sala: undefined })));
+    $('ventana').querySelectorAll('[data-rol]').forEach((b) => (b.onclick = () => guestScreen({ ...st, rol: b.dataset.rol })));
     $('volver').onclick = roles;
     const estado = (txt) => { const e = $('c-estado'); if (e) e.textContent = txt; };
     if (st.kind === 'ws') {
       $('c-cuerpo').innerHTML = `<p>${T('Abre en esta computadora la dirección que te dé el astronauta y escribe el <b>código de sala</b> (4 letras):', 'Open on this computer the address the astronaut gives you and type the <b>room code</b> (4 letters):')}</p>
         <input id="c-sala" maxlength="12" size="8" style="text-transform:uppercase" autocomplete="off" value="${esc(st.sala ?? '')}"> <button id="c-entrar">${T('ENTRAR', 'JOIN')}</button><p id="c-estado" style="color:var(--dim)"></p>`;
       let yendo = false;
-      $('c-entrar').onclick = async () => { if (yendo) return; const room = $('c-sala').value.trim().toUpperCase(); if (!/^[A-Z0-9]{3,12}$/.test(room)) return estado(T('Escribe el código de 3 a 12 letras o números.', 'Type the code, 3 to 12 letters or numbers.')); yendo = true; try { estado(T('Conectando…', 'Connecting…')); entrar(await wsLink(room, 'guest')); } catch (e) { yendo = false; estado(`⚠ ${e.message}`); } };
+      $('c-entrar').onclick = async () => { if (yendo) return; const room = $('c-sala').value.trim().toUpperCase(); if (!/^[A-Z0-9]{3,12}$/.test(room)) return estado(T('Escribe el código de 3 a 12 letras o números.', 'Type the code, 3 to 12 letters or numbers.')); yendo = true; try { estado(T('Conectando…', 'Connecting…')); entra(await wsLink(room, 'guest')); } catch (e) { yendo = false; estado(`⚠ ${e.message}`); } };
       if (st.sala) $('c-entrar').onclick();
     } else {
       $('c-cuerpo').innerHTML = `<p>${T('1. Pega aquí la <b>invitación</b> del astronauta:', '1. Paste the astronaut\'s <b>invitation</b> here:')}</p><textarea id="c-inv" rows="3"></textarea> <button id="c-gen">${T('GENERAR RESPUESTA', 'CREATE REPLY')}</button>
         <p>${T('2. Mándale este código de vuelta:', '2. Send this code back:')}</p><textarea id="c-resp" readonly rows="3"></textarea> <button id="c-copia" class="mini">COPIAR</button><p id="c-estado" style="color:var(--dim)"></p>`;
       $('c-copia').onclick = () => navigator.clipboard?.writeText($('c-resp').value);
-      $('c-gen').onclick = async () => { try { estado(T('Generando…', 'Generating…')); const g = await rtcGuest($('c-inv').value); $('c-resp').value = g.code; estado(T('Listo: mándale la respuesta al astronauta. Cuando la pegue, esta pantalla cambia sola.', 'Done: send the reply to the astronaut. When they paste it, this screen changes by itself.')); g.link.onpeer = (up) => { if (up) entrar(g.link); }; } catch { estado(T('⚠ Esa invitación no es válida.', '⚠ That invitation is not valid.')); } };
+      $('c-gen').onclick = async () => { try { estado(T('Generando…', 'Generating…')); const g = await rtcGuest($('c-inv').value); $('c-resp').value = g.code; estado(T('Listo: mándale la respuesta al astronauta. Cuando la pegue, esta pantalla cambia sola.', 'Done: send the reply to the astronaut. When they paste it, this screen changes by itself.')); g.link.onpeer = (up) => { if (up) entra(g.link); }; } catch { estado(T('⚠ Esa invitación no es válida.', '⚠ That invitation is not valid.')); } };
     }
   }
 
@@ -183,5 +186,5 @@ export function coopScreens(ctx) {
     link.send({ t: 'hello' }); pinta();
   }
 
-  return { roles, unirse: (sala) => guestScreen({ kind: 'ws', sala }), destroyGuest: () => guestView?.destroy() };
+  return { roles, unirse: (sala, rol = 'crew') => guestScreen({ kind: 'ws', rol, sala }), destroyGuest: () => guestView?.destroy() };
 }

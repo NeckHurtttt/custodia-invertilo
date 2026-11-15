@@ -13,7 +13,7 @@ const last = (out, t) => out.filter((m) => m.t === t).at(-1);
 
 test('coop: al conectarse, el astronauta saluda y manda una foto completa', () => {
   const s = G.newGame('luna', 5); const { host, out } = pair(s);
-  assert.deepEqual(out[0], { t: 'hi', v: 1, loc: 'luna', dif: 'normal', mode: 'campana', delay: 2, note: Co.DELAY_NOTE.luna });
+  const { crew, rol, you, ...hi } = out[0]; assert.deepEqual(hi, { t: 'hi', v: 1, loc: 'luna', dif: 'normal', mode: 'campana', delay: 2, note: Co.DELAY_NOTE.luna }); assert.equal(rol, 'control'); assert.equal(crew.length, 3);
   host.tick(s, 0.6); const f = last(out, 'snap');
   assert.equal(f.loc, 'luna'); assert.equal(f.sys.meters.length, 4); assert.equal(f.doors.length, s.map.doors.length);
   assert.ok(f.p.room && f.clock);

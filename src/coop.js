@@ -8,7 +8,8 @@ import * as Sys from './sistemas.js';
 import { T } from './i18n.js';
 import { SIGNAL_DELAY } from './common.js';
 
-export const SNAP_EVERY = 0.5;      // segundos reales entre fotos
+export const SNAP_EVERY = 0.5;      // segundos reales entre fotos (Control de Misión)
+export const SNAP_CREW_EVERY = 0.066; // el compañero que camina necesita ~15 estados por segundo
 /** Retraso de la señal (s) que se simula. Realidad: Luna ≈ 1,3 s; Marte entre 3 y 22 MINUTOS (aquí acelerado para que se pueda jugar). */
 export const DELAY = SIGNAL_DELAY;
 export const DELAY_NOTE = { estacion: 'La ISS está a ~400 km: la señal llega casi al instante.', luna: 'La Luna está a ~1,3 s luz: cada orden tarda en llegar.', marte: 'Marte está a 3–22 minutos luz. Aquí lo acortamos a 6 s, pero las órdenes llegan tarde: anticípate.' };
@@ -111,16 +112,23 @@ export function applyCommand(s, cmd, host = null) {
 /** Lado del astronauta: recibe órdenes, aplica el retraso y los tiempos de espera, y manda fotos. */
 export class HostSession {
   constructor(link, s, send = (m) => link.send(m)) {
-    this.link = link; this.send = send; this.up = false; this.acc = SNAP_EVERY; this.reset(s);
-    link.onpeer = (up) => { this.up = up; if (up) { this.hello(); this.acc = SNAP_EVERY; } };
+    this.link = link; this.send = send; this.up = false; this.acc = SNAP_EVERY; this.accC = 0; this.rol = 'control'; this.who = null; this.reset(s);
+    link.onpeer = (up) => { this.up = up; if (up) { this.hello(); this.acc = SNAP_EVERY; } else this.quita(); }; // si se cae el compañero, su personaje vuelve al piloto automático
     if (link.peerUp) link.onpeer(true); // Control ya estaba conectado en la sala de espera
     link.onmessage = (m) => this.onmsg(m, this.s);
   }
   /** Partida nueva (o primera): se olvidan órdenes pendientes, esperas y baliza. */
-  reset(s) { this.s = s; this.loc = s.L.id; this.since = 0; this.mark = null; this.clock = 0; this.queue = []; this.cd = {}; this.delay = DELAY[s.L.id] ?? 0; }
-  hello() { const s = this.s; this.send({ t: 'hi', v: 1, loc: s.L.id, dif: s.dif, mode: s.mode, delay: this.delay, note: DELAY_NOTE[s.L.id] ?? '' }); }
+  reset(s) { this.s = s; this.who = null; this.loc = s.L.id; this.since = 0; this.mark = null; this.clock = 0; this.queue = []; this.cd = {}; this.delay = DELAY[s.L.id] ?? 0; }
+  hello() { const s = this.s; this.send({ t: 'hi', v: 1, loc: s.L.id, dif: s.dif, mode: s.mode, delay: this.delay, note: DELAY_NOTE[s.L.id] ?? '', rol: this.rol, you: this.who, crew: s.crew.map((c) => ({ name: c.name, color: c.color, taken: !!c.human && c.name !== this.who, betrayed: !!c.betrayed })) }); }
+  /** El invitado deja de ser tripulante (se fue o volvió a Control): su personaje vuelve al piloto automático. */
+  quita() { if (this.rol === 'crew' && this.s) C.setHuman(this.s, null); this.who = null; this.rol = 'control'; }
   onmsg(m, s) {
-    if (m?.t === 'hello') { this.hello(); this.acc = SNAP_EVERY; return; } // Control acaba de abrir su pantalla
+    if (m?.t === 'hello') { if (m.rol === 'crew') this.rol = 'crew'; else this.quita(); this.hello(); this.acc = SNAP_EVERY; return; } // el invitado acaba de abrir su pantalla (como Control o como tripulante)
+    if (this.rol === 'crew') { // el invitado maneja a un compañero: elegir quién, moverse y terminar revisiones
+      if (m?.t === 'pick') { const c = s.crew.find((x) => x.name === m.who && !x.betrayed); if (c) { C.setHuman(s, c.name); this.who = c.name; this.accC = SNAP_CREW_EVERY; this.send({ t: 'you', who: c.name }); } return; }
+      if (m?.t === 'inp') { if (this.who) C.crewInput(s, this.who, m.dx, m.dy); return; }
+      if (m?.t === 'mant') { const r = this.who ? C.crewMaint(s, this.who, m.sys) : { ok: false, text: '' }; this.send({ t: 'ack', k: 'mant', ok: r.ok, text: r.text, sys: m.sys }); return; }
+    }
     if (m?.t !== 'cmd' || !CMD[m.k]) return;
     const wait = (this.cd[m.k] ?? 0) - this.clock;
     if (wait > 0) return this.send({ t: 'ack', k: m.k, ok: false, text: T(`Espera ${Math.ceil(wait)} s para repetir esa orden.`, `Wait ${Math.ceil(wait)} s to repeat that order.`) });
@@ -136,6 +144,7 @@ export class HostSession {
       for (const q of this.queue.filter((x) => x.at <= this.clock)) { const r = applyCommand(s, q.m, this); this.send({ t: 'ack', k: q.m.k, ok: r.ok, text: r.ok ? T(`✔ ${r.text}: ejecutada.`, `✔ ${r.text}: done.`) : r.text }); }
       this.queue = this.queue.filter((x) => x.at > this.clock);
     }
+    if (this.rol === 'crew') { this.accC += dt; if (this.up && this.accC >= SNAP_CREW_EVERY) { this.accC = 0; this.send({ t: 'st', paused, s: C.serialize(s) }); } return; } // el tripulante ve el juego de verdad: manda el estado completo
     this.acc += dt; if (!this.up || this.acc < SNAP_EVERY) return;
     this.acc = 0; const snap = snapshot(s, this.since, this.mark, paused); this.since = snap.logSeq; this.send(snap);
   }

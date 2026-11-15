@@ -31,6 +31,7 @@ import { coopScreens } from './coopui.js';
 import { admite, TTL } from './avisos.js';
 import * as UI from './ui.js';
 import { informe, estadoNivel } from './informe.js';
+import { idMant } from './variedad.js';
 import * as Cu from './cuerpos.js';
 const { ic } = UI;
 
@@ -47,7 +48,7 @@ const cam = { x: 0, y: 0 };
 
 // ---------- guardado (una ranura por destino) ----------
 const SKEY = (loc) => `lfr.${loc}`;
-function save() { if (!s || s.over) return; Meta.keepNotes(s); if (s.daily) return; try { localStorage.setItem(SKEY(s.loc), G.serialize(s)); } catch { /* sin almacenamiento */ } }
+function save() { if (!s || s.over || crew) return; Meta.keepNotes(s); if (s.daily) return; try { localStorage.setItem(SKEY(s.loc), G.serialize(s)); } catch { /* sin almacenamiento */ } }
 function load(loc) { try { const raw = localStorage.getItem(SKEY(loc)); return raw ? G.revive(JSON.parse(raw)) : null; } catch { return null; } }
 const getDif = () => { try { return DIFS[localStorage.getItem('lfr.dif')] ? localStorage.getItem('lfr.dif') : 'cadete'; } catch { return 'cadete'; } };
 const setDif = (d) => { try { localStorage.setItem('lfr.dif', d); } catch { /* nada */ } };
@@ -362,7 +363,7 @@ function drawFrame(t) {
   // jugador
   const blink = p.hit > 0 && Math.abs(Math.sin(t / 200)) > 0.5; // herido: se atenúa despacio (≈1,6 Hz), no centellea
   if (p.hidden) { cx.font = '9px VT323'; cx.fillStyle = '#9fd4ff'; cx.fillText('(escondido)', p.hidden.x * TS, p.hidden.y * TS - 14); R(cx, '#fff', p.hidden.x * TS - 3, p.hidden.y * TS - 2, 1, 1); R(cx, '#fff', p.hidden.x * TS + 2, p.hidden.y * TS - 2, 1, 1); }
-  else astro(cx, p.x, p.y + (p.crouch ? 0.12 : 0), p.dir, p.walk * (p.crouch ? 0.5 : 1), '#3d7bff', keys.size > 0 || touch.dx || touch.dy, p.inDuct ? 0.5 : blink ? 0.35 : p.crouch ? 0.8 : 1, 'Comandante', G.isOutside(s) && G.has(s, 'traje'), p.hit > 0 ? 'miedo' : s.final ? 'miedo' : 'normal', true);
+  else astro(cx, p.x, p.y + (p.crouch ? 0.12 : 0), p.dir, p.walk * (p.crouch ? 0.5 : 1), crew ? crew.color : '#3d7bff', keys.size > 0 || touch.dx || touch.dy, p.inDuct ? 0.5 : blink ? 0.35 : p.crouch ? 0.8 : 1, crew ? crew.who : 'Comandante', G.isOutside(s) && G.has(s, 'traje'), p.hit > 0 ? 'miedo' : s.final ? 'miedo' : 'normal', true);
   if (p.sleep) { cx.fillStyle = '#5ff6ff'; cx.font = '10px VT323'; cx.fillText('z', p.x * TS + 7, p.y * TS - 14 - (t / 300 % 4)); }
 
   A.senales(cx, s, t, vis); // «?» que se llena, «!», rastro y aviso de embestida (lo que dejó enemy-ai: sus, qT, alarmT, tele)
@@ -615,7 +616,7 @@ const SIS_UMBRAL = { vida: 'vida', energia: 'energiaBase', rad: 'rad', comida: '
 function hud() {
   const p = s.p; const b = G.block(s); const L = s.L; vigilaDia();
   if (filasS !== s) { filasS = s; filas.clear(); for (const id of ['stats', 'filas-ia', 'sis-barras']) $(id).innerHTML = ''; }
-  { const cb = $('coop-badge'); cb.hidden = !coop; if (coop) { const up = coop.session.up, rec = coop.link.estado === 'reconectando'; cb.textContent = rec ? '🛰️ RECONECTANDO…' : up ? '🛰️ CONTROL: CONECTADO' : '🛰️ CONTROL: ESPERANDO…'; cb.className = up && !rec ? 'ok' : 'pend'; } }
+  { const cb = $('coop-badge'); cb.hidden = !coop && !crew; if (crew) { cb.textContent = crew.up ? `🧑‍🚀 ${T('ERES', 'YOU ARE')}: ${(crew.who ?? '…').toUpperCase()}` : T('🧑‍🚀 RECONECTANDO…', '🧑‍🚀 RECONNECTING…'); cb.className = crew.up ? 'ok' : 'pend'; } else if (coop && coop.session.rol === 'crew') { const up = coop.session.up; cb.textContent = up ? `🧑‍🚀 ${T('JUEGA', 'PLAYS')}: ${(coop.session.who ?? '…').toUpperCase()}` : T('🧑‍🚀 COMPAÑERO: ESPERANDO…', '🧑‍🚀 CREWMATE: WAITING…'); cb.className = up ? 'ok' : 'pend'; } else if (coop) { const up = coop.session.up, rec = coop.link.estado === 'reconectando'; cb.textContent = rec ? '🛰️ RECONECTANDO…' : up ? '🛰️ CONTROL: CONECTADO' : '🛰️ CONTROL: ESPERANDO…'; cb.className = up && !rec ? 'ok' : 'pend'; } }
   $('dia').textContent = s.mode === 'noche' ? `${s.daily ? T('RETO', 'DAILY') : T('UNA NOCHE', 'ONE NIGHT')} · ${nm(G.dif(s)).toUpperCase()} · ${Meta.fmtTime(s.t)}` : `${T('DÍA', 'DAY')} ${s.day}/${G.DAYS} · ${nm(G.dif(s)).toUpperCase()}`;
   { const d = $('ic-dest'); if (d.dataset.loc !== s.loc) { d.dataset.loc = s.loc; d.innerHTML = ic(s.loc); } }
   $('reloj').textContent = G.clock(s.min);
@@ -683,8 +684,8 @@ function retrato(nombre, color, emo = 'normal', clase = 'retrato') {
 }
 const emoDe = (c) => (c.betrayed ? 'enojo' : c.trust >= 2 ? 'feliz' : 'normal');
 /** Ficha de cada compañero (pausa → TRIPULACIÓN): oficio, forma de ser, su frase y cómo está contigo. */
-const crewFichas = () => s.crew.map((c) => { const f = ficha(c.name); const estado = c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? T('pide', 'asks for') + ` ${icon(c.want)} ${ITEMS[c.want].name}` : T('contento', 'happy'); return `<li class="ficha">${retrato(c.name, c.color, emoDe(c))}<b style="color:${c.color}">${c.name}</b>${f ? ` · ${f.rol} · <i>${f.rasgo}</i><br><small>“${f.frase}”</small>` : ''}<br>${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))} ${estado}</li>`; }).join('');
-const crewHTML = () => s.crew.map((c) => `<li>${retrato(c.name, c.color, emoDe(c), 'retrato-mini')} <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> <span class="cor">${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}</span><span class="dos">:</span> ${c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? `<span class="txt-pide">${T('pide', 'asks for')}</span> <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)}<span class="pn"> ${ITEMS[c.want].name}</span></span>` : `<span class="txt-pide">${T('contento', 'happy')}</span>`}</li>`).join('');
+const crewFichas = () => s.crew.filter((c) => !c.host).map((c) => { const f = ficha(c.name); const estado = c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? T('pide', 'asks for') + ` ${icon(c.want)} ${ITEMS[c.want].name}` : T('contento', 'happy'); return `<li class="ficha">${retrato(c.name, c.color, emoDe(c))}<b style="color:${c.color}">${c.name}</b>${f ? ` · ${f.rol} · <i>${f.rasgo}</i><br><small>“${f.frase}”</small>` : ''}<br>${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))} ${estado}</li>`; }).join('');
+const crewHTML = () => s.crew.filter((c) => !c.host).map((c) => `<li>${retrato(c.name, c.color, emoDe(c), 'retrato-mini')} <span class="nom" title="${ficha(c.name) ? `${ficha(c.name).rol} · ${ficha(c.name).rasgo}` : ''}">${c.name}</span> <span class="cor">${c.betrayed ? '💔' : '♥'.repeat(Math.max(0, Math.min(2, c.trust))) + '♡'.repeat(Math.max(0, 2 - c.trust))}</span><span class="dos">:</span> ${c.betrayed ? `<span style="color:var(--bad)">${T('te delata', 'reports you')}</span>` : c.want ? `<span class="txt-pide">${T('pide', 'asks for')}</span> <span class="pide" title="${ITEMS[c.want].name}">${icon(c.want)}<span class="pn"> ${ITEMS[c.want].name}</span></span>` : `<span class="txt-pide">${T('contento', 'happy')}</span>`}</li>`).join('');
 
 const planHTML = (L = s.L) => G.PLAN_IDS.map((id) => `<li class="${G.has(s, id) ? 'ok' : ''}" title="${L.plan[id].hint}">${L.plan[id].name}</li>`).join('') + `<li class="${s.iaOn ? '' : 'ok'}" title="${T('Opcional: núcleo de la IA con tarjeta y 50 de conocimiento.', 'Optional: the AI core, with a card and 50 knowledge.')}">${T('(Opcional) Apagar a ', '(Optional) Shut down ')}${L.ai}</li>` + G.routes(s).filter((r) => r.id !== 'plan').map((r) => `<li class="ruta ${r.ok ? 'ok' : ''}" title="${r.desc}">${T('Ruta ', 'Route ')}${r.name}${r.ok ? ' ✓' : ''}</li>`).join('');
 function amenazasHTML() {
@@ -827,10 +828,121 @@ function titleScreen() {
   $('t-ayuda').onclick = () => help(titleScreen);
 }
 
+// ---------- cooperativo: TRIPULANTE (la otra persona maneja a un compañero en el mismo mapa) ----------
+// El anfitrión (astronauta) manda el estado ~15 veces por segundo; aquí se copia en `s` (sin simular) y se dibuja desde el compañero elegido.
+// Cada quien manda sus entradas (dirección) y el anfitrión las aplica; el movimiento propio se predice aquí para que responda al instante.
+let crew = null; // { link, who, color, up, pred, walk, dir, moving, sent, fin, paused, ack } cuando esta computadora es el compañero
+function startCrew(link) {
+  coopStop(); M.start(); s = null; base = null;
+  crew = { link, who: null, color: '#fff', up: true, pred: null, walk: 0, dir: 0, moving: false, sent: { dx: 0, dy: 0, t: 0 }, fin: false, paused: false, hostMsgT: 0, prev: null, astroMoving: false };
+  document.body.classList.add('invitado');
+  link.onmessage = crewMsg; link.onclose = () => { if (crew) { crew.up = false; avisoInvitado(T('Se cortó la conexión con el anfitrión.', 'The connection to the host was lost.')); } };
+  link.onpeer = (up) => { if (!crew) return; crew.up = up; avisoInvitado(up ? '' : T('Reconectando con el anfitrión…', 'Reconnecting to the host…')); if (up) link.send({ t: 'hello', rol: 'crew' }); };
+  link.onestado = () => { if (crew) crew.up = link.estado !== 'reconectando'; };
+  menu = 'coop'; open(`<h2>🧑‍🚀 ${T('CONECTANDO…', 'CONNECTING…')}</h2><p>${T('Esperando al anfitrión.', 'Waiting for the host.')}</p><div class="fila"><button id="volver">${T('SALIR', 'LEAVE')}</button></div>`);
+  $('volver').onclick = crewSalir; link.send({ t: 'hello', rol: 'crew' });
+}
+function crewMsg(m) {
+  if (!crew) return;
+  if (m.t === 'hi') { // el anfitrión saluda (al conectar y cada vez que empieza otra partida): elegir personaje o recuperar el que ya tenía
+    if (m.rol !== 'crew') { crew.link.send({ t: 'hello', rol: 'crew' }); return; }
+    crew.fin = false; const libre = (n) => m.crew.find((c) => c.name === n && !c.taken && !c.betrayed);
+    if (crew.who && libre(crew.who)) crew.link.send({ t: 'pick', who: crew.who }); else eligePersonaje(m.crew);
+  } else if (m.t === 'you') {
+    crew.who = m.who; crew.color = LOCS[s?.loc ?? 'estacion'].crew.find((c) => c.name === m.who)?.color ?? '#fff'; crew.pred = null;
+    if (menu === 'coop') close(); avisoInvitado('');
+  } else if (m.t === 'st') {
+    if (!s) { s = G.revive(JSON.parse(m.s)); base = null; filasS = null; diaDe = null; } else s = G.applyState(s, m.s);
+    const c = s.crew.find((x) => x.name === crew.who); if (c) crew.color = c.color;
+    crew.paused = !!m.paused; crew.hostMsgT = performance.now();
+  } else if (m.t === 'ack' && m.k === 'mant') {
+    avisoInvitado(m.text || '', 3000); M.ui(m.ok ? 'ok' : 'error');
+  }
+}
+function eligePersonaje(lista) {
+  menu = 'coop';
+  open(`<h2>${T('¿QUIÉN QUIERES SER?', 'WHO DO YOU WANT TO BE?')}</h2><p>${T('Caminas por la base con tu compañero y haces las revisiones de la mañana.', 'You walk around the base with your crewmate and do the morning checks.')}</p>
+    <div class="elige">${lista.map((c) => { const f = ficha(c.name); return `<button data-n="${c.name}" ${c.taken || c.betrayed ? 'disabled' : ''}>${retrato(c.name, c.color, 'feliz')}<b style="color:${c.color}">${c.name}</b><small>${f ? f.rol : ''}</small></button>`; }).join('')}</div>
+    <div class="fila"><button id="volver">${T('SALIR', 'LEAVE')}</button></div>`);
+  $('ventana').querySelectorAll('.elige button').forEach((b) => (b.onclick = () => { M.ui('ok'); crew.link.send({ t: 'pick', who: b.dataset.n }); }));
+  $('volver').onclick = crewSalir;
+}
+/** Texto corto arriba del mapa (pausa del anfitrión, reconexión, resultado de una revisión). */
+let avisoT = 0;
+function avisoInvitado(txt, ms = 0) {
+  let el = $('inv-aviso'); if (!el) { el = document.createElement('div'); el.id = 'inv-aviso'; el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+  el.textContent = txt; el.hidden = !txt; clearTimeout(avisoT); if (txt && ms) avisoT = setTimeout(() => { if (crew?.paused) avisoInvitado(T('⏸ El anfitrión pausó el juego.', '⏸ The host paused the game.')); else el.hidden = true; }, ms);
+}
+/** Lo que se dibuja y se muestra en el HUD sale del compañero: `s.p` pasa a ser él y el astronauta se dibuja como un compañero más. */
+function conVista(fn) {
+  if (!crew || !s || !crew.who) return fn();
+  const me = s.crew.find((c) => c.name === crew.who); if (!me) return fn();
+  const real = s.p, todos = s.crew; crew.pred ??= { x: me.x, y: me.y };
+  const ap = crew.prev; crew.astroMoving = !!ap && Math.hypot(real.x - ap.x, real.y - ap.y) > 0.005; crew.prev = { x: real.x, y: real.y };
+  s.p = { ...real, x: crew.pred.x, y: crew.pred.y, dir: crew.dir, walk: crew.walk, hidden: null, inDuct: false, crouch: false, sleep: false, hit: 0, noisy: crew.moving, inv: [], o2: 100 };
+  s.crew = [...todos.filter((c) => c !== me), { name: 'Comandante', host: true, color: '#3d7bff', x: real.x, y: real.y, dir: real.dir, moving: crew.astroMoving, trust: 0, betrayed: false, say: null, want: null }];
+  try { return fn(); } finally { s.p = real; s.crew = todos; }
+}
+/** Cada cuadro del invitado: manda la dirección (si cambió o cada 120 ms), predice su paso y se acerca a lo que dice el anfitrión. */
+function crewFrame(dt, inp) {
+  if (!s || !crew?.who) return;
+  const me = s.crew.find((c) => c.name === crew.who); if (!me) return;
+  crew.pred ??= { x: me.x, y: me.y };
+  const quieto = !!menu || s.over; const dx = quieto ? 0 : inp.dx, dy = quieto ? 0 : inp.dy, len = Math.hypot(dx, dy);
+  const ahora = performance.now(); const cambio = Math.abs(dx - crew.sent.dx) > 0.15 || Math.abs(dy - crew.sent.dy) > 0.15;
+  if (crew.up && (cambio || (len > 0.1 && ahora - crew.sent.t > 120) || ahora - crew.sent.t > 400)) { crew.link.send({ t: 'inp', dx: +dx.toFixed(2), dy: +dy.toFixed(2) }); crew.sent = { dx, dy, t: ahora }; }
+  crew.moving = len > 0.1;
+  if (crew.moving) { const sp = G.HUMAN_SPEED * dt; const b = { x: crew.pred.x, y: crew.pred.y }; G.moveBody(s, b, (dx / len) * sp, (dy / len) * sp, 0.28, 'h'); crew.pred.x = b.x; crew.pred.y = b.y; crew.dir = Math.atan2(dy, dx); crew.walk += dt; }
+  const ex = me.x - crew.pred.x, ey = me.y - crew.pred.y, d = Math.hypot(ex, ey);
+  if (d > 2.5) { crew.pred.x = me.x; crew.pred.y = me.y; } else { const k = Math.min(1, dt * (crew.moving ? 3 : 8)); crew.pred.x += ex * k; crew.pred.y += ey * k; }
+  if (!crew.moving && d < 0.05) crew.dir = me.dir ?? crew.dir;
+  if (crew.paused && (!$('inv-aviso') || $('inv-aviso').hidden)) avisoInvitado(T('⏸ El anfitrión pausó el juego.', '⏸ The host paused the game.'));
+  else if (!crew.paused && $('inv-aviso') && !$('inv-aviso').hidden && /pausó|paused/.test($('inv-aviso').textContent)) avisoInvitado('');
+}
+/** Teclas del invitado: E (revisar el panel), paneles 1-4, nombres, música y pantalla completa. */
+function actCrew(k) {
+  if (!s || s.over || !crew?.who) return;
+  if (k === 'm') { M.toggle(); if (M.on()) M.ui('ok'); sincBotones(); pintaInterruptor('sw-musica', M.on()); return; }
+  if (k === 'v') return toggleFull();
+  if (menu) return;
+  if ('1234'.includes(k) && k.length === 1) return togglePanel(['mant', 'plan', 'amen', 'reg'][+k - 1]);
+  if (k === 'n') return alternaNombres();
+  if (k === 'e') crewUsa();
+}
+function crewUsa() {
+  const y = s.sys; if (!y || !crew.pred) return;
+  if (G.block(s).id !== 'trabajo') return avisoInvitado(T('El mantenimiento se hace en el turno de trabajo (08:00–12:00).', 'Maintenance is done during the work shift (08:00–12:00).'), 2600);
+  let mejor = null;
+  for (const id of Sys.pending(s)) { const o = Sys.station(s, id); const d = Math.hypot(crew.pred.x - (o.x + 0.5), crew.pred.y - (o.y + 0.5)); if (d < 2.2 && (!mejor || d < mejor.d)) mejor = { id, d }; }
+  if (!mejor) return avisoInvitado(Sys.pending(s).length ? T('Acércate a un panel de mantenimiento y pulsa USAR.', 'Go to a maintenance panel and press USE.') : T('Las 4 revisiones de hoy ya están listas.', "Today's 4 checks are done."), 2600);
+  M.sfx('interactuar'); const id = mejor.id;
+  protocolGame(idMant(y.sem ?? 0, s.day, id), (ok) => { if (ok) crew.link.send({ t: 'mant', sys: id }); });
+}
+function crewPausa() {
+  if (menu && menu !== 'pausa-inv') return;
+  if (menu === 'pausa-inv') return close();
+  menu = 'pausa-inv'; M.ui('abrir');
+  open(`<h2>${ic('pausa', 'g')} ${T('PAUSA', 'PAUSE')}</h2><p style="color:var(--dim)">${T('El juego sigue en la computadora del anfitrión: quédate cerca de tu compañero.', "The game keeps running on the host's computer: stay close to your crewmate.")}</p>
+    <div class="fila"><button id="seguir" class="grande">${ic('jugar')} ${T('SEGUIR', 'RESUME')}</button></div>
+    <h3>${T('AJUSTES', 'SETTINGS')}</h3><div class="ajustes">${ajustesHTML(['musica', 'sfx', 'suave', 'nombres'])}</div>
+    <div class="fila"><button id="salir" class="sec">${ic('menu')} ${T('SALIR DE LA SALA', 'LEAVE THE ROOM')}</button></div>`);
+  cableaAjustes(['musica', 'sfx', 'suave', 'nombres']); $('seguir').onclick = close; $('salir').onclick = crewSalir;
+}
+function crewFin() {
+  const o = s.over; menu = 'fin'; document.body.classList.toggle('derrota', !o.won);
+  open(`<div class="fin ${o.won ? 'gana' : 'pierde'}"><div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? T('¡VOLVIERON A CASA!', 'YOU MADE IT HOME!') : T('MISIÓN PERDIDA', 'MISSION LOST')}</p><h2>${UI.tituloFin(o.title)}</h2></div></div>
+    <section class="bloque"><h3>${T('QUÉ PASÓ', 'WHAT HAPPENED')}</h3><p>${o.text}</p></section>
+    <p style="color:var(--dim)">${T('Si el anfitrión empieza otra partida, volverás a entrar solo.', 'If the host starts another game, you will rejoin by yourself.')}</p>
+    <div class="fila"><button id="salir" class="sec">${ic('menu')} ${T('SALIR DE LA SALA', 'LEAVE THE ROOM')}</button></div></div>`);
+  $('salir').onclick = crewSalir;
+}
+function crewSalirSilencio() { try { crew?.link.close(); } catch { /* ya cerrado */ } crew = null; s = null; base = null; document.body.classList.remove('invitado', 'derrota'); $('inv-aviso')?.remove(); touch.dx = 0; touch.dy = 0; }
+function crewSalir() { crewSalirSilencio(); close(); titleScreen(); }
+
 // ---------- cooperativo (Astronauta + Control de Misión) ----------
 let coop = null; // { session, link, kind } cuando esta computadora es el astronauta
-function coopStop() { if (coop) { coop.link.close(); coop = null; } coopUI?.destroyGuest(); }
-const coopUI = coopScreens({ $, open, close, beep, setMenu: (v) => { menu = v; }, titleScreen, getDif,
+function coopStop() { if (coop) { coop.link.close(); coop = null; } if (crew) crewSalirSilencio(); coopUI?.destroyGuest(); }
+const coopUI = coopScreens({ $, open, close, beep, setMenu: (v) => { menu = v; }, titleScreen, getDif, startCrew,
   startHost(locId, link, kind) {
     M.start(); clearSave(locId); s = G.newGame(locId, undefined, getDif(), { flares: liveFlares, mode: 'campana', perk: getOpt('perk', 'novato'), reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(locId) });
     base = null; coop = { link, kind, session: new HostSession(link, s) }; close(); intro();
@@ -1064,15 +1176,15 @@ function breathGame() {
 }
 
 // Minijuego 1: protocolo NASA, tocar los pasos en orden.
-function protocolGame(id) {
+function protocolGame(id, alFin = null) {
   menu = 'protocolo';
   const pr = PROTOCOLS[id]; const order = T(pr.steps, pr.stepsEn); const shuffled = order.map((x, i) => [x, i]).sort(() => Math.random() - 0.5);
   const total = pr.time ?? 16; let next = 0; let time = total;
   open(`<h2>${T(pr.title, pr.titleEn)}</h2><p>${T('Toca los pasos <b>en orden</b>.', 'Tap the steps <b>in order</b>.')} ${pr.mant ? T('Sin prisa: si te equivocas solo pierdes unos segundos.', 'No rush: if you make a mistake you only lose a few seconds.') : T('Error = −2 s.', 'Mistake = −2 s.')}</p><p class="fuente"><b>${T(PROTO_NIVEL[(PROTO_FUENTE[id]||{}).nivel] || '', PROTO_NIVEL_EN[(PROTO_FUENTE[id]||{}).nivel])}</b><br>${T((PROTO_FUENTE[id]||{}).fuente || '', (PROTO_FUENTE[id]||{}).fuenteEn)}</p><div class="tiempo"><i id="pt"></i></div>
     <div class="pasos" id="pasos">${shuffled.map(([x, i]) => `<button data-i="${i}">${x}</button>`).join('')}</div>${pr.mant ? `<div class="fila"><button id="pc" class="sec">${T('AHORA NO', 'NOT NOW')}</button></div>` : ''}`);
   const tick = setInterval(() => { time -= 0.1; const el = $('pt'); if (el) el.style.width = `${Math.max(0, time / total * 100)}%`; if (time <= 0) done(false); }, 100);
-  function done(ok) { clearInterval(tick); M.ui(ok ? 'ok' : 'error'); G.resolveProtocol(s, ok); close(); }
-  if (pr.mant) $('pc').onclick = () => { clearInterval(tick); M.ui('cerrar'); G.resolveProtocol(s, false); close(); }; // el mantenimiento se puede dejar para después, sin castigo
+  function done(ok) { clearInterval(tick); M.ui(ok ? 'ok' : 'error'); if (alFin) alFin(ok); else G.resolveProtocol(s, ok); close(); }
+  if (pr.mant) $('pc').onclick = () => { clearInterval(tick); M.ui('cerrar'); if (alFin) alFin(false); else G.resolveProtocol(s, false); close(); }; // el mantenimiento se puede dejar para después, sin castigo
   $('pasos').querySelectorAll('button').forEach((b) => (b.onclick = () => {
     if (+b.dataset.i === next) { b.classList.add('hecho'); b.disabled = true; b.textContent = `${next + 1}. ${b.textContent}`; next++; beep(520 + next * 60, 0.06); if (next === order.length) done(true); }
     else { time -= 2; M.ui('error'); shake(); }
@@ -1174,6 +1286,7 @@ function endScreen() {
 
 // ---------- controles ----------
 function act(k) {
+  if (crew) return actCrew(k);
   if (!s || s.over) return;
   if (menu === 'fabricar' && k === 'c') return close();
   if (menu === 'mochila' && k === 'i') return close();
@@ -1196,6 +1309,7 @@ function act(k) {
 }
 /** Pausa (Esc): seguir, ajustes con etiquetas claras (música, volumen, efectos de sonido, efectos suaves, nombres) y el historial. */
 function pausa() {
+  if (crew) return crewPausa();
   open(`<h2>${ic('pausa', 'g')} ${T('PAUSA', 'PAUSE')}</h2>
     <div class="pausa-cab"><button id="seguir" class="grande">${ic('jugar')} ${T('SEGUIR', 'RESUME')} <kbd>Esc</kbd></button><button id="ay" class="sec">${ic('ayuda')} ${T('AYUDA', 'HELP')}</button><button id="salir" class="sec">${ic('menu')} ${T('SALIR AL MENÚ (se guarda)', 'EXIT TO MENU (saved)')}</button></div>
     <h3>${T('AJUSTES', 'SETTINGS')}</h3>
@@ -1304,7 +1418,7 @@ function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   if (s) {
     const inp = input();
-    if (!menu && !FX.frozen(t)) G.update(s, dt, inp); // hitstop: unos cuadros congelados (60-90 ms) al golpe/captura/emergencia salvada; solo se salta el avance, core.js no se entera
+    if (crew) crewFrame(dt, inp, t); else if (!menu && !FX.frozen(t)) G.update(s, dt, inp); // hitstop: unos cuadros congelados (60-90 ms) al golpe/captura/emergencia salvada; solo se salta el avance, core.js no se entera
     const ev = FX.watch(s, t);
     { const p = s.p; // chispas y ondas en el sitio del impacto o del éxito
       if (ev.caught) { A.burst(p.x, p.y, '255,150,80', 14); A.ring(p.x, p.y, '255,130,80', 30); }
@@ -1314,10 +1428,10 @@ function frame(t) {
     if (coop) coop.session.tick(s, dt, !!menu);
     if (!menu && s.pending?.kind === 'respira') breathGame();
     try { audioFrame(t, dt, inp, ev); } catch { /* el sonido nunca debe romper el juego */ }
-    draw(t);
-    hudT -= dt; if (hudT <= 0) { hud(); hudT = 0.12; }
+    conVista(() => draw(t));
+    hudT -= dt; if (hudT <= 0) { conVista(hud); hudT = 0.12; }
     saveT -= dt; if (saveT <= 0) { save(); saveT = 10; }
-    if (s.over && !s.over.shown) { s.over.shown = true; hud(); M.sfx(s.over.won ? 'fin_bien' : 'fin_mal'); endScreen(); }
+    if (crew) { if (s.over && !crew.fin) { crew.fin = true; crewFin(); } } else if (s.over && !s.over.shown) { s.over.shown = true; hud(); M.sfx(s.over.won ? 'fin_bien' : 'fin_mal'); endScreen(); }
   }
   requestAnimationFrame(frame);
 }
@@ -1414,9 +1528,9 @@ document.fonts?.load('16px VT323').finally(() => {
     intro();
   }
   const sala = new URLSearchParams(location.search).get('sala'); // enlace directo del astronauta: ...?sala=ABCD → entra como Control de Misión
-  if (sala && /^[A-Za-z0-9]{3,12}$/.test(sala)) coopUI.unirse(sala.toUpperCase());
+  if (sala && /^[A-Za-z0-9]{3,12}$/.test(sala)) coopUI.unirse(sala.toUpperCase(), new URLSearchParams(location.search).get('rol') === 'mcc' ? 'mcc' : 'crew');
 });
-window.lfr = { get s() { return s; }, get base() { return base; }, G, Sys, A, fx: FX, perf, setFx: FX.setFx, cam, get zoom() { return ZOOM; } }; // para depurar y para los bots de prueba
+window.lfr = { get crew() { return crew; }, get s() { return s; }, get base() { return base; }, G, Sys, A, fx: FX, perf, setFx: FX.setFx, cam, get zoom() { return ZOOM; } }; // para depurar y para los bots de prueba
 
 // Ayuda en inglés (misma estructura que help()).
 function helpEn(back) {

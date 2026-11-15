@@ -600,3 +600,15 @@ body.cruz-on .hud-crew { display: none; }
 .dia-nuevo { max-height: 70vh; overflow: hidden; }
 .sistemas .evento.bueno { color: var(--ok); } .sistemas .evento.reto { color: var(--cyan); }
 @media (max-width: 600px), (max-height: 520px) { .dia-nuevo { top: 16%; } .dn-evento { font-size: .95rem; } }
+
+/* Cooperativo: tripulante invitado (compu y celular). Solo ve y usa lo que le sirve: moverse, USAR el panel, paneles de información. */
+body.invitado #c-vit, body.invitado .hud-inv, body.invitado #btn-mochila, body.invitado #btn-fabricar, body.invitado #btn-usar,
+body.invitado #t-f, body.invitado #t-t, body.invitado #t-sh, body.invitado #t-q, body.invitado #t-i { display: none !important; }
+#inv-aviso { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: 8; max-width: min(92vw, 34rem); padding: .35rem .8rem; background: rgba(13,17,28,.94); border: 1px solid var(--amber); border-radius: 6px; color: var(--amber); text-align: center; pointer-events: none; }
+#inv-aviso[hidden] { display: none; }
+.elige { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin: .6rem 0; }
+.elige button { display: flex; flex-direction: column; align-items: center; gap: .2rem; min-width: 7.5rem; min-height: 44px; padding: .5rem .8rem; }
+.elige button .retrato { width: 54px; height: 78px; float: none; margin: 0; image-rendering: pixelated; }
+.elige button small { color: var(--dim); }
+.elige button:disabled { opacity: .45; }
+@media (max-width: 600px), (max-height: 520px) { #inv-aviso { top: 52px; font-size: .9rem; } .elige button { min-width: 6rem; } .elige button .retrato { width: 36px; height: 52px; } }
