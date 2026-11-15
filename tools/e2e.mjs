@@ -576,6 +576,31 @@ basura`); await pg.click('#dc-analiza'); await pg.waitForSelector('.doc-tabla');
   }
   ok('modo clase y panel docente (compu y celular): el alumno guarda nombre y clase, copia su línea al terminar y el docente la pega, ve el resumen y descarga el CSV');
 
+  // Academia de Cadetes (compu y celular acostado): la primera vez el juego empieza en la Academia (5 salas) y al "pasarla" se abre el menú.
+  for (const [ancho, alto, movil, nombre] of [[1280, 760, false, 'academia compu'], [812, 375, true, 'academia celular']]) {
+    const c = await navegador.newContext({ viewport: { width: ancho, height: alto }, ...(movil ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) }); const pg = await c.newPage();
+    pg.on('pageerror', (e) => problemas.push(`${nombre}: error de JavaScript: ${e.message}`));
+    await pg.goto(`${url}?academia&noboot`); await pg.waitForSelector('#ok'); assert.match(await pg.textContent('#ventana'), /ACADEMIA DE CADETES/); assert.equal(await pg.$('#t-jugar'), null, `${nombre}: la primera vez no se ve el menú`);
+    await pg.click('#ok'); await pg.waitForFunction(() => document.getElementById('tuto').textContent.includes('1/5'), null, { timeout: 4000 });
+    const paso = (n) => pg.waitForFunction((n) => document.getElementById('tuto').textContent.includes(`${n}/5`), n, { timeout: 8000 });
+    const junto = (q) => pg.evaluate((q) => { const s = lfr.s; const o = s.objects.find((x) => x.t === q.t && (!q.meta || x.meta) && (!q.loot || x.loot.length)); for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) { const x = o.x + dx, y = o.y + dy; if (s.map.grid[y * s.L.W + x] === 1 && !s.map.solid[y * s.L.W + x]) { Object.assign(s.p, { x: x + 0.5, y: y + 0.5, hidden: null }); return; } } }, q);
+    const usa = async () => { if (movil) await pg.click('#t-e'); else await pg.keyboard.press('e'); };
+    await pg.evaluate(() => { lfr.s.drones = []; const r = lfr.s.L.rooms.find((x) => x.id === 'deposito'); Object.assign(lfr.s.p, { x: r.x + 3.5, y: r.y + 3.5 }); }); await paso(2);
+    for (let i = 0; i < 2; i++) { await junto({ t: 'cajon', loot: true }); await usa(); await pg.waitForTimeout(1600); }
+    await paso(3); await pg.evaluate(() => { const r = lfr.s.L.rooms.find((x) => x.id === 'entreno'); Object.assign(lfr.s.p, { x: r.x + 1.5, y: r.y + 3.5 }); }); await paso(4);
+    for (const t of ['cinta', 'cinta', 'caja', 'estudio', 'estudio']) { await junto({ t }); await usa(); await pg.waitForTimeout(t === 'caja' ? 2400 : 5400); }
+    assert.ok(await pg.evaluate(() => lfr.s.p.inv.includes('cable') && lfr.s.p.fuerza >= 40 && lfr.s.p.conoc >= 35), `${nombre}: entrenar, abrir la caja y estudiar`);
+    await pg.evaluate(() => lfr.G.craft(lfr.s, 'tarjeta')); await paso(5);
+    await pg.evaluate(() => { const s = lfr.s; const d = s.map.doors.find((x) => x.room === 'egreso'); const [x, y] = d.tiles[0]; Object.assign(s.p, { x: x + 0.5, y: y + 0.5 }); }); await usa();
+    assert.ok(await pg.evaluate(() => lfr.s.map.doors.find((x) => x.room === 'egreso').open), `${nombre}: la tarjeta abre la escotilla`);
+    await junto({ t: 'asiento', meta: true }); await usa(); await pg.waitForFunction(() => /EGRESASTE/.test(document.getElementById('ventana').textContent), null, { timeout: 4000 });
+    await pg.screenshot({ path: join(salida, `academia-${movil ? 'celular' : 'compu'}-fin.png`) });
+    await pg.click('#ok'); await pg.waitForSelector('#t-jugar', { timeout: 4000 }); assert.equal(await pg.evaluate(() => localStorage.getItem('lfr.academia')), '1', `${nombre}: queda aprobada`);
+    await pg.goto(`${url}?academia&noboot`); await pg.waitForSelector('#t-jugar', { timeout: 6000 }); assert.equal(await pg.evaluate(() => document.getElementById('ventana').textContent.includes('ACADEMIA DE CADETES') && !!document.getElementById('t-aca')), true, `${nombre}: ya aprobada, se ve el menú (y el botón para repetirla)`);
+    await c.close();
+  }
+  ok('Academia de Cadetes (compu y celular): la primera vez reemplaza al menú; 5 salas (llegada, recolecta, zona vigilada, entrena y estudia, egreso) con las acciones reales; al salir con la tarjeta se abre el menú y no vuelve sola');
+
   ok('sin errores de JavaScript ni de red');
   console.log(`\nTodo bien (${paso} pasos). Capturas en ${salida}`);
 } catch (e) {

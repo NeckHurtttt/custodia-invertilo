@@ -6,6 +6,7 @@ import { LOCS, ROOM_EN } from './locs.js';
 import * as G from './core.js';
 import * as Sys from './sistemas.js';
 import * as Amb from './ambientes.js';
+import * as Aca from './academia.js';
 import { fetchFlares, donkiEstado, sourceText, missionFlares, SHELTER } from './clima.js';
 import { restriccion, dosisReales, osdr, osdUrl, escala } from './datos.js';
 import { T, setLang, getLang, pickLang, IDIOMAS } from './i18n.js';
@@ -52,7 +53,7 @@ const cam = { x: 0, y: 0 };
 
 // ---------- guardado (una ranura por destino) ----------
 const SKEY = (loc) => `lfr.${loc}`;
-function save() { if (!s || s.over || crew) return; Meta.keepNotes(s); if (s.daily) return; try { localStorage.setItem(SKEY(s.loc), G.serialize(s)); } catch { /* sin almacenamiento */ } }
+function save() { if (!s || s.over || crew || s.mode === 'academia') return; /* la Academia no se guarda */ Meta.keepNotes(s); if (s.daily) return; try { localStorage.setItem(SKEY(s.loc), G.serialize(s)); } catch { /* sin almacenamiento */ } }
 function load(loc) { try { const raw = localStorage.getItem(SKEY(loc)); return raw ? G.revive(JSON.parse(raw)) : null; } catch { return null; } }
 const getDif = () => { try { return DIFS[localStorage.getItem('lfr.dif')] ? localStorage.getItem('lfr.dif') : 'cadete'; } catch { return 'cadete'; } };
 const setDif = (d) => { try { localStorage.setItem('lfr.dif', d); } catch { /* nada */ } };
@@ -411,7 +412,7 @@ function drawFrame(t) {
   cx.setTransform(1, 0, 0, 1, 0, 0);
   const shl = s.hazards.find((h) => h.def.type === 'shelter'); // basura orbital en menos de 10 s y fuera del refugio: tinte ámbar
   A.overlays(cx, s, t, pdt, cv.width, cv.height, shl && shl.t <= 10 && !shl.def.safe.includes(G.playerRoom(s)) ? 0.8 : 0);
-  arrowToGoal(t); tutoFlecha(t);
+  arrowToGoal(t); tutoFlecha(t); acaFlecha(t);
   minimap();
   // carteles del mundo: se apilan justo sobre la mochila (abajo al centro), nunca bajo la barra de arriba. Pulso lento (≤1 Hz) en vez de alternar colores.
   cx.textAlign = 'center'; cartelY = (invTop || cv.height - 80) - 20; const hz = FX.suave() ? 0 : 0.8;
@@ -856,7 +857,45 @@ function sincBotones() { const b = $('btn-musica'); b.classList.toggle('off', !M
 FX.onFx((m) => document.body.classList.toggle('suave', m === 'suave')); document.body.classList.toggle('suave', FX.suave());
 
 let masAbierto = false; // «más opciones» del título se queda abierto/cerrado al cambiar algo
+// ---------- Academia de Cadetes (tutorial de 5 salas; la lógica vive en academia.js) ----------
+// La PRIMERA vez (lfr.academia ≠ '1') el juego empieza en la Academia en lugar del menú; al "pasarla" se abre el menú con todo.
+// Las pruebas automáticas (navigator.webdriver) no la ven salvo con ?academia. Se repite desde el título (MÁS OPCIONES → APRENDER).
+let aca = null;
+const debeAcademia = () => getOpt('academia', '0') !== '1' && (!navigator.webdriver || new URLSearchParams(location.search).has('academia'));
+function academia() {
+  M.start(); s = G.newGame('academia', undefined, 'cadete'); base = null; aca = Aca.nuevo(); document.body.classList.remove('derrota', 'sin-juego'); document.body.classList.add('en-academia');
+  const c = Aca.contexto();
+  open(`<h2>🎓 ${c.titulo}</h2>${c.parrafos.map((x) => `<p>${x}</p>`).join('')}
+    <ol class="aca-salas">${[T('Llegada', 'Arrival'), T('Recolecta', 'Collect'), T('Zona vigilada', 'Watched zone'), T('Entrena y estudia', 'Train and study'), T('Egreso', 'Graduation')].map((x) => `<li>${x}</li>`).join('')}</ol>
+    <div class="fila fila-fija"><button id="ok" class="grande">${ic('jugar')} ${T('EMPEZAR', 'START')}</button></div>`);
+  menu = 'aca-intro'; $('ok').onclick = close; pintaAca();
+}
+let acaT = 0;
+function academiaFrame(dt) {
+  if (!s || s.mode !== 'academia' || !aca || menu || s.over) return;
+  if (Aca.tick(aca, s)) { M.ui('ok'); acaT = 0; }
+  if ((acaT -= dt) <= 0) { acaT = 0.25; pintaAca(); } // los contadores (fuerza, saber, ✔) cambian mientras juegas
+}
+function pintaAca() {
+  const el = $('tuto'); if (!el || !s || s.mode !== 'academia' || !aca) return; document.body.classList.add('tuto-on'); if (el.hidden || !el.innerHTML) el.dataset.h = '';
+  const x = Aca.texto(aca, s, esTactil(), document.body.classList.contains('rueda-on')); if (!x) { el.hidden = true; return; }
+  const h = `<small>🎓 ${T('ACADEMIA', 'ACADEMY')} · ${x.n}</small><b>${x.titulo}</b><p>${x.texto}</p>`;
+  if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } el.hidden = false;
+}
+function acaFlecha(t) { if (!s || s.mode !== 'academia' || !aca) return; const o = Aca.objetivo(aca, s); if (o) arrowTo(o.x, o.y, '#ffc23d', T('AQUÍ', 'HERE'), t); }
+/** Al sentarse en el asiento de salida: la Academia queda aprobada y se abre el menú. */
+function academiaFin() {
+  setOpt('academia', '1'); aca = null; $('tuto').hidden = true; document.body.classList.remove('tuto-on'); M.sfx('fin_bien');
+  open(`<h2>🎓 ${T('¡EGRESASTE DE LA ACADEMIA!', 'YOU GRADUATED FROM THE ACADEMY!')}</h2>
+    <p>${T('Usaste lo que fabricaste para salir. Ya sabes moverte, recolectar, esconderte del dron, entrenar, estudiar, fabricar y usar lo que fabricas.', 'You used what you crafted to get out. You can now move, collect, hide from the drone, train, study, craft and use what you craft.')}</p>
+    <p>${T('Ahora se abre el menú: elige destino (Estación, Luna o Marte), modo y dificultad. En tu primera misión, un entrenamiento corto te enseñará a cuidar la base.', 'Now the menu opens: choose a destination (Station, Moon or Mars), mode and difficulty. On your first mission, a short training will teach you to look after the base.')}</p>
+    <div class="fila fila-fija"><button id="ok" class="grande">${ic('jugar')} ${T('IR AL MENÚ', 'GO TO THE MENU')}</button></div>`);
+  menu = 'aca-fin'; $('ok').onclick = () => { s = null; base = null; document.body.classList.remove('en-academia'); titleScreen(); };
+}
+
 function titleScreen() {
+  if (debeAcademia()) { academia(); return; } // la primera vez: Academia antes que el menú
+  document.body.classList.remove('en-academia');
   document.body.classList.remove('derrota');
   coopStop(); menu = 'titulo'; document.body.classList.add('sin-juego'); M.idle(); aud.amb = ''; const mt = Meta.load(); const mode = getOpt('modo', 'campana'); let perk = getOpt('perk', 'novato'); if (!Meta.isUnlocked(mt, perk)) perk = 'novato';
   if (!Meta.difUnlocked(mt, getDif())) setDif('normal');
@@ -889,7 +928,7 @@ function titleScreen() {
     <details class="mas" id="t-mas" ${masAbierto ? 'open' : ''}><summary>${T(`MÁS OPCIONES · modo de juego, personaje, sonido y vista`, `MORE OPTIONS · game mode, character, sound and view`)}</summary>
       <div class="bloque-op">${T(`<span class="lbl">MODO</span>`, `<span class="lbl">MODE</span>`)}<div class="seg">${[['campana', T('CAMPAÑA · 10 días', 'CAMPAIGN · 10 days')], ['noche', T('UNA NOCHE · 7 min', 'ONE NIGHT · 7 min')]].map(([k, n]) => `<button data-modo="${k}" class="${k === mode ? 'on' : ''}">${n}</button>`).join('')}</div></div>
       <div class="bloque-op">${T(`<span class="lbl">PERSONAJE</span>`, `<span class="lbl">CHARACTER</span>`)}<div class="seg">${Object.entries(PERKS).map(([k, d]) => Meta.isUnlocked(mt, k) ? `<button data-perk="${k}" class="${k === perk ? 'on' : ''}" title="${ds(d)}">${nm(d).toUpperCase()}</button>` : `<button data-comprar="${k}" class="bloq" title="${ds(d)}">${ic('info')} ${nm(d).toUpperCase()} · ${d.cost}</button>`).join('')}</div><small>${ds(PERKS[perk])}</small></div>
-      <div class="bloque-op"><span class="lbl">${T('APRENDER', 'LEARN')}</span><button id="t-tuto">🎓 ${T('ENTRENAMIENTO GUIADO', 'GUIDED TRAINING')}</button><button id="t-clase">🏫 ${T('MODO CLASE', 'CLASS MODE')}${getOpt('clase', '') ? ' · ' + esc2(getOpt('clase', '')) : ''}</button><button id="t-docente">🧑‍🏫 ${T('PANEL DOCENTE', 'TEACHER PANEL')}</button></div>
+      <div class="bloque-op"><span class="lbl">${T('APRENDER', 'LEARN')}</span><button id="t-tuto">🎓 ${T('ENTRENAMIENTO GUIADO', 'GUIDED TRAINING')}</button><button id="t-aca">🏫 ${T('ACADEMIA DE CADETES', 'CADET ACADEMY')}</button><button id="t-clase">🏫 ${T('MODO CLASE', 'CLASS MODE')}${getOpt('clase', '') ? ' · ' + esc2(getOpt('clase', '')) : ''}</button><button id="t-docente">🧑‍🏫 ${T('PANEL DOCENTE', 'TEACHER PANEL')}</button></div>
       <div class="bloque-op">${ajustesHTML(conVoz(['musica', 'sfx', 'suave']))}</div>
     </details>
     <p class="consejo">💡 ${T('¿Sabías que…?', 'Did you know…?')} ${consejo(consejoN++)}</p>
@@ -905,6 +944,7 @@ function titleScreen() {
   pintaOffline();
   const nueva = (loc, opts) => { M.start(); clearSave(loc); s = G.newGame(loc, undefined, getDif(), { variar: true, ...opts, flares: liveFlares }); base = null; close(); intro(); };
   $('t-clase').onclick = claseScreen; $('t-docente').onclick = docenteScreen;
+  $('t-aca').onclick = () => academia();
   $('t-tuto').onclick = () => { setOpt(Tu.CLAVE, '0'); nueva(sel, { mode: 'campana', perk, reflex: false, seen: Meta.seenNotes(sel) }); }; // el entrenamiento siempre es una campaña tranquila
   $('t-jugar').onclick = () => nueva(sel, { mode, perk, reflex: getOpt('reflejos', '0') === '1', seen: Meta.seenNotes(sel) });
   V.querySelectorAll('[data-loc]').forEach((b) => (b.onclick = () => { setOpt('dest', b.dataset.loc); titleScreen(); }));
@@ -925,7 +965,7 @@ let tu = null, tuDe = null;
 const tutoPermitido = () => !navigator.webdriver || new URLSearchParams(location.search).has('tuto');
 function estacionVida() { return s?.sys ? Sys.station(s, 'vida') : null; }
 function tutoFrame(dt) {
-  if (!s || menu || crew || s.over) return;
+  if (!s || menu || crew || s.over || s.mode === 'academia') return; // la Academia tiene su propia tarjeta (academiaFrame)
   if (tuDe !== s) { tuDe = s; tu = tutoPermitido() && !coop && getOpt(Tu.CLAVE, '0') !== '1' && Tu.aplica(s) ? Tu.nuevo(s) : null; pintaTuto(); }
   if (!tu) return;
   const r = Tu.tick(tu, s, dt, { crouch: !!s.p.crouch, mapa: mapaOn, estacion: estacionVida() });
@@ -1480,6 +1520,7 @@ function certificado(o) {
 }
 const esc2 = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function endScreen() {
+  if (s.mode === 'academia') { academiaFin(); return; }
   ultimoQuiz = null; menu = 'fin'; clearSave(s.loc); document.body.classList.toggle('derrota', !s.over.won);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
   const r = Meta.finish(s); const dr = r.daily; const R_ = UI.resumenFin(s);
@@ -1749,7 +1790,7 @@ function frame(t) {
       else if (ev.hit) { A.burst(p.x, p.y, '255,175,95', 8); A.ring(p.x, p.y, '255,150,70', 22); }
       if (ev.saved) { A.burst(p.x, p.y, '90,255,170', 18); A.burst(p.x, p.y, '95,246,255', 8); A.ring(p.x, p.y, '90,255,170', 38); }
       else if (ev.solved) { A.burst(p.x, p.y, '120,255,160', 10); A.ring(p.x, p.y, '90,255,170', 26); } }
-    tutoFrame(dt);
+    tutoFrame(dt); academiaFrame(dt);
     if (coop) coop.session.tick(s, dt, !!menu);
     if (!menu && s.pending?.kind === 'respira') breathGame();
     try { audioFrame(t, dt, inp, ev); } catch { /* el sonido nunca debe romper el juego */ }
