@@ -1,4 +1,4 @@
-// Arte de LIFELINE: Rutina — solo dibujo (sin reglas del juego).
+// Arte de CUSTODIA — solo dibujo (sin reglas del juego).
 // Suelos por tipo de sala, paredes con volumen y decoración, luces, brillos y partículas.
 // Todo lo "fijo" se pinta una sola vez en la capa cacheada (main.js → drawBase); lo que se mueve va en glow() y las partículas.
 // Nada de esto cambia el estado del juego, así que puede usar Math.random sin afectar las partidas con semilla.

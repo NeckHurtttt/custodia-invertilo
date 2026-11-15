@@ -4,12 +4,15 @@
 
 **Un juego de supervivencia espacial donde cuidar la base es tu camino de regreso.**
 
+**Sin internet · Offline:** después de la primera visita funciona sin conexión y se puede instalar (📲 INSTALAR en el inicio).
+**Play in English:** [`?cadete&lang=en`](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete&lang=en) · también con el interruptor ES/EN del inicio.
+
 [![Jugar](https://img.shields.io/badge/JUGAR-Abrir_misión-70dfc8?style=for-the-badge&labelColor=101c2e)](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete)
 [![Demo](https://img.shields.io/badge/DEMO-Tormenta_solar-e4b577?style=for-the-badge&labelColor=101c2e)](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado)
 
 **3 destinos** · **10 días hasta el rescate** · **4 sistemas conectados** · **1 base que depende de ti**
 
-Proyecto de hackathon · NASA Space Apps 2026 · **#LosTiraVida** · Santa Cruz, Bolivia
+Proyecto de hackathon · NASA Space Apps 2026 · **#EraConTuto** · Santa Cruz, Bolivia
 
 [La misión](#la-misión) · [Cómo jugar](#cómo-jugar) · [La IA](#una-ia-que-aprende-tus-rutinas) · [Ciencia](#del-sol-real-a-tu-partida) · [Desarrollo](#ejecutar-en-local) · [English](#english-summary)
 
@@ -214,11 +217,11 @@ Solar events from NASA DONKI inspire the mission's storms. Players choose betwee
 
 The project addresses **Build a Junior Astronaut Mission Trainer**. Scientific sources, simplified mechanics and fictional elements are identified separately. [Play in Cadet mode](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?cadete) · [Try the solar storm demo](https://neckhurtttt.github.io/proyecto-Hackaton-2.0/?jurado).
 
-## Hecho por #LosTiraVida
+## Hecho por #EraConTuto
 
 Desde **Santa Cruz, Bolivia**, para explorar cómo aprender ciencia espacial tomando decisiones.
 
-- Juego original **LIFELINE: Rutina**, de #LosTiraVida. Esta adaptación parte de la versión de Leo, conservada en la etiqueta `base-leo`.
+- **CUSTODIA** nació con el nombre *LIFELINE: Rutina*; hoy el proyecto se llama Custodia y el equipo, #EraConTuto. Esta versión une el repositorio del equipo con el de Leo (`Hackaton-2.0-en-compu-de-Leo`). La adaptación parte de la versión de Leo, conservada en la etiqueta `base-leo`.
 - Tipografía **VT323**, distribuida bajo [SIL Open Font License](fonts/OFL-VT323.txt).
 - **Asistencia de IA:** Claude (Anthropic) y Codex (OpenAI) han apoyado tareas de programación, análisis y documentación. Las decisiones de diseño y la validación con jugadores corresponden al equipo; las fuentes científicas se citan por separado.
 

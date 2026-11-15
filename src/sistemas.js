@@ -3,14 +3,17 @@
 // Opcional: emergencias de REFLEJOS (meteoritos, sobrecargas…) que se disparan al hacer mantenimiento y matan si no las atiendes.
 // Lógica pura (sin pantalla): todo vive en s.sys y se guarda con la partida.
 import * as C from './core.js';
+import { T } from './i18n.js';
+import { voz } from './personajes.js';
+import { idMant, eventoDelDia, eventoPorId } from './variedad.js';
 import { missionFlares, STORM_DAYS, STORM_MIN, STORM_SECONDS, warnSeconds, SHELTER, stormDose, SHELTER_FACTOR, SHELTER_ENERGY, classText, sourceText } from './clima.js';
 
 /** Los 4 sistemas. decay = puntos que baja por día sin mantenimiento (Normal ×0.7). */
 export const SYS = {
-  vida: { name: 'SOPORTE VITAL', task: 'Cambiar el filtro de CO₂', short: 'Filtro de CO₂', decay: 30, restore: 55 },
-  energia: { name: 'ENERGÍA', task: 'Orientar los paneles solares', short: 'Paneles solares', decay: 26, restore: 55 },
-  rad: { name: 'RADIACIÓN', task: 'Revisar el blindaje y el dosímetro', short: 'Blindaje y dosímetro', decay: 28, restore: 55 },
-  comida: { name: 'COMIDA', task: 'Regar y cosechar el invernadero', short: 'Invernadero', decay: 28, restore: 50 },
+  vida: { get name() { return T('SOPORTE VITAL', 'LIFE SUPPORT'); }, task: 'Cambiar el filtro de CO₂', get short() { return T('Filtro de CO₂', 'CO₂ filter'); }, decay: 30, restore: 55 },
+  energia: { get name() { return T('ENERGÍA', 'POWER'); }, task: 'Orientar los paneles solares', get short() { return T('Paneles solares', 'Solar panels'); }, decay: 26, restore: 55 },
+  rad: { get name() { return T('RADIACIÓN', 'RADIATION'); }, task: 'Revisar el blindaje y el dosímetro', get short() { return T('Blindaje y dosímetro', 'Shielding and dosimeter'); }, decay: 28, restore: 55 },
+  comida: { get name() { return T('COMIDA', 'FOOD'); }, task: 'Regar y cosechar el invernadero', get short() { return T('Invernadero', 'Greenhouse'); }, decay: 28, restore: 50 },
 };
 export const SYS_IDS = Object.keys(SYS);
 
@@ -18,15 +21,16 @@ export const START_LVL = 90;
 export const DOSE_DAY = 0.4;     // mSv/día con el blindaje al 100 % (en la ISS real: 0,2–0,5)
 export const DOSE_LIMIT = 8;     // "límite de la misión" del juego (el real de la NASA es 600 mSv, pero para TODA la carrera)
 export const WORK = { from: 480, to: 720 };
-export const NASA_NOTE = 'Dato NASA: en la ISS un astronauta recibe 0,2–0,5 mSv al día. Su límite para TODA la carrera es 600 mSv (NASA-STD-3001), y el lema es ALARA: tan poca radiación como sea razonable.';
+export const nasaNote = () => T('Dato NASA: en la ISS un astronauta recibe 0,2–0,5 mSv al día. Su límite para TODA la carrera es 600 mSv (NASA-STD-3001), y el lema es ALARA: tan poca radiación como sea razonable.', "NASA fact: on the ISS an astronaut receives 0.2–0.5 mSv per day. Their limit for the WHOLE career is 600 mSv (NASA-STD-3001), and the motto is ALARA: as little radiation as reasonably achievable.");
 
 const clamp = (v) => Math.max(0, Math.min(100, v));
 
 // Sabor y ESCASEZ propios de cada destino (L.sysFlavor en locs.js): textos de las tareas, dosis de radiación y eventos por días.
 // Un evento (p. ej. la noche lunar) cambia el ritmo de un sistema durante varios días: obliga a elegir qué cuidar primero.
 const fl = (s) => s.L.sysFlavor ?? {};
-export const taskName = (s, id) => fl(s).tasks?.[id]?.[0] ?? SYS[id].task;
-export const taskShort = (s, id) => fl(s).tasks?.[id]?.[1] ?? SYS[id].short;
+const TASK_EN = { vida: 'Swap the CO₂ filter', energia: 'Turn the solar panels', rad: 'Check the shielding and the dosimeter', comida: 'Water and harvest the greenhouse' };
+export const taskName = (s, id) => { const t = fl(s).tasks?.[id]; return t ? T(t[0], t[2] ?? t[0]) : T(SYS[id].task, TASK_EN[id]); };
+export const taskShort = (s, id) => { const t = fl(s).tasks?.[id]; return t ? T(t[1], t[3] ?? t[1]) : SYS[id].short; };
 /** Eventos de escasez activos hoy. */
 export const mods = (s) => (fl(s).events ?? []).filter((e) => s.day >= e.from && s.day <= e.to);
 const doseMul = (s) => fl(s).doseMul ?? 1;
@@ -46,7 +50,7 @@ export const EMERGS = {
     fatal: ['Intoxicación por CO₂', 'El CO₂ subió demasiado: sin filtros limpios el aire se vuelve irrespirable aunque haya oxígeno. Por eso el mantenimiento del soporte vital va primero.'] },
   llamarada: { name: 'LLAMARADA SOLAR', verb: 'Activar el refugio del blindaje', spot: 'estacion', sys: 'rad',
     text: (room) => `¡Llamarada solar! Corre a ${room} y activa el refugio de radiación antes de que lleguen las partículas.`,
-    fatal: ['Dosis aguda de radiación', 'Las partículas solares te alcanzaron sin protección. La NASA limita la dosis de una tormenta solar a 250 mSv por evento y diseña refugios para eso.'] },
+    fatal: ['Dosis aguda de radiación', 'Las partículas solares te alcanzaron sin protección. La NASA pide que una tormenta solar no pase de 250 mSv por evento (NASA-STD-3001, requisito V1 4031) y por eso se usan blindaje y refugios.'] },
   incendio: { name: 'INCENDIO EN EL INVERNADERO', verb: 'Usar el extintor del invernadero', spot: 'estacion', sys: 'comida',
     text: (room) => `¡Fuego en el invernadero! Ve a ${room} y apágalo antes de que se extienda.`,
     fatal: ['Incendio a bordo', 'El fuego del invernadero se extendió por la estación. Con el aire reciclado y sin salida, un incendio no se puede dejar crecer.'] },
@@ -61,8 +65,17 @@ export function init(s, opts = {}) {
     reflex: !!opts.reflex && !opts.daily,
     st: { done: 0, skipped: 0, perfect: 0, saved: 0, refugio: 0, expuesto: 0 },
     flares: missionFlares(opts.flares), storm: null, storms: 0,
+    sem: s.seed, evento: null, prio: null, // sem: base estable de la variedad (revisiones y eventos del día; ver variedad.js)
+    hist: [], hoy: nuevoHoy(), // bitácora: un renglón por día cerrado + lo que va del día (para el informe causal del final)
   };
 }
+
+// ---------- bitácora de la misión (solo anota; no cambia ninguna regla) ----------
+const nuevoHoy = () => ({ skip: [], storm: null, low: 0, evento: null });
+const hoyDe = (y) => (y.hoy ??= nuevoHoy());
+const renglon = (y, day) => ({ day, lvl: Object.fromEntries(SYS_IDS.map((id) => [id, Math.round(y.lvl[id])])), dose: Math.round(y.dose * 100) / 100, skip: [...hoyDe(y).skip], storm: hoyDe(y).storm, low: Math.round(hoyDe(y).low), evento: hoyDe(y).evento ?? null });
+/** Un renglón por día: los cerrados y, al final, el día en curso. Cada uno: { day, lvl, dose, skip, storm, low }. */
+export const historial = (s) => (s.sys ? [...(s.sys.hist ?? []), renglon(s.sys, Math.max((s.sys.hist ?? []).length + 1, Math.min(s.day, C.DAYS)))] : []);
 
 export const dosePct = (s) => (s.sys.dose / DOSE_LIMIT) * 100;
 export const station = (s, id) => s.objects.find((o) => o.t === 'mant' && o.sys === id);
@@ -71,30 +84,34 @@ export const pending = (s) => (s.sys ? SYS_IDS.filter((id) => !s.sys.done[id]) :
 
 export function newDay(s) {
   const y = s.sys; if (!y) return;
+  (y.hist ??= []).push(renglon(y, s.day - 1)); y.hoy = nuevoHoy(); // se cierra el día anterior en la bitácora
   y.done = {}; y.remind = false; y.emToday = 0;
   for (const e of fl(s).events ?? []) {
     if (s.day === e.from) C.say(s, `${s.L.ai}: ${e.msg}`, 'bad');
     else if (s.day === e.to + 1) C.say(s, `${e.end}`, 'ok');
   }
+  y.evento = null; y.prio = null;
+  const ev = eventoDelDia(y.sem ?? 0, s.day);
+  if (ev) { const args = ev.aplica(s, y, C.dif(s).dmg, (id) => SYS[id].name); y.evento = { id: ev.id, args }; hoyDe(y).evento = ev.id; C.say(s, `${ev.tipo === 'malo' ? '⚠' : ev.tipo === 'reto' ? '📡' : '🎲'} ${T('Hoy', 'Today')}: ${T(ev.name[0], ev.name[1])}. ${ev.texto(args, (id) => SYS[id].name)}`, ev.tipo === 'malo' ? 'warn' : 'info', true); }
   const miss = SYS_IDS.filter((id) => y.lvl[id] < 50).map((id) => SYS[id].name.toLowerCase());
-  if (miss.length) C.say(s, `${s.L.ai}: sistemas débiles hoy → ${miss.join(', ')}. Hoy toca mantenimiento 08:00–12:00.`, 'ia');
+  if (miss.length) C.say(s, T(`${s.L.ai}: sistemas débiles hoy → ${miss.join(', ')}. Hoy toca mantenimiento 08:00–12:00.`, `${s.L.ai}: weak systems today → ${miss.join(', ')}. Today is maintenance time 08:00–12:00.`), 'ia');
 }
 
 /** Empieza el turno de mantenimiento. */
 export function workStart(s) {
   if (!s.sys) return;
-  C.say(s, `Turno de MANTENIMIENTO (08:00–12:00): ${SYS_IDS.length} revisiones obligatorias. Mira el panel SISTEMAS.`, 'info');
+  C.say(s, T(`Turno de MANTENIMIENTO (08:00–12:00): ${SYS_IDS.length} revisiones obligatorias. Mira el panel SISTEMAS.`, `MAINTENANCE shift (08:00–12:00): ${SYS_IDS.length} mandatory checks. Look at the SYSTEMS panel.`), 'info');
 }
 
 /** Termina un bloque. Si era el de trabajo, lo que quedó sin hacer se paga. */
 export function blockEnd(s, prevId) {
   const y = s.sys; if (!y || prevId !== 'trabajo') return;
   const d = C.dif(s).dmg; const left = pending(s);
-  if (!left.length) { y.st.perfect++; s.alert = Math.max(0, s.alert - 5); C.say(s, `${s.L.ai}: mantenimiento completo. Bien hecho, cadete. (−5 de alerta)`, 'ok'); return; }
+  if (!left.length) { y.st.perfect++; s.alert = Math.max(0, s.alert - 5); C.say(s, T(`${s.L.ai}: mantenimiento completo. Bien hecho, cadete. (−5 de alerta)`, `${s.L.ai}: maintenance complete. Well done, cadet. (−5 alert)`), 'ok'); return; }
   for (const id of left) {
-    y.lvl[id] = clamp(y.lvl[id] - 10 * d); y.st.skipped++; s.integ -= 2;
-    C.raise(s, 6, `Mantenimiento omitido: ${taskName(s, id).toLowerCase()}.`);
-    C.say(s, `${SYS[id].name} se degradó por no hacer el mantenimiento (${Math.round(y.lvl[id])} %).`, 'warn', true); // el aviso de CUSTODIA de arriba ya lo cuenta: no se repite en pantalla
+    y.lvl[id] = clamp(y.lvl[id] - 10 * d * (y.prio === id ? 2 : 1)); y.st.skipped++; s.integ -= 2; hoyDe(y).skip.push(id);
+    C.raise(s, 6, T(`Mantenimiento omitido: ${taskName(s, id).toLowerCase()}.`, `Maintenance skipped: ${taskName(s, id).toLowerCase()}.`));
+    C.say(s, T(`${SYS[id].name} se degradó por no hacer el mantenimiento (${Math.round(y.lvl[id])} %).`, `${SYS[id].name} degraded because maintenance was not done (${Math.round(y.lvl[id])} %).`), 'warn', true); // el aviso de CUSTODIA de arriba ya lo cuenta: no se repite en pantalla
   }
 }
 
@@ -107,10 +124,16 @@ export function label(s, o) {
 /** Tecla E sobre un panel: empieza la revisión (solo en el turno de trabajo). */
 export function useStation(s, o) {
   const y = s.sys; if (!y) return;
-  if (C.block(s).id !== 'trabajo') return C.flash(s, 'El mantenimiento se hace en el turno de trabajo (08:00–12:00).', 'info');
-  if (y.done[o.sys]) return C.flash(s, `${SYS[o.sys].name}: ya lo revisaste hoy.`, 'info');
-  if (s.p.energia < 6) return C.flash(s, 'Estás demasiado cansado para trabajar. Come o descansa.', 'warn');
-  s.action = { kind: 'mant', need: 3, t: 0, o };
+  if (C.block(s).id !== 'trabajo') return C.flash(s, T('El mantenimiento se hace en el turno de trabajo (08:00–12:00).', `Maintenance is done during the work shift (08:00–12:00).`), 'info');
+  if (y.done[o.sys]) return C.flash(s, T(`${SYS[o.sys].name}: ya lo revisaste hoy.`, `${SYS[o.sys].name}: you already checked it today.`), 'info');
+  if (s.p.energia < 6) return C.flash(s, T('Estás demasiado cansado para trabajar. Come o descansa.', `You are too tired to work. Eat or rest.`), 'warn');
+  s.pending = { kind: 'protocolo', id: idMant(y.sem ?? 0, s.day, o.sys), mant: o }; // mini-protocolo de 3 pasos en orden (minijuego de main.js)
+}
+
+/** Resultado del mini-protocolo de mantenimiento. Éxito: la revisión cuenta igual que antes. Fallo o cancelar: sin castigo, el panel sigue pendiente. */
+export function resolveMant(s, pd, ok) {
+  if (ok) return finish(s, { kind: 'mant', o: pd.mant });
+  C.flash(s, T(`${SYS[pd.mant.sys].name}: revisión sin terminar. El panel sigue pendiente; vuelve a pulsar E cuando quieras.`, `${SYS[pd.mant.sys].name}: check not finished. The panel is still pending; press E again whenever you want.`), 'info');
 }
 
 /** Terminó una acción de mantenimiento o de emergencia. */
@@ -118,14 +141,14 @@ export function finish(s, a) {
   const y = s.sys; if (!y) return;
   if (a.kind === 'mant') {
     const id = a.o.sys; y.done[id] = true; y.st.done++;
-    y.lvl[id] = clamp(y.lvl[id] + SYS[id].restore * restoreMul(s, id)); s.p.energia = Math.max(0, s.p.energia - 2);
-    C.say(s, `✔ ${taskName(s, id)}. ${SYS[id].name}: ${Math.round(y.lvl[id])} %.`, 'ok');
-    if (pending(s).length === 0) C.say(s, 'Las 4 revisiones de hoy están listas.', 'ok');
+    y.lvl[id] = clamp(y.lvl[id] + SYS[id].restore * restoreMul(s, id) + (y.prio === id ? 8 : 0)); if (!a.by) s.p.energia = Math.max(0, s.p.energia - 2);
+    C.say(s, `✔ ${a.by ? a.by + ': ' : ''}${taskName(s, id)}. ${SYS[id].name}: ${Math.round(y.lvl[id])} %.`, 'ok');
+    if (pending(s).length === 0) C.say(s, T('Las 4 revisiones de hoy están listas.', `Today's 4 checks are done.`), 'ok');
     maybeEmergency(s, id);
   } else if (a.kind === 'emerg' && y.emerg) {
     const e = EMERGS[y.emerg.kind]; const id = e.sys;
     y.lvl[id] = clamp(y.lvl[id] + 15); y.emerg = null; y.st.saved++; s.stats.solved++;
-    C.flash(s, `¡Controlado! ${e.name} resuelta.`, 'ok');
+    C.flash(s, T(`¡Controlado!${a.by ? ' ' + a.by + ':' : ''} ${e.name} resuelta.`, `Controlled!${a.by ? ' ' + a.by + ':' : ''} ${e.name} solved.`), 'ok');
   }
 }
 
@@ -171,7 +194,7 @@ export function startEmergency(s, avoidSys = null, forceKind = null) {
 export function update(s, dt, dm) {
   const y = s.sys; if (!y || s.over) return;
   const p = s.p; const k = C.dif(s).dmg * dm / 1440; const L = y.lvl;
-  const lowPower = L.energia < 35;
+  const lowPower = L.energia < 35; if (lowPower) hoyDe(y).low += dm;
   L.energia = clamp(L.energia - SYS.energia.decay * k * decayMul(s, 'energia'));
   for (const id of ['vida', 'rad', 'comida']) L[id] = clamp(L[id] - SYS[id].decay * k * decayMul(s, id) * (lowPower ? 1.6 : 1));
   y.dose += DOSE_DAY * doseMul(s) * (C.dif(s).doseK ?? 1) * (1 + (100 - L.rad) / 60) * dm / 1440;
@@ -182,24 +205,24 @@ export function update(s, dt, dm) {
   if (L.comida < 30) p.energia = Math.max(0, p.energia - 0.04 * dm);
   if (L.comida <= 0) { p.salud -= 0.08 * dm; p.hit = 0.2; cause ??= 'comida'; }
   for (const id of SYS_IDS) if (L[id] <= 0) s.integ -= 0.02 * dm;
-  if (p.salud <= 0 && cause === 'vida') C.end(s, false, 'Sin aire respirable', 'El depurador de CO₂ dejó de funcionar y el aire se volvió irrespirable. En la estación real, el soporte vital es lo primero que se revisa cada día.');
-  else if (p.salud <= 0 && cause === 'comida') C.end(s, false, 'Sin raciones', 'Se acabó la comida del invernadero y la tripulación no resistió. Producir alimento a bordo es parte del mantenimiento diario.');
+  if (p.salud <= 0 && cause === 'vida') C.end(s, false, 'Sin aire respirable', T('El depurador de CO₂ dejó de funcionar y el aire se volvió irrespirable. En la estación real, el soporte vital es lo primero que se revisa cada día.', `The CO₂ scrubber stopped working and the air became unbreathable. On the real station, life support is the first thing checked every day.`));
+  else if (p.salud <= 0 && cause === 'comida') C.end(s, false, 'Sin raciones', T('Se acabó la comida del invernadero y la tripulación no resistió. Producir alimento a bordo es parte del mantenimiento diario.', `The greenhouse food ran out and the crew could not hold on. Producing food on board is part of the daily maintenance.`));
 
   // avisos escalonados, como el sistema de Precaución y Advertencia de una nave
   for (const id of SYS_IDS) {
     const lvl = L[id]; const w = y.warn[id] ?? 0;
     if (lvl >= 60) y.warn[id] = 0;
-    else if (lvl < 25 && w < 2) { y.warn[id] = 2; C.flash(s, `🚨 ADVERTENCIA: ${SYS[id].name} al ${Math.round(lvl)} %. ¡Hazle mantenimiento ya!`, 'bad'); }
-    else if (lvl < 50 && w < 1) { y.warn[id] = 1; C.say(s, `⚠ PRECAUCIÓN: ${SYS[id].name} al ${Math.round(lvl)} %.`, 'warn'); }
+    else if (lvl < 25 && w < 2) { y.warn[id] = 2; C.flash(s, T(`🚨 ADVERTENCIA: ${SYS[id].name} al ${Math.round(lvl)} %. ¡Hazle mantenimiento ya!`, `🚨 WARNING: ${SYS[id].name} at ${Math.round(lvl)} %. Do its maintenance now!`), 'bad'); }
+    else if (lvl < 50 && w < 1) { y.warn[id] = 1; C.say(s, T(`⚠ PRECAUCIÓN: ${SYS[id].name} al ${Math.round(lvl)} %.`, `⚠ CAUTION: ${SYS[id].name} at ${Math.round(lvl)} %.`), 'warn'); }
   }
   const pct = dosePct(s);
-  for (const [lim, key] of [[50, 'd50'], [75, 'd75'], [90, 'd90']]) if (pct >= lim && !y.warn[key]) { y.warn[key] = 1; C.say(s, `☢ Dosis de radiación: ${Math.round(pct)} % del límite de la misión.`, pct >= 90 ? 'bad' : 'warn'); }
-  if (pct >= 100) C.end(s, false, 'Dosis límite superada', `Pasaste el límite de radiación de la misión (${y.dose.toFixed(1)} mSv). La NASA trabaja con ALARA: tan poca como sea razonable. Con el blindaje sin revisar, entró más radiación cada día.`);
+  for (const [lim, key] of [[50, 'd50'], [75, 'd75'], [90, 'd90']]) if (pct >= lim && !y.warn[key]) { y.warn[key] = 1; C.say(s, T(`☢ Dosis de radiación: ${Math.round(pct)} % del límite de la misión.`, `☢ Radiation dose: ${Math.round(pct)} % of the mission limit.`), pct >= 90 ? 'bad' : 'warn'); }
+  if (pct >= 100) C.end(s, false, 'Dosis límite superada', T(`Pasaste el límite de radiación de la misión (${y.dose.toFixed(1)} mSv). La NASA trabaja con ALARA: tan poca como sea razonable. Con el blindaje sin revisar, entró más radiación cada día.`, `You passed the mission radiation limit (${y.dose.toFixed(1)} mSv). NASA works with ALARA: as little as reasonably achievable. With the shielding unchecked, more radiation got in every day.`));
 
   updateStorm(s, dt);
 
   // recordatorio a las 11:00
-  if (!y.remind && s.min >= 660 && C.block(s).id === 'trabajo' && pending(s).length) { y.remind = true; C.flash(s, `Queda 1 hora de turno. Falta: ${pending(s).map((id) => SYS[id].name.toLowerCase()).join(', ')}.`, 'warn'); }
+  if (!y.remind && s.min >= 660 && C.block(s).id === 'trabajo' && pending(s).length) { y.remind = true; C.flash(s, T(`Queda 1 hora de turno. Falta: ${pending(s).map((id) => SYS[id].name.toLowerCase()).join(', ')}.`, `1 hour of shift left. Missing: ${pending(s).map((id) => SYS[id].name.toLowerCase()).join(', ')}.`), 'warn'); }
 
   // cuenta atrás de la emergencia
   const e = y.emerg;
@@ -225,7 +248,7 @@ function updateStorm(s, dt) {
   }
   const st = y.storm; st.t -= dt;
   if (st.phase === 'aviso') {
-    if (st.t <= 0) { st.phase = 'barre'; st.t = STORM_SECONDS; s.sfx?.push('alarma'); C.flash(s, inShelter(s) ? '☢ Llegaron las partículas. Estás en el refugio: quédate hasta que pase.' : '☢ ¡Llegaron las partículas solares! Estás fuera del refugio.', inShelter(s) ? 'ok' : 'bad'); }
+    if (st.t <= 0) { st.phase = 'barre'; st.t = STORM_SECONDS; s.sfx?.push('alarma'); C.flash(s, inShelter(s) ? T('☢ Llegaron las partículas. Estás en el refugio: quédate hasta que pase.', `☢ The particles have arrived. You are in the shelter: stay until it passes.`) : T('☢ ¡Llegaron las partículas solares! Estás fuera del refugio.', `☢ The solar particles have arrived! You are outside the shelter.`), inShelter(s) ? 'ok' : 'bad'); }
     return;
   }
   // barre: la dosis se suma según dónde estés
@@ -238,8 +261,9 @@ export function startStorm(s) {
   const y = s.sys; const f = y.flares[y.storms] ?? y.flares[y.flares.length - 1]; const sh = shelterOf(s);
   y.storm = { flare: f, phase: 'aviso', t: warnSeconds(s.dif), total: warnSeconds(s.dif), dose: Math.round(stormDose(f.cls, s.loc) * (C.dif(s).stormK ?? 1) * 100) / 100, got: 0, inside: 0, outside: 0, paid: false, n: y.storms + 1 };
   s.sfx?.push('alarma');
-  C.flash(s, `☀️ TORMENTA SOLAR ${y.storm.n} de ${STORM_DAYS.length}. ${sourceText(f)} En ${y.storm.t} s llegan las partículas. ¿Corres al REFUGIO (${C.roomName(s, sh.room)}) o sigues con lo tuyo?`, 'bad');
-  C.say(s, `En el refugio casi no recibes radiación, pero pierdes lo que estabas haciendo y el refugio gasta energía. Afuera recibes unos ${y.storm.dose} mSv que no se borran. (${classText(f.cls)}.)`, 'warn');
+  C.flash(s, T(`☀️ TORMENTA SOLAR ${y.storm.n} de ${STORM_DAYS.length}. ${sourceText(f)} En ${y.storm.t} s llegan las partículas. ¿Corres al REFUGIO (${C.roomName(s, sh.room)}) o sigues con lo tuyo?`, `☀️ SOLAR STORM ${y.storm.n} of ${STORM_DAYS.length}. ${sourceText(f)} The particles arrive in ${y.storm.t} s. Do you run to the SHELTER (${C.roomName(s, sh.room)}) or keep doing your thing?`), 'bad');
+  C.say(s, T(`En el refugio casi no recibes radiación, pero pierdes lo que estabas haciendo y el refugio gasta energía. Afuera recibes unos ${y.storm.dose} mSv que no se borran. (${classText(f.cls)}.)`, `In the shelter you get almost no radiation, but you lose what you were doing and the shelter uses power. Outside you get about ${y.storm.dose} mSv that never go away. (${classText(f.cls)}.)`), 'warn');
+  for (const c of s.crew) if (!c.betrayed) { c.say = voz(s, c, 'tormenta'); c.sayFor = 6; } // cada compañero reacciona a su manera
   return y.storm;
 }
 function endStorm(s) {
@@ -247,10 +271,18 @@ function endStorm(s) {
   const got = Math.round(st.got * 100) / 100; y.dose += got;
   const refugio = st.inside >= st.outside; if (refugio) y.st.refugio++; else y.st.expuesto++;
   const pct = Math.round((got / DOSE_LIMIT) * 100); const sh = shelterOf(s);
+  hoyDe(y).storm = { ref: refugio, got, could: Math.round(st.dose * SHELTER_FACTOR * 100) / 100, worst: st.dose, cls: st.flare.cls };
   y.lastStorm = { flare: st.flare, got, pct, refugio, could: Math.round(st.dose * SHELTER_FACTOR * 100) / 100, worst: st.dose, n: st.n };
   C.say(s, refugio
-    ? `☀️ Pasó la tormenta. En el refugio recibiste solo ${got} mSv (${pct} % del límite de la misión). Costo: el tiempo perdido y ${SHELTER_ENERGY} de ENERGÍA del refugio. ${sh.why}`
-    : `☀️ Pasó la tormenta. Afuera recibiste ${got} mSv (${pct} % del límite de la misión): esa dosis no se borra. En el refugio habrían sido ${y.lastStorm.could} mSv. La NASA limita a 600 mSv la dosis de TODA la carrera de un astronauta.`, refugio ? 'ok' : 'bad');
+    ? T(`☀️ Pasó la tormenta. En el refugio recibiste solo ${got} mSv (${pct} % del límite de la misión). Costo: el tiempo perdido y ${SHELTER_ENERGY} de ENERGÍA del refugio. ${sh.why}`, `☀️ The storm has passed. In the shelter you received only ${got} mSv (${pct} % of the mission limit). Cost: the lost time and ${SHELTER_ENERGY} POWER used by the shelter. ${sh.why}`)
+    : T(`☀️ Pasó la tormenta. Afuera recibiste ${got} mSv (${pct} % del límite de la misión): esa dosis no se borra. En el refugio habrían sido ${y.lastStorm.could} mSv. La NASA limita a 600 mSv la dosis de TODA la carrera de un astronauta.`, `☀️ The storm has passed. Outside you received ${got} mSv (${pct} % of the mission limit): that dose never goes away. In the shelter it would have been ${y.lastStorm.could} mSv. NASA limits the dose of an astronaut's WHOLE career to 600 mSv.`), refugio ? 'ok' : 'bad');
+  for (const c of s.crew) if (!c.betrayed) { c.say = voz(s, c, 'alivio'); c.sayFor = 5; }
+}
+
+/** El evento de hoy listo para mostrar: [{ name, text, tipo, ic }] (vacío si no hay). */
+export function eventoHoy(s) {
+  const y = s.sys; const e = y?.evento ? eventoPorId(y.evento.id) : null; if (!e) return [];
+  return [{ name: T(e.name[0], e.name[1]), text: e.texto(y.evento.args, (id) => SYS[id].name), tipo: e.tipo, ic: e.ic }];
 }
 
 /** Datos listos para dibujar el panel. */
@@ -259,10 +291,26 @@ export function view(s) {
   const e = y.emerg; const ed = e ? EMERGS[e.kind] : null;
   return {
     meters: SYS_IDS.map((id) => ({ id, name: SYS[id].name, v: y.lvl[id], low: y.lvl[id] < 30 })),
-    dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? NASA_NOTE, events: mods(s).map((e) => ({ name: e.name, text: e.hud })),
+    dose: y.dose, dosePct: dosePct(s), blind: y.lvl.rad, limit: DOSE_LIMIT, note: fl(s).note ?? nasaNote(), events: [...mods(s).map((e) => ({ name: e.name, text: e.hud })), ...eventoHoy(s)],
     tasks: SYS_IDS.map((id) => ({ id, name: taskName(s, id), short: taskShort(s, id), room: stationRoom(s, id), done: !!y.done[id] })),
     reflex: y.reflex, last: y.lastStorm ?? null,
+    // lo que ve Control de Misión del Sol: cuántas tormentas van, cuándo llega la próxima y qué llamarada real la causa
+    clima: { n: y.storms, total: STORM_DAYS.length, day: STORM_DAYS[y.storms] ?? null, min: STORM_MIN, flare: y.flares[y.storms] ? { cls: y.flares[y.storms].cls, date: y.flares[y.storms].date, source: y.flares[y.storms].source, text: sourceText(y.flares[y.storms]) } : null },
     storm: y.storm ? { n: y.storm.n, phase: y.storm.phase, t: y.storm.t, total: y.storm.phase === 'aviso' ? y.storm.total : STORM_SECONDS, cls: y.storm.flare.cls, source: sourceText(y.storm.flare), shelter: C.roomName(s, shelterOf(s).room), inShelter: inShelter(s), dose: y.storm.dose } : null,
     emerg: e ? { name: ed.name, verb: ed.verb, t: e.t, total: e.total, room: C.roomName(s, e.room), x: e.x, y: e.y } : null,
   };
+}
+
+// ---------- Inglés 2: emergencias de reflejos (getters; el título del final sigue siendo la clave en español) ----------
+const enPropE = (obj, prop, en) => { if (!obj || en == null) return; const es = obj[prop]; Object.defineProperty(obj, prop, { get: () => T(es, en), enumerable: true, configurable: true }); };
+const EN_EM = {
+  meteorito: ['MICROMETEORITE IMPACT', 'Seal the breach', (room) => `A micrometeorite pierced the hull in ${room}! Run to the breach and seal it before the air escapes.`, 'The hull breach was not sealed in time and the station lost its air. A pressure leak is one of the most serious emergencies in space: that is why crews train to react fast.'],
+  sobrecarga: ['ELECTRICAL OVERLOAD', 'Reset the power panel', (room) => `Overload in the panels! Go to ${room} and reset the system before it burns.`, 'The overload was not cut in time and an electrical fire broke out. Fire is one of the most dangerous emergencies on a closed ship.'],
+  co2: ['CO₂ ALARM', 'Purge the air scrubber', (room) => `High CO₂ alarm! Go to ${room} and purge the scrubber before you lose consciousness.`, 'CO₂ rose too much: without clean filters the air becomes unbreathable even if there is oxygen. That is why life support maintenance comes first.'],
+  llamarada: ['SOLAR FLARE', 'Activate the shielding shelter', (room) => `Solar flare! Run to ${room} and activate the radiation shelter before the particles arrive.`, 'The solar particles reached you without protection. NASA requires that a solar storm not exceed 250 mSv per event (NASA-STD-3001, requirement V1 4031), which is why shielding and shelters are used.'],
+  incendio: ['GREENHOUSE FIRE', 'Use the greenhouse extinguisher', (room) => `Fire in the greenhouse! Go to ${room} and put it out before it spreads.`, 'The greenhouse fire spread through the station. With recycled air and no way out, a fire cannot be left to grow.'],
+};
+for (const [k, [nombre, verbo, texto, fatal]] of Object.entries(EN_EM)) {
+  const e = EMERGS[k]; enPropE(e, 'name', nombre); enPropE(e, 'verb', verbo); const es = e.text; e.text = (room) => T(es(room), texto(room));
+  const fes = e.fatal[1]; Object.defineProperty(e.fatal, 1, { get: () => T(fes, fatal), enumerable: true, configurable: true });
 }

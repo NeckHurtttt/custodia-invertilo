@@ -1,4 +1,4 @@
-// Efectos de pantalla de LIFELINE: Rutina — preferencia «suave», sacudida de cámara y hitstop.
+// Efectos de pantalla de CUSTODIA — preferencia «suave», sacudida de cámara y hitstop.
 // Solo presentación: NO cambia el estado del juego ni usa azar. main.js decide cuándo congelar un instante
 // el avance de update() (hitstop) y cuánto mover la cámara; core.js no se entera de nada de esto.
 //

@@ -1,4 +1,4 @@
-// Audio de LIFELINE: Rutina — TODO el sonido pasa por aquí (WebAudio sintetizado, sin archivos, sin dependencias).
+// Audio de CUSTODIA — TODO el sonido pasa por aquí (WebAudio sintetizado, sin archivos, sin dependencias).
 //   · Música generativa por destino; la intensidad (0 calma · 1 tensión · 2 persecución · 3 huida final) suma capas.
 //   · Alertas del juego (`sting`), efectos de acción (`sfx`), pasos (`paso`), interfaz (`ui`, `tone`), latido y ambiente continuo (`ambiente`).
 // Cadena: fuentes → (musBus | sfxIn | ambBus) → master → gate (mudo general) → compresor → salida.

@@ -15,7 +15,7 @@ const lan = process.argv.includes('--lan') || process.env.LAN === '1';
 const puerto = Number(process.argv.slice(2).find((a) => /^\d+$/.test(a)) ?? process.env.PORT ?? 8000);
 const redes = () => ordenaRedes(); // [{ nombre, ip, probable }], la mejor primero (WiFi/Ethernet de casa antes que adaptadores virtuales)
 const ips = () => redes().map((r) => r.ip);
-const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg' };
+const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg' };
 
 const servidor = createServer(async (req, res) => {
   try {

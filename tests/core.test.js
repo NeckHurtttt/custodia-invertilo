@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as G from '../src/core.js';
 import { LOCS } from '../src/locs.js';
 import { HAZARDS, RECIPES, ITEMS, PROTOCOLS } from '../src/common.js';
+import * as Sys from '../src/sistemas.js';
 
 const fresh = (loc = 'estacion') => G.newGame(loc, 1234);
 const at = (s, x, y) => s.map.grid[y * s.L.W + x];
@@ -137,4 +138,36 @@ test('soltar y recoger cosas; los drones confiscan herramientas tiradas', () => 
   G.interact(s); assert.equal(s.floor.length, 0); assert.ok(s.p.inv.includes('cinta'));
   s.p.inv.push('codigo'); assert.equal(G.dropItem(s, s.p.inv.length - 1), false);
   const r = G.revive(JSON.parse(G.serialize(s))); assert.deepEqual(r.floor, []);
+});
+
+test('una noche: el peligro programado pasada la medianoche sí llega (antes se perdía al cambiar de día)', () => {
+  const s = G.newGame('estacion', 7, 'normal', { mode: 'noche' });
+  s.events = [1500]; s.hazards = []; s.grace = 9999; // 01:00 de la madrugada, en minutos corridos
+  s.min = 1438; for (let i = 0; i < 40 && !s.over; i++) G.update(s, 0.1);
+  assert.equal(s.day, 2, 'ya pasó la medianoche'); assert.deepEqual(s.events, [1500], 'el evento sigue pendiente tras el cambio de día');
+  s.min = 61; G.update(s, 0.1);
+  assert.equal(s.events.length, 0, 'a la 01:00 el evento se dispara'); assert.ok(G.activeHaz(s) >= 1, 'hay un peligro activo');
+});
+
+test('radio con la Tierra: en la Estación responde al instante; en Marte la respuesta llega con retraso y mientras tanto decides tú', () => {
+  const e = G.newGame('estacion', 3, 'cadete'); G.radio(e);
+  assert.equal(e.radio, undefined, 'sin retraso en la órbita baja'); assert.match(e.msg.text, /Tierra/);
+  const m = G.newGame('marte', 3, 'cadete'); m.hazards = []; m.events = []; m.grace = 9999;
+  const antes = m.log.length; G.radio(m);
+  assert.ok(m.radio && m.radio.t > 0, 'la respuesta queda en camino'); assert.match(m.msg.text, /3 y 22 minutos luz/);
+  assert.ok(!m.log.slice(antes).some((l) => /^Tierra/.test(l.text)), 'aún no llegó el consejo');
+  G.radio(m); assert.match(m.msg.text, /todavía viene en camino/, 'no se puede llamar dos veces a la vez');
+  for (let i = 0; i < 70; i++) G.update(m, 0.1);
+  assert.equal(m.radio, null, 'pasado el retraso, llega'); assert.ok(m.log.some((l) => /^Tierra/.test(l.text)), 'el consejo de la Tierra queda en el registro');
+});
+
+test('radio: la Tierra aconseja primero sobre la base (tormenta, sistema débil, revisiones) y solo después sobre el plan', () => {
+  const s = G.newGame('estacion', 3, 'cadete'); s.hazards = [];
+  s.sys.lvl.energia = 30; assert.match(G.hint(s), /ENERGÍA al 30 %.*1,6 veces/);
+  s.sys.lvl.energia = 90; s.sys.lvl.comida = 41; assert.match(G.hint(s), /41 %.*más débil/);
+  s.sys.lvl.comida = 90; assert.match(G.hint(s), /señal débil/, 'sin nada urgente en la base, habla del plan');
+  Sys.startStorm(s); assert.match(G.hint(s), /quédate en el refugio/, 'empieza en el dormitorio, que es el refugio');
+  const otra = s.L.rooms.find((r) => r.id !== Sys.shelterOf(s).room && !r.restricted); Object.assign(s.p, { x: otra.x + otra.w / 2, y: otra.y + otra.h / 2 });
+  assert.match(G.hint(s), /Tormenta solar.*refugio/i, 'afuera del refugio le dice a dónde correr');
+  assert.equal(G.consejoBase(G.newGame('estacion', 3, 'normal', { mode: 'noche' })), null, 'UNA NOCHE no tiene sistemas');
 });

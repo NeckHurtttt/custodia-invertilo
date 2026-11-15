@@ -2,6 +2,8 @@
 // 3 veces por misión, una tormenta en la base: correr al refugio (casi sin dosis, pero se pierde tiempo y el refugio
 // gasta energía) o seguir con lo suyo (la dosis se suma y no se borra). Lógica pura salvo fetchFlares (red).
 
+import { T } from './i18n.js';
+
 /** Llamaradas reales archivadas de NASA DONKI (las más fuertes del ciclo solar 25 en 2024), para jugar sin internet. */
 export const ARCHIVED_FLARES = [
   { cls: 'X8.7', date: '2024-05-14', source: 'archivo' },
@@ -28,6 +30,12 @@ export function missionFlares(live) {
   return out;
 }
 
+/**
+ * Reto del día: la llamarada real del día, igual para todos los jugadores (rota entre las archivadas según el número de día; no usa la red,
+ * así que nadie tiene una llamarada distinta). `n` = días desde 1970 (ver meta.daily).
+ */
+export const dailyFlare = (n) => { const L = ARCHIVED_FLARES.length; return ARCHIVED_FLARES[(((n + Math.floor(n / 3)) % L) + L) % L]; };
+
 /** Días en que llega una tormenta y a qué hora (minuto del día): tarde, en tiempo libre o ejercicio. */
 export const STORM_DAYS = [2, 5, 8];
 export const STORM_MIN = 15 * 60;
@@ -37,9 +45,9 @@ export const STORM_SECONDS = 20;
 
 /** Sala refugio de cada destino (y por qué es real). */
 export const SHELTER = {
-  estacion: { room: 'dorm', why: 'En la ISS, las cabinas de la tripulación tienen blindaje extra de polietileno.' },
-  luna: { room: 'refugio', why: 'Un refugio con paredes gruesas, como los que NASA estudia para Artemis.' },
-  marte: { room: 'bodega', why: 'Rodearse de agua y provisiones frena la radiación: así arman su refugio los astronautas de la nave Orion.' },
+  estacion: { room: 'dorm', get why() { return T('En la ISS, las cabinas de la tripulación tienen blindaje extra de polietileno.', 'On the ISS, the crew cabins have extra polyethylene shielding.'); } },
+  luna: { room: 'refugio', get why() { return T('Un refugio con paredes gruesas, como los que NASA estudia para Artemis.', 'A shelter with thick walls, like the ones NASA studies for Artemis.'); } },
+  marte: { room: 'bodega', get why() { return T('Rodearse de agua y provisiones frena la radiación: así arman su refugio los astronautas de la nave Orion.', 'Surrounding yourself with water and supplies slows radiation: that is how the astronauts of the Orion spacecraft build their shelter.'); } },
 };
 
 /**
@@ -51,27 +59,43 @@ export function stormDose(cls, loc) {
   const base = r >= 5 ? 2.4 : r >= 1 ? 1.6 : r >= 0.1 ? 0.8 : 0.4;
   return Math.round(base * ({ estacion: 0.5, luna: 1, marte: 0.75 }[loc] ?? 1) * 100) / 100;
 }
+/** Salud que cuesta no estar en el refugio cuando llega la llamarada del reto del día: 40 en la Luna, menos donde hay campo magnético o atmósfera. */
+export const flareHit = (cls, loc) => Math.max(5, Math.round(40 * stormDose(cls, loc) / stormDose(cls, 'luna')));
 export const SHELTER_FACTOR = 0.15;     // el refugio deja pasar ~15 %
 export const SHELTER_ENERGY = 6;        // puntos del sistema ENERGÍA que gasta el refugio (filtros y luces de emergencia)
 
 /** Texto de la clase para chicos. */
-export const classText = (cls) => (String(cls).startsWith('X') ? 'X es la clase más fuerte' : String(cls).startsWith('M') ? 'M es media-fuerte' : 'C es débil');
+export const classText = (cls) => (String(cls).startsWith('X') ? T('X es la clase más fuerte', 'X is the strongest class') : String(cls).startsWith('M') ? T('M es media-fuerte', 'M is medium-strong') : T('C es débil', 'C is weak'));
 export const sourceText = (f) => (f.source === 'donki'
-  ? `Llamarada REAL de NASA DONKI: clase ${f.cls}, ${f.date} (último mes).`
-  : `Llamarada REAL archivada de NASA DONKI: clase ${f.cls}, ${f.date}. (Sin conexión con NASA: no es en vivo.)`);
+  ? T(`Llamarada REAL de NASA DONKI: clase ${f.cls}, ${f.date} (último mes).`, `REAL solar flare from NASA DONKI: class ${f.cls}, ${f.date} (last month).`)
+  : T(`Llamarada REAL archivada de NASA DONKI: clase ${f.cls}, ${f.date}. (Sin conexión con NASA: no es en vivo.)`, `REAL archived solar flare from NASA DONKI: class ${f.cls}, ${f.date}. (No connection to NASA: this is not live.)`));
 
-/** Pide a NASA DONKI las llamaradas de los últimos 30 días (api.nasa.gov y, si falla, el servidor CCMC sin llave). */
-export async function fetchFlares({ fetchImpl = globalThis.fetch, key = 'DEMO_KEY', now = new Date(), timeoutMs = 6000 } = {}) {
+/** Por qué falló la última consulta a DONKI: 'limite' (la llave agotó su cupo, error 429), 'servidor' (404/5xx), 'red' (sin conexión o bloqueada) o null si fue bien. Lo lee la pantalla DATOS NASA. */
+export const donkiEstado = { error: null };
+
+/**
+ * Pide a NASA DONKI las llamaradas de los últimos 30 días (api.nasa.gov y, si falla, el servidor CCMC sin llave).
+ * Un 404 o 5xx se reintenta una vez (el 15/11/2026 api.nasa.gov dio 404 un rato); un 429 no (la llave DEMO_KEY es de unas 30 consultas por hora por red).
+ */
+export async function fetchFlares({ fetchImpl = globalThis.fetch, key = 'DEMO_KEY', now = new Date(), timeoutMs = 6000, retryMs = 800 } = {}) {
   const d = (x) => x.toISOString().slice(0, 10);
   const q = `startDate=${d(new Date(now.getTime() - 30 * 86400000))}&endDate=${d(now)}`;
+  donkiEstado.error = 'red';
   for (const url of [`https://api.nasa.gov/DONKI/FLR?${q}&api_key=${key}`, `https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/FLR?${q}`]) {
-    try {
-      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
-      const r = await fetchImpl(url, { signal: ctl.signal }); clearTimeout(t);
-      if (!r || r.ok === false) continue;
-      const list = await r.json(); if (!Array.isArray(list)) continue;
-      return strongestFlares(list, 3);
-    } catch { /* probar el siguiente */ }
+    for (let intento = 0; intento < 2; intento++) {
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
+        const r = await fetchImpl(url, { signal: ctl.signal }); clearTimeout(t);
+        if (!r || r.ok === false) {
+          const st = r?.status;
+          if (st === 429) { donkiEstado.error = 'limite'; break; }
+          if (st === 404 || st >= 500) { if (donkiEstado.error !== 'limite') donkiEstado.error = 'servidor'; if (intento === 0) { await new Promise((ok) => setTimeout(ok, retryMs)); continue; } }
+          break;
+        }
+        const list = await r.json(); if (!Array.isArray(list)) break;
+        donkiEstado.error = null; return strongestFlares(list, 3);
+      } catch { break; /* probar el siguiente */ }
+    }
   }
   return null;
 }

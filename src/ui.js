@@ -1,4 +1,4 @@
-// Decisiones puras de la interfaz de LIFELINE: Rutina (sin DOM, sin azar). Solo LEE el estado; las reglas siguen en core.js.
+// Decisiones puras de la interfaz de CUSTODIA (sin DOM, sin azar). Solo LEE el estado; las reglas siguen en core.js.
 // Aquí viven: el estado de color de cada barra (bien / bajo / crítico), la marca de texto que acompaña al color,
 // el seguimiento de «¿me bajó de golpe?» para el aviso de daño, el pulso lento de los carteles y el resumen causal del final.
 // main.js solo pinta lo que estas funciones deciden. Pruebas: tests/ui.test.js.
@@ -74,7 +74,21 @@ export function geomMinimapa(ancho, zoom, W, H) {
   return { k, w: W * k, h: H * k, oy: esAngosta(ancho) ? 52 : 46, borde: 10 };
 }
 
+import { T } from './i18n.js';
+
 // ---------- resumen causal del final: qué pasó + qué aprender ----------
+/** Título del final en inglés (la clave española sigue siendo la del juego). */
+const TITULOS_EN = { 'Rescate: misión cumplida': 'Rescue: mission accomplished', 'Evacuación médica': 'Medical evacuation', 'Base perdida': 'Base lost', 'Sin aire respirable': 'No breathable air', 'Sin raciones': 'Out of rations', 'Dosis límite superada': 'Dose limit exceeded', 'Amaneció': 'Dawn came', 'Sin salida': 'No way out', 'Despresurización': 'Depressurization', 'Incendio eléctrico': 'Electrical fire', 'Intoxicación por CO₂': 'CO₂ poisoning', 'Dosis aguda de radiación': 'Acute radiation dose', 'Incendio a bordo': 'Fire on board', 'Final verdadero': 'True ending', 'Base recuperada': 'Base recovered', 'Regreso silencioso': 'Silent return', 'Por los pelos': 'By a hair' };
+export const tituloFin = (t) => (String(t).endsWith(' ganó') ? T(t, `${String(t).slice(0, -5)} won`) : T(t, TITULOS_EN[t] ?? t));
+const CONSEJOS_EN = {
+  'Evacuación médica': 'Health recovers by itself while POWER is above 30, and eating in the mess hall gives +35 energy and +10 health. If the HEALTH bar drops below 50 %, stop taking risks and eat or rest.',
+  'Base perdida': 'The base INTEGRITY drops when problems are left unsolved. Handle the ones with a countdown first and solve them with their protocol.',
+  'Sin aire respirable': 'Do the LIFE SUPPORT check first every morning (08:00–12:00): it protects the air you breathe. On the real station it is also the first thing to check.',
+  'Sin raciones': 'Check the greenhouse (FOOD) every morning. Growing food on board is part of the daily maintenance of a mission.',
+  'Dosis límite superada': "Check the shielding and the dosimeter every day so the dose adds up slowly. NASA's rule is called ALARA: as little radiation as reasonably achievable.",
+  'Amaneció': 'In ONE NIGHT you have to leave before 06:00. Move the plan forward without stopping and dodge the roll call.',
+  'Sin salida': 'With the launch countdown running every second counts: prepare everything first and go straight to the exit.',
+};
 const REFLEJOS = ['Despresurización', 'Incendio eléctrico', 'Intoxicación por CO₂', 'Dosis aguda de radiación', 'Incendio a bordo'];
 const CONSEJOS = {
   'Evacuación médica': 'La salud se recupera sola mientras la ENERGÍA esté sobre 30, y comer en el comedor da +35 de energía y +10 de salud. Si la barra de SALUD baja del 50 %, deja de arriesgarte y come o descansa.',
@@ -94,32 +108,33 @@ const CONSEJOS = {
 export function resumenFin(s) {
   const o = s.over ?? { won: false, title: '', text: '', stars: 0 }; const st = s.stats ?? {}; const y = s.sys?.st;
   const ganaste = !!o.won; const ia = s.L?.ai ?? 'la IA';
-  let aprende = CONSEJOS[o.title] ?? '';
-  if (!aprende && REFLEJOS.includes(o.title)) aprende = 'Con REFLEJOS activado, cuando suena la emergencia hay que correr al punto rojo y pulsar E antes de que acabe la cuenta. Si prefieres más calma, apaga REFLEJOS en el menú.';
-  if (!aprende && String(o.title).endsWith(' ganó')) aprende = 'Los días pasan rápido: avanza un poco el PLAN DE REGRESO [2] cada día sin dejar de cumplir la rutina, y apaga o engaña a la IA cuando puedas.';
-  if (!aprende) aprende = ganaste ? 'Probaste una ruta de escape. ¿Y si pruebas otra (plan, sabotaje o motín) o escapas sin que te atrapen?' : 'Cada intento enseña algo: mira el cartel de AHORA para saber dónde ir y vigila las barras con «!».';
+  let aprende = T(CONSEJOS[o.title] ?? '', CONSEJOS_EN[o.title] ?? CONSEJOS[o.title] ?? '');
+  if (!aprende && REFLEJOS.includes(o.title)) aprende = T('Con REFLEJOS activado, cuando suena la emergencia hay que correr al punto rojo y pulsar E antes de que acabe la cuenta. Si prefieres más calma, apaga REFLEJOS en el menú.', 'With REFLEXES on, when the emergency sounds you must run to the red dot and press E before the countdown ends. If you prefer it calmer, turn REFLEXES off in the menu.');
+  if (!aprende && String(o.title).endsWith(' ganó')) aprende = T('Los días pasan rápido: avanza un poco el PLAN DE REGRESO [2] cada día sin dejar de cumplir la rutina, y apaga o engaña a la IA cuando puedas.', 'Days pass quickly: move the RETURN PLAN [2] forward a little each day without skipping the routine, and shut down or trick the AI when you can.');
+  if (!aprende) aprende = ganaste ? T('Probaste una ruta de escape. ¿Y si pruebas otra (plan, sabotaje o motín) o escapas sin que te atrapen?', 'You tried one escape route. What if you try another (plan, sabotage or mutiny) or escape without being caught?') : T('Cada intento enseña algo: mira el cartel de AHORA para saber dónde ir y vigila las barras con «!».', 'Every attempt teaches something: check the NOW sign to know where to go and watch the bars marked with «!».');
   const rescate = ganaste && o.route === 'rescate';
   const rs = rescate ? rescueStars(s) : null;
-  if (rescate) aprende = 'Ganaste como en una misión real: mantener el soporte vital, la energía, la comida y protegerse de la radiación todos los días es lo que trae a la tripulación de vuelta.';
+  if (rescate) aprende = T('Ganaste como en una misión real: mantener el soporte vital, la energía, la comida y protegerse de la radiación todos los días es lo que trae a la tripulación de vuelta.', 'You won like on a real mission: keeping life support, power and food going and protecting yourself from radiation every day is what brings the crew back.');
   const estrellas = rescate ? [
-    { ok: true, txt: 'La tripulación llegó viva al rescate' },
-    { ok: rs.cuidada, txt: 'Sistemas cuidados (promedio de 70 % o más)' },
-    { ok: rs.segura, txt: 'Poca radiación (menos de 50 % del límite) y base sana' },
+    { ok: true, txt: T('La tripulación llegó viva al rescate', 'The crew reached the rescue alive') },
+    { ok: rs.cuidada, txt: T('Sistemas cuidados (promedio de 70 % o más)', 'Systems cared for (average of 70 % or more)') },
+    { ok: rs.segura, txt: T('Poca radiación (menos de 50 % del límite) y base sana', 'Low radiation (under 50 % of the limit) and a healthy base') },
   ] : ganaste ? [
-    { ok: true, txt: 'Escapaste de la base' },
-    { ok: !s.iaOn, txt: `Apagaste a ${ia}` },
-    { ok: (s.alert ?? 100) < 50 && (s.integ ?? 0) >= 50, txt: 'Alerta menor a 50 e integridad de 50 o más' },
+    { ok: true, txt: T('Escapaste de la base', 'You escaped the base') },
+    { ok: !s.iaOn, txt: T(`Apagaste a ${ia}`, `You shut down ${ia}`) },
+    { ok: (s.alert ?? 100) < 50 && (s.integ ?? 0) >= 50, txt: T('Alerta menor a 50 e integridad de 50 o más', 'Alert under 50 and integrity of 50 or more') },
   ] : [];
   const datos = [
-    { ic: 'alerta', txt: `Te atraparon ${st.caught ?? 0} ${st.caught === 1 ? 'vez' : 'veces'}` },
-    { ic: 'ok', txt: `${st.solved ?? 0} ${st.solved === 1 ? 'problema resuelto' : 'problemas resueltos'}` },
-    { ic: 'integ', txt: `Integridad final ${Math.max(0, Math.round(s.integ ?? 0))} %` },
+    { ic: 'alerta', txt: T(`Te atraparon ${st.caught ?? 0} ${st.caught === 1 ? 'vez' : 'veces'}`, `You were caught ${st.caught ?? 0} ${st.caught === 1 ? 'time' : 'times'}`) },
+    { ic: 'ok', txt: T(`${st.solved ?? 0} ${st.solved === 1 ? 'problema resuelto' : 'problemas resueltos'}`, `${st.solved ?? 0} ${st.solved === 1 ? 'problem solved' : 'problems solved'}`) },
+    { ic: 'integ', txt: T(`Integridad final ${Math.max(0, Math.round(s.integ ?? 0))} %`, `Final integrity ${Math.max(0, Math.round(s.integ ?? 0))} %`) },
   ];
-  if (y) datos.unshift({ ic: 'mant', txt: `${y.done ?? 0} ${y.done === 1 ? 'revisión hecha' : 'revisiones hechas'} · ${y.skipped ?? 0} ${y.skipped === 1 ? 'omitida' : 'omitidas'}` });
+  if (y) datos.unshift({ ic: 'mant', txt: T(`${y.done ?? 0} ${y.done === 1 ? 'revisión hecha' : 'revisiones hechas'} · ${y.skipped ?? 0} ${y.skipped === 1 ? 'omitida' : 'omitidas'}`, `${y.done ?? 0} ${y.done === 1 ? 'check done' : 'checks done'} · ${y.skipped ?? 0} skipped`) });
+  if (s.dFlare?.result) datos.push({ ic: 'rad', txt: s.dFlare.result === 'refugio' ? T(`Llamarada ${s.dFlare.flare.cls}: te refugiaste`, `Flare ${s.dFlare.flare.cls}: you sheltered`) : T(`Llamarada ${s.dFlare.flare.cls}: te alcanzó afuera`, `Flare ${s.dFlare.flare.cls}: it reached you outside`) });
   const pistas = [];
-  if (y && y.skipped > 0) pistas.push(`Omitiste ${y.skipped} ${y.skipped === 1 ? 'revisión' : 'revisiones'} de mantenimiento: cada una cuesta nivel, integridad y alerta.`);
-  if ((st.caught ?? 0) >= 3) pistas.push('Te atraparon varias veces: agáchate (Shift) para ser silencioso y evita el cono amarillo de los drones.');
-  if (!ganaste && (s.alert ?? 0) >= 70) pistas.push('Tu alerta llegó muy alta: cumplir el horario y no hacer cosas raras a la vista la mantiene baja.');
-  if (ganaste && !estrellas[2].ok) pistas.push('Para la 3.ª estrella termina con la alerta baja y la base en buen estado.');
-  return { ganaste, titulo: o.title, texto: o.text, aprende, estrellas, datos, pistas: pistas.slice(0, 3) };
+  if (y && y.skipped > 0) pistas.push(T(`Omitiste ${y.skipped} ${y.skipped === 1 ? 'revisión' : 'revisiones'} de mantenimiento: cada una cuesta nivel, integridad y alerta.`, `You skipped ${y.skipped} maintenance ${y.skipped === 1 ? 'check' : 'checks'}: each one costs level, integrity and alert.`));
+  if ((st.caught ?? 0) >= 3) pistas.push(T('Te atraparon varias veces: agáchate (Shift) para ser silencioso y evita el cono amarillo de los drones.', 'You were caught several times: crouch (Shift) to be quiet and avoid the yellow cone of the drones.'));
+  if (!ganaste && (s.alert ?? 0) >= 70) pistas.push(T('Tu alerta llegó muy alta: cumplir el horario y no hacer cosas raras a la vista la mantiene baja.', 'Your alert got very high: following the schedule and not doing strange things in plain sight keeps it low.'));
+  if (ganaste && !estrellas[2].ok) pistas.push(T('Para la 3.ª estrella termina con la alerta baja y la base en buen estado.', 'For the 3rd star, finish with low alert and the base in good shape.'));
+  return { ganaste, titulo: tituloFin(o.title), texto: o.text, aprende, estrellas, datos, pistas: pistas.slice(0, 3) };
 }

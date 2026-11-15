@@ -30,6 +30,16 @@ test('delatar baja la alerta, da tarjeta y el compañero ya no ayuda', () => {
   G.betray(s); assert.ok(c.betrayed); assert.equal(s.alert, 25); assert.ok(s.p.inv.includes('tarjeta'));
 });
 
+test('Cadete: no se puede delatar a un compañero ni se ofrece la tecla B', () => {
+  const s = G.newGame('estacion', 4, 'cadete'); s.alert = 60; const c = s.crew[0]; s.p.x = c.x; s.p.y = c.y;
+  G.betray(s);
+  assert.equal(c.betrayed, false); assert.equal(s.alert, 60); assert.ok(!s.p.inv.includes('tarjeta'));
+  assert.ok(!G.label(s, { kind: 'crew', c }).includes('[B]'), 'la etiqueta no debe ofrecer [B] delatar');
+  const n = G.newGame('estacion', 4, 'normal'); n.alert = 60; const d = n.crew[0]; n.p.x = d.x; n.p.y = d.y;
+  assert.ok(G.label(n, { kind: 'crew', c: d }).includes('[B]'), 'en Normal sigue ofreciéndose');
+  G.betray(n); assert.ok(d.betrayed, 'en Normal sigue disponible');
+});
+
 test('notas: aparecen en orden y no se repiten las ya conocidas', () => {
   const s = G.newGame('luna', 9, 'normal', { seen: [0, 1] });
   assert.ok(G.findNote(s)); assert.deepEqual(s.notes, [2]);

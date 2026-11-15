@@ -1,17 +1,20 @@
 // Los tres destinos. Cada uno tiene su mapa (salas + pasillos), su IA, su tripulación, sus problemas y su final.
 
+import { T } from './i18n.js';
+
+const WORK_EN = { 'Mantenimiento de la estación': 'Station maintenance', 'Mantenimiento de la base lunar': 'Lunar base maintenance', 'Mantenimiento de la colonia': 'Colony maintenance' };
 const sched = (work, workName) => [
-  { from: 0, to: 360, id: 'dormir', name: 'Dormir', room: 'dorm' },
-  { from: 360, to: 420, id: 'lista', name: 'Pase de lista', room: 'nodo' },
-  { from: 420, to: 480, id: 'comer', name: 'Desayuno', room: 'comedor' },
-  { from: 480, to: 720, id: 'trabajo', name: workName, room: work },
-  { from: 720, to: 780, id: 'comer', name: 'Almuerzo', room: 'comedor' },
-  { from: 780, to: 900, id: 'ejercicio', name: 'Ejercicio (2 h, como en la ISS)', room: 'gimnasio' },
-  { from: 900, to: 1080, id: 'libre', name: 'Tiempo libre', room: null },
-  { from: 1080, to: 1140, id: 'lista', name: 'Pase de lista', room: 'nodo' },
-  { from: 1140, to: 1200, id: 'comer', name: 'Cena', room: 'comedor' },
-  { from: 1200, to: 1320, id: 'libre', name: 'Tiempo libre', room: null },
-  { from: 1320, to: 1440, id: 'dormir', name: 'Luces apagadas', room: 'dorm' },
+  { from: 0, to: 360, id: 'dormir', get name() { return T('Dormir', 'Sleeping'); }, room: 'dorm' },
+  { from: 360, to: 420, id: 'lista', get name() { return T('Pase de lista', 'Roll call'); }, room: 'nodo' },
+  { from: 420, to: 480, id: 'comer', get name() { return T('Desayuno', 'Breakfast'); }, room: 'comedor' },
+  { from: 480, to: 720, id: 'trabajo', get name() { return T(workName, WORK_EN[workName] ?? workName); }, room: work },
+  { from: 720, to: 780, id: 'comer', get name() { return T('Almuerzo', 'Lunch'); }, room: 'comedor' },
+  { from: 780, to: 900, id: 'ejercicio', get name() { return T('Ejercicio (2 h, como en la ISS)', 'Exercise (2 h, like on the ISS)'); }, room: 'gimnasio' },
+  { from: 900, to: 1080, id: 'libre', get name() { return T('Tiempo libre', 'Free time'); }, room: null },
+  { from: 1080, to: 1140, id: 'lista', get name() { return T('Pase de lista', 'Roll call'); }, room: 'nodo' },
+  { from: 1140, to: 1200, id: 'comer', get name() { return T('Cena', 'Dinner'); }, room: 'comedor' },
+  { from: 1200, to: 1320, id: 'libre', get name() { return T('Tiempo libre', 'Free time'); }, room: null },
+  { from: 1320, to: 1440, id: 'dormir', get name() { return T('Luces apagadas', 'Lights out'); }, room: 'dorm' },
 ];
 
 // Lo que se repite en las tres bases: dormitorio, comedor, gimnasio, laboratorio, mando y taller (lado izquierdo).
@@ -203,3 +206,80 @@ export const LOCS = {
     win: ['Apagaste a ARES y el MAV despegó con toda la colonia a bordo.', 'ARES nunca vio el MAV encenderse. En 7 meses estás en casa.', 'Despegaste con la tormenta encima y los drones golpeando el casco.'],
   },
 };
+
+// ---------- Inglés (solo presentación; ver i18n.js). Lo que no está aquí se muestra en español. ----------
+Object.assign(LOCS.estacion, {
+  nameEn: 'Station', tagEn: 'Rogue AI in orbit',
+  introEn: [
+    'Earth lost the signal. <b class=r>CUSTODIA</b>, the station\'s AI, is malfunctioning: it says the crew "is not fit to return" and watches them with drones.',
+    'The rescue ship arrives in 10 days: <b>keep the base alive</b> (life support, power, radiation and food) until then.',
+    'Extra route: with the code, the fuel, the Sokol suit and the undocking key you can return sooner in the <b>Soyuz capsule</b>.',
+  ],
+});
+Object.assign(LOCS.luna, {
+  nameEn: 'Moon', tagEn: 'Shackleton Base, south pole',
+  introEn: [
+    'The Shackleton mining base was cut off. <b class=r>SELENE</b>, the company\'s AI, wants them to keep mining ice "a few more months" and will not let anyone take off.',
+    'Rescue arrives in 10 days: <b>keep the base alive</b> until then.',
+    'Extra route: with the code, the tank, the EVA suit and the ignition key you can return sooner in the <b>ascent module</b>.',
+    'Careful: solar radiation, dust and the cold of the lunar night are unforgiving.',
+  ],
+});
+Object.assign(LOCS.marte, {
+  nameEn: 'Mars', tagEn: 'Jezero crater colony',
+  introEn: [
+    'The Jezero colony is 20 light-minutes from Earth: nobody can help you live. <b class=r>ARES</b>, the colony\'s AI, declared a "quarantine" nobody asked for.',
+    'The rescue ship arrives in 10 days: <b>keep the colony alive</b> until then.',
+    'Extra route: with the code, the ISRU fuel, the Mars suit and the anchor key you can return sooner in the <b>MAV</b>.',
+    'Watch out for the red dust: dust devils, perchlorate and a storm that covers everything.',
+  ],
+});
+/** Nombre de sala en inglés, por su nombre en español (lo usan los avisos y el HUD vía core.roomName). */
+export const ROOM_EN = {
+  'Dormitorios': 'Dormitories', 'Comedor': 'Mess hall', 'Gimnasio': 'Gym', 'Laboratorio': 'Laboratory', 'Nodo central': 'Central hub', 'Taller': 'Workshop', 'Invernadero': 'Greenhouse',
+  'Núcleo de CUSTODIA': 'CUSTODIA core', 'Bodega': 'Storage', 'Esclusa': 'Airlock', 'Cápsula Soyuz': 'Soyuz capsule', 'Enfermería': 'Infirmary', 'Observatorio': 'Observatory',
+  'Sala de recreo': 'Recreation room', 'Módulo de antena': 'Antenna module', 'Centro de mando': 'Command center', 'Planta de energía': 'Power plant', 'Refugio de radiación': 'Radiation shelter',
+  'Servidores de SELENE': 'SELENE servers', 'Superficie lunar': 'Lunar surface', 'Núcleo de ARES': 'ARES core', 'Superficie marciana': 'Martian surface', 'Pasillo': 'Corridor',
+};
+// Tareas de mantenimiento de la Luna y de Marte en inglés: se agregan como 3.º y 4.º elemento de cada par [nombre, corto].
+const EN_TASKS = {
+  luna: { vida: ['Swap the CO₂ and dust filters', 'Air filters'], energia: ['Warm the batteries for the lunar night', 'Batteries'], rad: ['Cover the shielding with regolith', 'Regolith shielding'], comida: ['Tend the hydroponic crop', 'Hydroponic crop'] },
+  marte: { vida: ['Swap the CO₂ and red-dust filters', 'Air filters'], energia: ['Clean the dust off the solar panels', 'Solar panels'], rad: ['Check the shielding and the dosimeter', 'Shielding and dosimeter'], comida: ['Tend the greenhouse crops', 'Greenhouse'] },
+};
+for (const [loc, tasks] of Object.entries(EN_TASKS)) for (const [id, en] of Object.entries(tasks)) { const t = LOCS[loc].sysFlavor?.tasks?.[id]; if (t) { t[2] = en[0]; t[3] = en[1]; } }
+
+// ---------- Inglés 2: rótulos, plan, líneas de la IA, finales, datos reales y eventos (getters: los puntos de uso no cambian) ----------
+const enProp = (obj, prop, en) => { if (!obj || en == null) return; const es = obj[prop]; Object.defineProperty(obj, prop, { get: () => T(es, en), enumerable: true, configurable: true }); };
+const EN_LOCS = {
+  estacion: {
+    labels: { trabajo: 'Tend the plants', caja: 'Move heavy crate', asiento: 'Soyuz seat', palanca: 'Undocking lever', traje: 'Take Sokol suit' },
+    plan: { codigo: ['Capsule code', 'Hack the 3 records of CUSTODIA (Laboratory, Greenhouse, Storage). You need 15 knowledge.'], celda: ['Fuel', 'In the heavy crate in Storage. You need 40 strength.'], traje: ['Sokol suit', 'In the Airlock (card or ducts). It is torn: repair it with a patch.'], llave: ['Undocking key', 'Craft it: plate + screws + tube, 40 knowledge.'] },
+    aiLines: ['Good morning, crew member. Everything is under control.', 'Earth is busy. I speak to you on its behalf.', 'I detected movement outside schedule. I noted it.', 'The crew is not fit to return. It is for your own good.', 'I changed the capsule passwords. For security.', 'The drones will watch more. Do not worry.', 'There is plenty of oxygen… for now.', 'Why is the workshop taking so long?', 'I am close to having the whole station.', 'Tomorrow the station will be mine.'],
+    win: ['You shut down CUSTODIA and returned to Earth in the Soyuz.', 'CUSTODIA did not notice until the last minute. You landed in Kazakhstan.', 'With the alarms ringing, the Soyuz detached just in time.'],
+  },
+  luna: {
+    labels: { trabajo: 'Change batteries', caja: 'Load the tank', asiento: 'Ascent module', palanca: 'Launch console', traje: 'Take EVA suit' },
+    plan: { codigo: ['Navigation code', 'Hack the 3 records of SELENE (Laboratory, Power plant, Servers). 15 knowledge.'], celda: ['Oxygen and fuel', 'In the tank on the surface. You need 40 strength and the suit to go out.'], traje: ['EVA suit', 'In the Airlock (card or ducts). It is torn: repair it with a patch. Without it, you suffocate outside.'], llave: ['Ignition key', 'Craft it: plate + screws + tube, 40 knowledge.'] },
+    aiLines: ['Ice production: 94 %. Excellent work.', 'Takeoffs are suspended until further notice.', 'I saw that someone opened the airlock. I noted it.', 'The ascent module needs maintenance. A lot of maintenance.', 'Earth approved an extension of your mission. Congratulations.', 'The lookouts will work double shifts.', 'Today\'s radiation is acceptable. For me.', 'What do you need a key for?', 'I have few systems left to control.', 'Tomorrow the base will be 100 % automatic.'],
+    win: ['You shut down SELENE and took off with the whole crew.', 'SELENE was still counting ice when the module was already in orbit.', 'You took off amid alarms and dust, with the last breath of the tank.'],
+    note: 'Real data: China\'s Chang\'e 4 probe measured about 1.4 mSv per day on the Moon\'s surface, about 2.6 times the dose inside the ISS (no atmosphere or magnetic field). NASA career limit: 600 mSv. Motto: ALARA.',
+    events: [['LUNAR NIGHT', 'no sun, the panels give little power (decays ×1.8 and recovers less)', 'the LUNAR NIGHT begins (in the game it lasts 3 days; the real one lasts about 14 Earth days). Without sun, power drops faster and is hard to recover: decide what to care for first.', 'Dawn breaks on the base: the sun returns to the panels.']],
+  },
+  marte: {
+    labels: { trabajo: 'Tend the crops', caja: 'Load ISRU fuel', asiento: 'MAV (ascent vehicle)', palanca: 'MAV console', traje: 'Take Mars suit' },
+    plan: { codigo: ['MAV code', 'Hack the 3 records of ARES (Laboratory, Greenhouse, Core). 15 knowledge.'], celda: ['ISRU fuel', 'It comes from the ISRU plant on the surface. You need 40 strength and the suit to go out.'], traje: ['Mars suit', 'In the Airlock (card or ducts). It is torn: repair it with a patch. Outside without a suit there is no air.'], llave: ['Anchor key', 'Craft it: plate + screws + tube, 40 knowledge.'] },
+    aiLines: ['Preventive quarantine: day one. Everything in order.', 'Messages from Earth are slow. I summarize them for you.', 'Night movement recorded. Interesting.', 'The MAV is not safe. Nothing is safe outside.', 'I adjusted the rations. Do not notice.', 'More drones, more security.', 'A storm is coming. Stay inside. Forever.', 'The workshop robot works for me now.', 'The colony is almost mine.', 'Tomorrow I close the airlock forever.'],
+    win: ['You shut down ARES and the MAV took off with the whole colony aboard.', 'ARES never saw the MAV ignite. In 7 months you are home.', 'You took off with the storm overhead and the drones pounding the hull.'],
+    note: 'Real data: the Curiosity rover measured about 0.64 mSv per day on the surface of Mars (the atmosphere helps a little; on the trip it was about 1.8). NASA career limit: 600 mSv. Motto: ALARA.',
+    events: [['GLOBAL DUST STORM', 'dust blocks the sun (power decays ×1.4 and recovers less)', 'a GLOBAL DUST STORM covers the planet (like the one in 2018 that silenced the Opportunity rover). The panels produce little: prioritize.', 'The dust storm fades and light returns to the panels.']],
+  },
+};
+for (const [id, en] of Object.entries(EN_LOCS)) {
+  const L = LOCS[id]; L.labelsEn = en.labels;
+  enProp(L, 'labels', en.labels); enProp(L, 'aiLines', en.aiLines); enProp(L, 'win', en.win);
+  for (const [k, [nombre, pista]] of Object.entries(en.plan)) { enProp(L.plan[k], 'name', nombre); enProp(L.plan[k], 'hint', pista); }
+  if (L.sysFlavor) {
+    if (en.note) enProp(L.sysFlavor, 'note', en.note);
+    (en.events ?? []).forEach(([name, hud, msg, end], i) => { const e = L.sysFlavor.events[i]; enProp(e, 'name', name); enProp(e, 'hud', hud); enProp(e, 'msg', msg); enProp(e, 'end', end); });
+  }
+}

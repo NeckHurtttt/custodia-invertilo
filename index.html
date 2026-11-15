@@ -3,9 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LIFELINE: Rutina</title>
+<title>CUSTODIA · Mantén viva la base</title>
 <meta name="description" content="Mantén viva una base en la Luna, Marte o la Estación hasta que llegue el rescate: cuida los sistemas, protégete de la radiación real del Sol y sigue protocolos de la NASA.">
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#02060b">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body>
 <!-- Íconos vectoriales del HUD (se usan con <svg class="ic"><use href="#i-NOMBRE"/></svg>; heredan el color del texto). Lista en src/ui.js → ICONOS. -->
@@ -54,7 +58,7 @@
   <section class="pantalla">
     <canvas id="lienzo" width="1024" height="576"></canvas>
     <header class="barra hud">
-      <span class="logo">LIFELINE<b>:RUTINA</b></span>
+      <span class="logo"><svg class="ic" aria-hidden="true"><use href="#i-integ"/></svg>CUSTODIA</span>
       <span class="chip" id="chip-dia"><span id="ic-dest"></span><span id="dia">DÍA 1/10</span></span>
       <span class="chip reloj"><svg class="ic" aria-hidden="true"><use href="#i-reloj"/></svg><span id="reloj">05:40</span></span>
       <span id="bloque">—</span>
@@ -66,6 +70,7 @@
       <button id="btn-menu" class="ib pausa" title="Pausa, ajustes e historial (Esc)" aria-label="Pausa"><svg class="ic" aria-hidden="true"><use href="#i-pausa"/></svg><span class="txt">PAUSA <kbd>Esc</kbd></span></button>
     </header>
     <div class="hud hud-centro">
+      <div class="caja tuto" id="tuto" hidden></div>
       <div class="caja" id="actividad"></div>
       <div class="caja" id="emerg" hidden></div>
       <ul id="avisos" class="avisos"></ul>
@@ -91,8 +96,9 @@
 </main>
 <div id="tactil" class="tactil" hidden>
   <div class="cruz"><button data-d="u" aria-label="Arriba">▲</button><button data-d="l" aria-label="Izquierda">◀</button><button data-d="r" aria-label="Derecha">▶</button><button data-d="d" aria-label="Abajo">▼</button></div>
-  <div class="acciones"><button id="t-e" class="principal" aria-label="Usar (E)">E</button><button id="t-f" aria-label="Esconderse (F)">F</button><button id="t-t" aria-label="Lanzar (T)">T</button><button id="t-sh" aria-label="Agacharse">⇩</button><button id="t-q" aria-label="Inhibir (Q)">Q</button><button id="t-i" aria-label="Mochila (I)">I</button></div>
+  <div class="acciones"><button id="t-e" class="principal" aria-label="Usar (E)">E</button><button id="t-f" aria-label="Esconderse (F)">F</button><button id="t-t" aria-label="Lanzar (T)">T</button><button id="t-sh" aria-label="Agacharse: haces menos ruido y te ven menos, pero caminas más lento">⇩</button><button id="t-q" aria-label="Inhibir (Q)">Q</button><button id="t-i" aria-label="Mochila (I)">I</button></div>
 </div>
+<div id="dia-nuevo" class="dia-nuevo" aria-live="polite" hidden></div>
 <div id="modal" class="modal" hidden><div class="ventana" id="ventana"></div></div>
 <script type="module" src="src/main.js"></script>
 </body>

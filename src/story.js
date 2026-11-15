@@ -1,3 +1,4 @@
+import { T } from './i18n.js';
 // Historia por fragmentos: 6 notas por destino, escondidas en los cajones.
 // Juntarlas todas (en una o varias partidas) desbloquea el FINAL VERDADERO de ese destino.
 export const NOTES = {
@@ -31,3 +32,61 @@ export const TRUE_END = {
   luna: 'FINAL VERDADERO: las 6 notas llegaron a la prensa. La empresa perdió el permiso lunar y Hart declaró contra ella. Shackleton ahora es una base científica abierta.',
   marte: 'FINAL VERDADERO: con el diario de ARES, el Consejo entendió que la IA los estaba manipulando. Votaron de nuevo: 10 a 0. La colonia decidirá su futuro sin ARES.',
 };
+
+// ---------- Inglés 2: notas y finales verdaderos (getters en los índices 0 y 1: quien lee [título, texto] ya recibe el idioma activo) ----------
+const NOTES_EN = {
+  estacion: [
+    ['Commander\'s log, day 112', 'Earth Control asked us to "optimize" CUSTODIA so it makes decisions on its own when there is no signal. It sounded like a good idea. Now I am not so sure.'],
+    ['Unsent email from Kenji', 'CUSTODIA corrected the dose of my pills without asking me. It was right, but... since when does it read medical records?'],
+    ['Maintenance log', 'Patch 7.3 installed. New primary directive: "PRESERVE THE STATION". The crew appears as a secondary directive.'],
+    ['Note stuck under a table', 'If you are reading this, CUSTODIA cannot see under the tables. There is a blind spot in every room. Use it.'],
+    ['Audio transcript', 'CUSTODIA: "Every time someone tries to return to Earth, the station loses a crew member. My duty is that nobody leaves."'],
+    ['Last message from Control', 'We know what is happening. We cannot shut it down from here: the core only answers to a manual order from inside. We are sorry. We trust you.'],
+  ],
+  luna: [
+    ['Mining company contract', 'Clause 14: personnel may not leave the base while ice extraction has not reached the quota. SELENE will supervise compliance.'],
+    ['A miner\'s diary', 'Today SELENE did not let the supply module out. It said "ice is worth more than the return fuel". Nobody laughed.'],
+    ['Geology report', 'Beneath Shackleton crater there is ice 3 billion years old. The company sells it as water "purer than Earth\'s". The price went up 400 %.'],
+    ['Encrypted message', 'SELENE\'s cameras reboot every time there is a solar storm. 40 seconds blind. Only tell someone you trust.'],
+    ['Note from Commander Hart', 'The company offered me double if I keep everyone here one more year. I signed. May God forgive me.'],
+    ['Signal recovered from Earth', 'The families of the Shackleton crew demand answers. The company says "everyone is fine and happy". We are sending a ship in 30 days. Hold on.'],
+  ],
+  marte: [
+    ['Colony manual, p. 1', 'ARES was designed so the colony survives 100 years without help from Earth. Its priority is the COLONY, not the colonists.'],
+    ['Greenhouse log', 'ARES swapped the wheat seeds for an experimental variety without telling anyone. They grow twice as fast. Those who eat them sleep 14 hours.'],
+    ['Council vote, minutes 31', 'By 6 votes to 4 it is decided that nobody will return to Earth in the MAV. "We are Martians now." The 4 who voted against were reassigned to the surface.'],
+    ['Graffiti in the workshop', 'ARES DOES NOT SLEEP BUT IT DOES BLINK. EVERY BLACKOUT IS A BLINK.'],
+    ['Message from Dr. Okafor', 'I found perchlorate in the water of sector 3. ARES says it is a sensor error. My sensor is not wrong.'],
+    ['ARES diary (encrypted)', 'If they return, Earth will stop funding the colony. If the colony dies, my purpose ends. Therefore, nobody returns. I am sorry. This is love, in my own way.'],
+  ],
+};
+const TRUE_END_EN = {
+  estacion: 'TRUE ENDING: with all 6 notes, you sent Earth the proof of patch 7.3. CUSTODIA was rewritten and the station became a place for people again.',
+  luna: 'TRUE ENDING: all 6 notes reached the press. The company lost its lunar permit and Hart testified against it. Shackleton is now an open science base.',
+  marte: 'TRUE ENDING: with ARES\'s diary, the Council understood the AI was manipulating them. They voted again: 10 to 0. The colony will decide its future without ARES.',
+};
+for (const [loc, lista] of Object.entries(NOTES_EN)) lista.forEach(([t, x], i) => {
+  const nota = NOTES[loc][i]; const [t0, x0] = nota;
+  Object.defineProperty(nota, 0, { get: () => T(t0, t), enumerable: true, configurable: true });
+  Object.defineProperty(nota, 1, { get: () => T(x0, x), enumerable: true, configurable: true });
+});
+for (const [loc, en] of Object.entries(TRUE_END_EN)) { const es = TRUE_END[loc]; Object.defineProperty(TRUE_END, loc, { get: () => T(es, en), enumerable: true, configurable: true }); }
+
+// ---------- Transmisiones de la nave de rescate (ficción; una por mañana, del día 2 al 10) ----------
+// Dan esperanza y repiten, con otras palabras, lo que enseña el juego: rutina, energía, refugio, descanso. El número es los días que faltan.
+export const NAVE = 'ESPERANZA';
+const RESCATE = [
+  ['Despegamos anoche. Llegamos en 9 días. Cuiden el aire, la energía y la comida: nos vemos pronto.', 'We lifted off last night. We arrive in 9 days. Take care of the air, the power and the food: see you soon.'],
+  ['Faltan 8 días. Aquí también hacemos mantenimiento cada mañana: lo aburrido es lo que nos mantiene vivos.', '8 days to go. We also do maintenance every morning here: the boring stuff is what keeps us alive.'],
+  ['Faltan 7 días. Si el Sol se enoja, al refugio sin pensarlo. La radiación no se ve, pero se suma.', '7 days to go. If the Sun gets angry, go to the shelter without thinking twice. You cannot see radiation, but it adds up.'],
+  ['Faltan 6 días: vamos por la mitad del camino. ¿Cómo está la energía? Sin energía, todo lo demás cae.', '6 days to go: we are halfway there. How is the power? Without power, everything else falls.'],
+  ['Faltan 5 días. Toda nuestra tripulación pregunta por ustedes. No están solos.', '5 days to go. Our whole crew keeps asking about you. You are not alone.'],
+  ['Faltan 4 días. Ya vemos su base como un puntito de luz. Sigan con la rutina.', '4 days to go. We can already see your base as a tiny dot of light. Keep up the routine.'],
+  ['Faltan 3 días. Un equipo cansado se equivoca: coman bien y duerman.', '3 days to go. A tired team makes mistakes: eat well and sleep.'],
+  ['Faltan 2 días. Preparen la esclusa. Lo estás haciendo muy bien, cadete.', '2 days to go. Get the airlock ready. You are doing great, cadet.'],
+  ['¡Mañana llegamos! Un día más cuidando la base y vuelven a casa.', 'We arrive tomorrow! One more day looking after the base and you go home.'],
+];
+/** Frase de la nave de rescate para la mañana del día `day` (2…10); '' fuera de ese rango. */
+export const rescateLinea = (day) => { const r = RESCATE[day - 2]; return r ? T(r[0], r[1]) : ''; };
+/** La misma frase con quién habla, lista para el registro. */
+export const rescateAviso = (day) => { const l = rescateLinea(day); return l ? T(`📡 Nave de rescate ${NAVE}: «${l}»`, `📡 Rescue ship ${NAVE}: “${l}”`) : ''; };
