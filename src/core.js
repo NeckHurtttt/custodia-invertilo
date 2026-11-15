@@ -650,7 +650,7 @@ export function label(s, n) {
   if (n.kind === 'suelo') return `Recoger ${itemName(s, n.f.id)}`;
   if (n.kind === 'emerg') return S.emergLabel(s);
   if (n.kind === 'obj') return n.o.t === 'mant' ? S.label(s, n.o) : (s.L.labels[n.o.t] ?? OBJ_LABEL[n.o.t]);
-  if (n.kind === 'crew') return n.c.betrayed ? `${n.c.name} (te odia)` : (n.c.want ? `Hablar con ${n.c.name}` : `Pedir a ${n.c.name} que distraiga`) + (s.iaOn ? ' · [B] delatar' : '');
+  if (n.kind === 'crew') return n.c.betrayed ? `${n.c.name} (te odia)` : (n.c.want ? `Hablar con ${n.c.name}` : `Pedir a ${n.c.name} que distraiga`) + (s.iaOn && !dif(s).noBetray ? ' · [B] delatar' : '');
   if (n.kind === 'vil') return V.label(s, n);
   if (n.kind === 'rejilla') return s.p.inDuct ? 'Salir del conducto' : 'Entrar al conducto';
   if (n.kind === 'puerta') return (n.door.open ? 'Cerrar' : 'Abrir') + ' escotilla';
@@ -762,6 +762,7 @@ export function routes(s) {
 }
 /** Delatar a un compañero ante la IA: baja tu alerta y te premian, pero te deja solo. */
 export function betray(s) {
+  if (dif(s).noBetray) return; // Cadete (7-12): no se ofrece delatar a un compañero
   if (s.over || s.pending || !s.iaOn) return s.iaOn ? undefined : flash(s, `${s.L.ai} está apagada: no hay a quién delatar.`, 'info');
   const c = s.crew.find((x) => !x.betrayed && Math.hypot(x.x - s.p.x, x.y - s.p.y) < 1.4);
   if (!c) return flash(s, 'No hay ningún compañero cerca para delatar.', 'info');

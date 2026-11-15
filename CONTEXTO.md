@@ -76,12 +76,12 @@ npm i --no-save playwright && npm run e2e          # pruebas en navegador (CHROM
 
 ## 5. Siguiente paso y cola de trabajo
 
-> **SIGUIENTE PASO:** C · ocultar "delatar a un compañero" en Cadete.
+> **SIGUIENTE PASO:** D · verificar las 3 citas de Leo (NTRS 20250003954, GeoHealth 2025 Wang et al., 250 mSv por evento).
 
 Cola en orden (marca `[x]` al terminar y sube):
 - [x] A · Instrucciones para el Claude que retome + bitácora (este archivo).
 - [x] B · **Campo para la llave de api.nasa.gov** en DATOS NASA: se guarda en `lfr.nasaKey`, borra la caché `lfr.flares` y vuelve a pedir DONKI (`pedirDonki()` en `src/main.js`). Si NASA no responde, lo dice y sigue con las archivadas.
-- [ ] C · **Ocultar "delatar a un compañero" en Cadete** (público de 7-12). Tecla B en `src/main.js` y `betray()` en `src/core.js`; también el texto "[B] delatar".
+- [x] C · **Ocultar "delatar a un compañero" en Cadete** (público de 7-12). Tecla B en `src/main.js` y `betray()` en `src/core.js`; también el texto "[B] delatar".
 - [ ] D · **Verificar 3 citas de Leo** y corregir o marcar como no verificadas: NTRS 20250003954 (despresurización, `PROTO_FUENTE.fuga`), "GeoHealth 2025, Wang et al." (`PROTO_FUENTE.perclorato`) y "250 mSv por evento" (`src/sistemas.js`, `EMERGS.llamarada.fatal`).
 - [ ] E · **Adaptar la entrega de Space Apps a Custodia**: nuevo `docs/entrega-space-apps.md` en inglés (nombre, resumen, enlaces, datos NASA, uso de IA, guion de 30 s, 7 diapositivas) y la descripción del equipo. Faltan los nombres del equipo: pedírselos a Sergio.
 - [ ] F · **El mantenimiento como mini-protocolo** de 2 o 3 pasos en orden (hoy es "E y esperar 3 s"). Sin romper el bot del simulador ni `npm run e2e`.
@@ -130,4 +130,5 @@ gh api repos/NeckHurtttt/proyecto-Hackaton-2.0/pages -X POST -f "source[branch]=
 | 14/11 | `74019d1`…`f9422b0` | Los 8 puntos (rescate, Cadete, tormentas DONKI, armario, pantalla simple, DATOS NASA, enlaces del jurado) | — |
 | 14/11 | `b7c3663`, `3cd072f` | CONTEXTO, referencias, análisis; publicado en GitHub y Pages | — |
 | 14/11 | (este commit) | A · Instrucciones para el Claude que retome y cola de trabajo | B |
-| 14/11 | (este commit) | B · Campo para la llave de api.nasa.gov en DATOS NASA (probado con llave falsa: avisa y sigue con archivadas); e2e 18/18 | C |
+| 14/11 | `1732dd0` | B · Campo para la llave de api.nasa.gov en DATOS NASA (probado con llave falsa: avisa y sigue con archivadas); e2e 18/18 | C |
+| 14/11 | (este commit) | C · En Cadete no se puede delatar: `noBetray` en `DIFS.cadete`; `betray()` no hace nada, la etiqueta no ofrece [B] y la ayuda no lo menciona. Prueba nueva en `tests/meta.test.js`; 146/146 y e2e 18/18 | D |
