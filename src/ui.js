@@ -1,4 +1,4 @@
-// Decisiones puras de la interfaz de LIFELINE: Rutina (sin DOM, sin azar). Solo LEE el estado; las reglas siguen en core.js.
+// Decisiones puras de la interfaz de CUSTODIA (sin DOM, sin azar). Solo LEE el estado; las reglas siguen en core.js.
 // Aquí viven: el estado de color de cada barra (bien / bajo / crítico), la marca de texto que acompaña al color,
 // el seguimiento de «¿me bajó de golpe?» para el aviso de daño, el pulso lento de los carteles y el resumen causal del final.
 // main.js solo pinta lo que estas funciones deciden. Pruebas: tests/ui.test.js.

@@ -1,4 +1,4 @@
-// Villanos de LIFELINE: Rutina. Cada destino tiene 10: el primero es la IA (siempre activa);
+// Villanos de CUSTODIA. Cada destino tiene 10: el primero es la IA (siempre activa);
 // cada día se sortean otros al azar. También: misiones con reloj, huellas, votación y peligros nuevos.
 import { ITEMS, LOOT } from './common.js';
 import * as C from './core.js';

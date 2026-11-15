@@ -1,4 +1,4 @@
-// Pantalla, controles y menús de LIFELINE: Rutina. Mundo en pixel art con cámara que sigue al jugador.
+// Pantalla, controles y menús de CUSTODIA. Mundo en pixel art con cámara que sigue al jugador.
 import { ITEMS, PROTOCOLS, PROTO_FUENTE, PROTO_NIVEL, PROTO_NIVEL_EN, DIFS, PERKS } from './common.js';
 import * as Meta from './meta.js';
 import { NOTES } from './story.js';
@@ -739,7 +739,7 @@ function titleScreen() {
   const sv = load(sel); const hayGuardada = !!(sv && !sv.over);
   open(`<div class="inicio">
     ${idiomaHTML()}<p class="kicker">${T('ENTRENAMIENTO DE CADETES ASTRONAUTA', 'ASTRONAUT CADET TRAINING')}</p>
-    <h1 class="logo-grande">LIFELINE<b>:RUTINA</b></h1>
+    <h1 class="logo-grande">CUSTODIA</h1>
     <p class="lema">${T(`Mantén viva la base hasta que llegue el rescate: cumple la rutina, cuida los sistemas y esquiva a la IA que falla.`, `Keep the base alive until the rescue arrives: follow the routine, take care of the systems and dodge the AI that is malfunctioning.`)}</p>
     <p class="puntos">${ic('estrella')} ${T(`${mt.pts} PUNTOS · racha ${mt.streak} (mejor ${mt.bestStreak}) · medallas ${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length}`, `${mt.pts} POINTS · streak ${mt.streak} (best ${mt.bestStreak}) · medals ${Object.keys(mt.medals).length}/${Object.keys(Meta.MEDALS).length}`)}</p>
     <h2 class="paso">${T(`1 · ELIGE TU DESTINO`, `1 · CHOOSE YOUR DESTINATION`)}</h2>
@@ -1038,7 +1038,7 @@ function endScreen() {
   menu = 'fin'; clearSave(s.loc);
   const o = s.over; if (o.won && !s.daily) setBest(s.loc, o.stars);
   const r = Meta.finish(s); const dr = r.daily; const R_ = UI.resumenFin(s);
-  const share = s.daily ? `LIFELINE:RUTINA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}× · https://neckhurtttt.github.io/Custodia/` : '';
+  const share = s.daily ? `CUSTODIA · Reto ${Meta.today()} · ${s.L.name}: ${o.won ? `escapé en ${Meta.fmtTime(s.t)} ${'★'.repeat(o.stars)}` : 'no escapé 💀'} · atrapado ${s.stats.caught}× · https://neckhurtttt.github.io/proyecto-Hackaton-2.0/` : '';
   open(`<div class="fin ${o.won ? 'gana' : 'pierde'}">
     <div class="fin-cab"><span class="sello">${ic(o.won ? 'ok' : 'bad')}</span><div><p class="etq">${o.won ? T('¡VOLVISTE A CASA!', 'YOU MADE IT HOME!') : T('MISIÓN PERDIDA', 'MISSION LOST')}</p><h2>${R_.titulo}</h2></div></div>
     ${o.won ? `<div class="estrellas" aria-label="${o.stars} ${T('de 3 estrellas', 'of 3 stars')}">${'★'.repeat(o.stars)}${'☆'.repeat(3 - o.stars)}</div>` : ''}

@@ -1,4 +1,4 @@
-// Reglas PURAS del sonido de LIFELINE: Rutina (sin AudioContext, sin DOM, sin azar propio).
+// Reglas PURAS del sonido de CUSTODIA (sin AudioContext, sin DOM, sin azar propio).
 // music.js las usa para sonar y main.js para decidir QUÉ sonar; así se pueden probar en node (tests/sonido.test.js).
 // El audio nunca altera reglas ni estado: aquí solo se LEE información del juego y se devuelven números.
 
